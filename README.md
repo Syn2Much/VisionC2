@@ -6,22 +6,33 @@
 
 A sophisticated Go-based Command & Control (C2) framework with botnet capabilities featuring TLS encryption, multi-architecture support, and various attack vectors.
 
-## 📁 Project Structure
+## ⚡ Features
 
-```
-VisionC2/
-├── bot/                    # Bot client implementation
-│   ├── bins/              # Compiled binaries for different architectures
-│   ├── build.sh           # Multi-architecture build script
-│   ├── debug.go           # Debug utilities
-│   └── main.go            # Main bot logic
-├── cnc/                   # Command & Control server
-│   ├── main.go           # Main C2 server logic
-│   ├── miscellaneous.go  # Additional utilities
-│   └── users.json        # User authentication database
-└── tools/
-    └── obfuscate_c2.py   # C2 address obfuscation tool
-```
+### C2 Server Features
+- **TLS Encryption**: Secure communication with bots
+- **Multi-User Support**: Role-based authentication system
+- **Bot Management**: Real-time bot monitoring and control
+- **Attack Coordination**: Coordinate distributed attacks
+- **Persistence**: Automatic reconnection and bot tracking
+
+### Bot Features
+- **Multi-Architecture**: Support for 14 different CPU architectures
+- **Anti-Sandbox**: Basic sandbox detection and evasion
+- **Persistence**: Multiple persistence mechanisms
+- **Stealth**: Obfuscated C2 communication
+- **Attack Capabilities**:
+  - UDP/TCP Flood
+  - HTTP Flood
+  - SYN/ACK Flood
+  - DNS Amplification
+  - GRE Flood
+
+### Security Features
+- **Mutual Authentication**: Challenge-response authentication
+- **TLS 1.2/1.3**: Modern encryption protocols
+- **Connection Validation**: Bot identity verification
+- **Dead Bot Cleanup**: Automatic removal of inactive bots
+
 
 ## 🔧 Prerequisites
 
@@ -29,7 +40,8 @@ VisionC2/
 - **Go 1.21+** (for building from source)
 - **UPX** (Ultimate Packer for eXecutables) - for binary compression
 - **OpenSSL** (for certificate generation)
--**NoMoreUPX** (Reccomended custom Made tool to remove UPX strings from Anaylsis) https://github.com/Syn2Much/upx-stripper
+- **NoMoreUPX** (Reccomended custom Made tool to remove UPX strings from Anaylsis) https://github.com/Syn2Much/upx-stripper
+- 
 ### Install Dependencies
 
 #### Ubuntu/Debian:
@@ -263,54 +275,14 @@ func requestMore() string {
     return string(decoded)
 }
 ```
+## 🔒 Security Considerations
 
-## 📊 Supported Architectures
-
-The build script creates binaries for:
-
-| Binary Name | Architecture | GOOS | GOARCH | Target Devices |
-|------------|--------------|------|--------|----------------|
-| kworkerd0 | x86 (386) | linux | 386 | 32-bit Intel/AMD systems |
-| ethd0 | x86_64 | linux | amd64 | 64-bit Intel/AMD systems |
-| mdsync1 | ARMv7 | linux | arm | ARM 32-bit v7 (Raspberry Pi 2/3) |
-| ksnapd0 | ARMv5 | linux | arm | ARM 32-bit v5 (older ARM) |
-| kswapd1 | ARMv6 | linux | arm | ARM 32-bit v6 (Raspberry Pi 1) |
-| ip6addrd | ARM64 | linux | arm64 | ARM 64-bit (Raspberry Pi 4, Android) |
-| deferwqd | MIPS | linux | mips | MIPS big-endian (routers) |
-| devfreqd0 | MIPSLE | linux | mipsle | MIPS little-endian |
-| kintegrity0 | MIPS64 | linux | mips64 | MIPS 64-bit big-endian |
-| biosd0 | MIPS64LE | linux | mips64le | MIPS 64-bit little-endian |
-| kpsmoused0 | PPC64 | linux | ppc64 | PowerPC 64-bit big-endian |
-| ttmswapd | PPC64LE | linux | ppc64le | PowerPC 64-bit little-endian |
-| vredisd0 | s390x | linux | s390x | IBM System/390 64-bit |
-| kvmirqd | RISC-V 64 | linux | riscv64 | RISC-V 64-bit |
-
-## ⚡ Features
-
-### C2 Server Features
-- **TLS Encryption**: Secure communication with bots
-- **Multi-User Support**: Role-based authentication system
-- **Bot Management**: Real-time bot monitoring and control
-- **Attack Coordination**: Coordinate distributed attacks
-- **Persistence**: Automatic reconnection and bot tracking
-
-### Bot Features
-- **Multi-Architecture**: Support for 14 different CPU architectures
-- **Anti-Sandbox**: Basic sandbox detection and evasion
-- **Persistence**: Multiple persistence mechanisms
-- **Stealth**: Obfuscated C2 communication
-- **Attack Capabilities**:
-  - UDP/TCP Flood
-  - HTTP Flood
-  - SYN/ACK Flood
-  - DNS Amplification
-  - GRE Flood
-
-### Security Features
-- **Mutual Authentication**: Challenge-response authentication
-- **TLS 1.2/1.3**: Modern encryption protocols
-- **Connection Validation**: Bot identity verification
-- **Dead Bot Cleanup**: Automatic removal of inactive bots
+### Mandatory Changes Before Use
+1. **Change Magic Code**: Update `MAGIC_CODE` in both `cnc/main.go` and `bot/main.go`
+2. **Change Protocol Version**: Update `PROTOCOL_VERSION` for each campaign
+3. **Generate New Certificates**: Never use default certificates
+4. **Change Default Ports**: Modify default ports if needed
+5. **Update User Credentials**: Change default root password
 
 ## 🛠️ Administration Commands
 
@@ -353,14 +325,43 @@ logout/exit              - Disconnect
 db                       - Show user database
 ```
 
-## 🔒 Security Considerations
+## 📊 Supported Architectures
 
-### Mandatory Changes Before Use
-1. **Change Magic Code**: Update `MAGIC_CODE` in both `cnc/main.go` and `bot/main.go`
-2. **Change Protocol Version**: Update `PROTOCOL_VERSION` for each campaign
-3. **Generate New Certificates**: Never use default certificates
-4. **Change Default Ports**: Modify default ports if needed
-5. **Update User Credentials**: Change default root password
+The build script creates binaries for:
+
+| Binary Name | Architecture | GOOS | GOARCH | Target Devices |
+|------------|--------------|------|--------|----------------|
+| kworkerd0 | x86 (386) | linux | 386 | 32-bit Intel/AMD systems |
+| ethd0 | x86_64 | linux | amd64 | 64-bit Intel/AMD systems |
+| mdsync1 | ARMv7 | linux | arm | ARM 32-bit v7 (Raspberry Pi 2/3) |
+| ksnapd0 | ARMv5 | linux | arm | ARM 32-bit v5 (older ARM) |
+| kswapd1 | ARMv6 | linux | arm | ARM 32-bit v6 (Raspberry Pi 1) |
+| ip6addrd | ARM64 | linux | arm64 | ARM 64-bit (Raspberry Pi 4, Android) |
+| deferwqd | MIPS | linux | mips | MIPS big-endian (routers) |
+| devfreqd0 | MIPSLE | linux | mipsle | MIPS little-endian |
+| kintegrity0 | MIPS64 | linux | mips64 | MIPS 64-bit big-endian |
+| biosd0 | MIPS64LE | linux | mips64le | MIPS 64-bit little-endian |
+| kpsmoused0 | PPC64 | linux | ppc64 | PowerPC 64-bit big-endian |
+| ttmswapd | PPC64LE | linux | ppc64le | PowerPC 64-bit little-endian |
+| vredisd0 | s390x | linux | s390x | IBM System/390 64-bit |
+| kvmirqd | RISC-V 64 | linux | riscv64 | RISC-V 64-bit |
+
+  
+## 📁 Project Structure
+```
+VisionC2/
+├── bot/                    # Bot client implementation
+│   ├── bins/              # Compiled binaries for different architectures
+│   ├── build.sh           # Multi-architecture build script
+│   ├── debug.go           # Debug utilities
+│   └── main.go            # Main bot logic
+├── cnc/                   # Command & Control server
+│   ├── main.go           # Main C2 server logic
+│   ├── miscellaneous.go  # Additional utilities
+│   └── users.json        # User authentication database
+└── tools/
+    └── obfuscate_c2.py   # C2 address obfuscation tool
+```
 
 
 
