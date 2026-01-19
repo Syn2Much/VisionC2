@@ -98,40 +98,7 @@ chmod 600 server.key
 chmod 644 server.crt
 ```
 
-### Option B: Self-Signed with SAN
-
-```bash
-cat > openssl.cnf <<EOF
-[req]
-distinguished_name = req_distinguished_name
-x509_extensions = v3_req
-prompt = no
-
-[req_distinguished_name]
-C = US
-ST = State
-L = City
-O = Organization
-CN = localhost
-
-[v3_req]
-keyUsage = keyEncipherment, dataEncipherment
-extendedKeyUsage = serverAuth
-subjectAltName = @alt_names
-
-[alt_names]
-DNS.1 = localhost
-IP.1  = 127.0.0.1
-EOF
-
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout server.key -out server.crt \
-  -config openssl.cnf -sha256
-
-rm openssl.cnf
-```
-
-### Option C: Let’s Encrypt (Production)
+### Option B: Let’s Encrypt (Production)
 
 ```bash
 sudo apt install certbot
@@ -151,7 +118,7 @@ Certificates will be located at:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/VisionC2.git
+git clone https://github.com/Syn2Much/VisionC2.git
 cd VisionC2
 ```
 
