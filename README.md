@@ -29,7 +29,7 @@ It features TLS-encrypted communications, multi-architecture support, and centra
 * **Multi-Architecture Support** – 14 supported CPU architectures
 * **Anti-Sandboxing** – Multi-stage sandbox detection
 * **Persistence Mechanisms** – Multiple survival techniques
-* **Stealth Communication** – Obfuscated C2 addressing
+* **Remote Command Execution** – Run Commands from the bots shell via detatched/streamed/normal 
 * **Attack Capabilities**:
 
   * UDP / TCP Flood
