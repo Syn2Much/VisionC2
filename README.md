@@ -1,11 +1,12 @@
-# VisionC2- Go Based Botnet Command & Control (C2) Framework
+# VisionC2 – Go Based Botnet Command & Control (C2) Framework
 
 ![VisionC2 Banner](https://img.shields.io/badge/VisioNNet-V3-red)
 ![Go Version](https://img.shields.io/badge/Go-1.21+-blue)
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS-green)
 
-**VisionC2** is a upgraded version of BotnetGo with a focus on DDos and Shell Execution.
-It features TLS-encrypted communication, multi-architecture bot clients, and new commands/attacks.
+**VisionC2** is an upgraded fork of [BotnetGo](https://github.com/1Birdo/BotnetGo.git) bringing new Anti Sandbox, TLS Encryption + HMAC Bot Auth, String Hiding, and more to come .
+
+> **Credit:** This project is based upon the incredible work of [1birdo](https://github.com/1Birdo) in the [BotnetGo](https://github.com/1Birdo/BotnetGo.git) project. Many of VisionC2's foundations come directly from that repository.
 
 ---
 
@@ -13,18 +14,18 @@ It features TLS-encrypted communication, multi-architecture bot clients, and new
 
 ### C2 Server
 
-- **TLS Encryption** &mdash; Secure bot-to-server comms
-- **Multi-User, Role-Based Auth** &mdash; Support for multiple admins or operators
-- **Real-Time Bot Management** &mdash; Live monitoring and control
-- **Centralized Attack Coordination** &mdash; Issue simultaneous commands to botnet clients
-- **Persistence Handling** &mdash; Handles bot reconnections and state tracking
+- **TLS Encryption:** Secure bot-to-server communications
+- **Multi-User, Role-Based Auth:** Support for multiple admins/operators
+- **Real-Time Bot Management:** Live monitoring and control
+- **Centralized Attack Coordination:** Issue simultaneous botnet commands
+- **Persistence Handling:** Tracks and handles bot reconnections
 
 ### Bot Client
 
 - **14+ CPU Architectures Supported**
-- **Anti-Sandboxing** &mdash; Multi-stage detection/evasion
-- **Persistence Mechanisms** &mdash; Multi-layered survival techniques
-- **Remote Shell Execution** &mdash; Detach, stream, or normal shell command execution
+- **Anti-Sandboxing:** Multi-stage detection/evasion
+- **Persistence Mechanisms:** Multi-layered survival
+- **Remote Shell Execution:** Detach, stream, or normal shell execution
 - **Attack Capabilities**:
   - UDP / TCP Flood
   - HTTP Flood
@@ -32,16 +33,17 @@ It features TLS-encrypted communication, multi-architecture bot clients, and new
   - DNS Amplification
   - GRE Flood
   - HTTPS/CF/TLS BYPASS (WIP)
+
 ---
 
 ## 🔧 Prerequisites
 
 ### Requirements
 
-- **Go 1.21+** (install for building from source)
-- **UPX** &mdash; For compressing binaries
-- **OpenSSL** &mdash; For TLS certificate creation
-- **NoMoreUPX** (recommended) &mdash; [UPX string remover](https://github.com/Syn2Much/upx-stripper)
+- **Go 1.21+** (build from source)
+- **UPX:** For binary compression
+- **OpenSSL:** For TLS certificate creation
+- **NoMoreUPX** (recommended): [UPX string removal](https://github.com/Syn2Much/upx-stripper)
 
 ### Install Dependencies
 
@@ -64,7 +66,7 @@ sudo yum install -y golang upx openssl git
 
 VisionC2 requires TLS certificates to secure bot communication.
 
-### Option A: Self-Signed Certificate (For dev/testing)
+### Option A: Self-Signed Certificate (Dev/Testing)
 
 ```bash
 openssl genrsa -out server.key 2048
@@ -74,14 +76,14 @@ chmod 600 server.key
 chmod 644 server.crt
 ```
 
-### Option B: Let’s Encrypt (Recommended for production)
+### Option B: Let’s Encrypt (Production)
 
 ```bash
 sudo apt install certbot
 sudo certbot certonly --standalone -d yourdomain.com
 ```
 
-Certificates will be in:  
+Certificates will appear in:  
 `/etc/letsencrypt/live/yourdomain.com/`
 
 ---
@@ -97,7 +99,7 @@ cd VisionC2
 
 ### 2. Configure the C2 Server
 
-Edit `cnc/main.go` and set:
+Edit `cnc/main.go`:
 
 ```go
 const (
@@ -108,7 +110,7 @@ const (
 )
 ```
 
-Update protocol constants:
+Update protocol settings:
 
 ```go
 const (
@@ -131,7 +133,7 @@ Generate the obfuscated string:
 python3 tools/obfuscate_c2.py "YOUR_C2_IP:443"
 ```
 
-Update both `gothTits` and `requestMore()` with the new string.
+Replace both `gothTits` and `requestMore()` with the output.
 
 ### 4. Build Bot Binaries
 
@@ -148,7 +150,7 @@ cd cnc
 go run .
 ```
 
-A default `users.json` will be created on first run.
+A default `users.json` will be created on the first run.
 
 ### 6. Connect to the Admin Interface
 
@@ -156,9 +158,9 @@ A default `users.json` will be created on first run.
 nc YOUR_SERVER_IP 420
 # or
 telnet YOUR_SERVER_IP 420
-
-enter "spamtec" to make login screen appear once connected //change this to secret key of choice 
 ```
+
+> Enter your secret key (e.g., `spamtec`) to trigger the login screen—change `spamtec` to any secret string in main.go under `MAGIC_CODE`.
 
 ---
 
@@ -206,7 +208,7 @@ This software is for **educational and authorized security research only**.
 
 By using VisionC2 you agree to:
 
-1. Obtain explicit permission before testing/deployment
+1. Obtain explicit permission before testing or deployment
 2. Follow all applicable laws
 3. Take full responsibility for any use of the code
 4. Never use for malicious or unauthorized purposes
