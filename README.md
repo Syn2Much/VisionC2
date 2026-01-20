@@ -1,6 +1,4 @@
-# VisionC2
-
-### Modern Botnet Command & Control (C2) Framework
+# VisionC2 Go Based Botnet Command & Control (C2) Framework
 
 ![VisionC2 Banner](https://img.shields.io/badge/VisioNNet-V3-red)
 ![Go Version](https://img.shields.io/badge/Go-1.21+-blue)
