@@ -6,7 +6,11 @@
 
 **VisionC2** is an advanced botnet framework built in Go focused on network stress testing. It features end to end encryption, sophisticated anti-analysis techniques, as well as DDOS/RCE/SOCKS Modules with more features to come.
 
-
+## Dev TODO
+- Check and Fix Persistence Methods
+- Implement user:pass options into reverse Socks5 Proxy Module
+- Adjustments to run seamless on windows aswell 
+- Hidden Admin Portal to easier manage individual bots 
 ---
 ## ⚡ Core Capabilities
 
