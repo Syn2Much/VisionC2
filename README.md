@@ -9,6 +9,8 @@
 > **Credit:** This project is based upon the incredible work of [1birdo](https://github.com/1Birdo) in the [BotnetGo](https://github.com/1Birdo/BotnetGo.git) project. Many of VisionC2's foundations come directly from that repository.
 
 ---
+<img width="799" height="930" alt="Screenshot 2026-01-20 210432" src="https://github.com/user-attachments/assets/9f254bcb-b824-432a-812e-6250f208dbc4" />
+
 
 ## ⚡ Features
 
