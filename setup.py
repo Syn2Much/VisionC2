@@ -9,7 +9,7 @@ Automates the complete setup process:
 - Updates CNC and Bot source code
 - Builds all components
 
-Author: VisionC2 Team
+Author: Syn2Much
 """
 
 import os
