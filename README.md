@@ -64,6 +64,7 @@ nc YOUR_IP YOUR_ADMIN_PORT
 # Type "spamtec" → login prompt appears
 
 # Bot binaries ready in: bot/bins/
+optional: protect UPX packed binaries from string anaylsis https://github.com/Syn2Much/upx-stripper
 ```
 
 ---
@@ -98,8 +99,6 @@ nc YOUR_IP YOUR_ADMIN_PORT
 
 ---
 
-Here's the updated content with the top part formatted like the bottom section:
-
 ## 🔐 Security
 
 - **TLS 1.3**: Encrypted communications for all network traffic
@@ -121,7 +120,6 @@ Here's the updated content with the top part formatted like the bottom section:
 **Authorized security research only.** Obtain written permission before use.
 
 ---
-
 
 ## 🤝 Community & Support
 
