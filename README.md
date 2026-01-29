@@ -3,9 +3,6 @@
 
 ## 📑 Table of Contents
 - [📋 Changelog](#-changelog)
-  - [v3.3 - February 2026](#v33---february-2026)
-  - [v3.2 - January 2026](#v32---january-2026)
-  - [v3.1 - December 2025](#v31---december-2025)
 - [🚀 Installation & Setup](#-installation--setup)
   - [Prerequisites](#prerequisites)
   - [⭐ Use the Setup Wizard (Recommended)](#-use-the-setup-wizard-recommended)
@@ -29,31 +26,6 @@
 
 **VisionC2** 
 *is an advanced cross-arch botnet focused on network stress testing it features end-to-end TLS 1.3 encryption, anti-analysis techniques, and DDOS/RCE/SOCKS modules. Vision is built to be setup via setup script meaning there are no code changes required.*
-
-## 📋 Changelog
-
-### v3.3 - February 2026
-
-- `!stop` command - Instantly halt all running attacks
-- HTTPS/TLS 1.3 flood attack with HTTP/2 fingerprinting
-- Cloudflare UAM bypass attack
-- DNS TXT record C2 resolution with DoH fallback
-- Multi-layer encryption (RC4 + XOR + byte substitution + MD5)
-- Setup wizard with menu system (Full Setup / C2 Update Only)
-- Fixed SOCKS5 proxy, target resolution, telnet handling
-- Anti-analysis obfuscation (meaningless function names)
-
-### v3.2 - January 2026
-
-- Added Reverse Socks 5 Modules
-- Cleaned up CNC UI
-- Built Setup.py to automate setup process
-
-### v3.1 - December 2025
-
-- Initial release with TLS 1.3 encrypted communications
-- 14 architecture cross-compilation support
-- HMAC challenge-response authentication
 
 ---
 <img width="562" height="1314" alt="Screenshot 2026-01-28 235647" src="https://github.com/user-attachments/assets/18dba9dd-3067-4b7b-9bcf-a41e1db5b031" />
@@ -251,6 +223,30 @@ VisionC2 operates on a client-server model with clear separation between adminis
 - `!cfbypass <url> <duration>` - Cloudflare UAM bypass attack
 - `!syn/!ack/!gre/!dns` - Protocol-specific attacks
 
+## 📋 Changelog
+
+### v3.3 - February 2026
+
+- `!stop` command - Instantly halt all running attacks
+- HTTPS/TLS 1.3 flood attack with HTTP/2 fingerprinting
+- Cloudflare UAM bypass attack
+- DNS TXT record C2 resolution with DoH fallback
+- Multi-layer encryption (RC4 + XOR + byte substitution + MD5)
+- Setup wizard with menu system (Full Setup / C2 Update Only)
+- Fixed SOCKS5 proxy, target resolution, telnet handling
+- Anti-analysis obfuscation (meaningless function names)
+
+### v3.2 - January 2026
+
+- Added Reverse Socks 5 Modules
+- Cleaned up CNC UI
+- Built Setup.py to automate setup process
+
+### v3.1 - December 2025
+
+- Initial release with TLS 1.3 encrypted communications
+- 14 architecture cross-compilation support
+- HMAC challenge-response authentication
 
 ## 📋 WIP/TODO
 - Multiple/Rotating Ports
