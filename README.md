@@ -232,7 +232,12 @@ VisionC2 operates on a client-server model with clear separation between adminis
 └──────────────────────────────────────────────────────────────┘
 ```
 ---
-
+## 📋 WIP/TODO
+- Multiple Domain/Rotating Host Supporty
+- Multiple/Rotating Ports
+- Locker/Killer to stay on the device and kill competing malware
+- Spread/Self-Rep Mechanism
+  
 
 ## ⚖️ Disclaimer
 
