@@ -18,7 +18,7 @@
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 **VisionC2** 
-*Vision hides the C2 Url behind 4 layers of encryption. Vision is built to be setup via setup script meaning there are no code changes required.*
+*hides the C2 Url behind 4 layers of encryption(XOR,RC4,MD5,B64). Vision is built to be setup via setup script meaning there are no code changes required.*
 ![Animation](https://github.com/user-attachments/assets/35b58bb7-04ac-4318-9bd3-ceaed2a0235b)
 
 *2 Servers = 40k RPS/3-6 GBPS*
