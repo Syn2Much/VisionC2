@@ -19,9 +19,10 @@
 
 **VisionC2** 
 *is an advanced cross-arch botnet focused on network stress testing it features end-to-end TLS 1.3 encryption, anti-analysis techniques, and DDOS/RCE/SOCKS modules. Vision is built to be setup via setup script meaning there are no code changes required.*
+![Animation](https://github.com/user-attachments/assets/35b58bb7-04ac-4318-9bd3-ceaed2a0235b)
 
+*2 Servers = 40k RPS/3-6 GBPS*
 ---
-<img width="562" height="1314" alt="Screenshot 2026-01-28 235647" src="https://github.com/user-attachments/assets/18dba9dd-3067-4b7b-9bcf-a41e1db5b031" />
 
 ## 🚀 Installation & Setup
 
