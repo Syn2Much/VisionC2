@@ -55,7 +55,7 @@ cd VisionC2
 python3 setup.py
 ```
 
-> 💡 **Don't waste time with manual setup** - the wizard does it all in under 2 minutes!
+> 💡 **Setup Wizard handles Encryption, Certs, and Code Updates. The entire setup for Vision takes no more then 5 minutes.
 
 ---
 
