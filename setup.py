@@ -4,7 +4,7 @@ VisionC2 - Interactive Setup Script
 ====================================
 Automates the complete setup process:
 - Generates random protocol version and magic code
-- Obfuscates C2 address using XOR+Base64+RC5+MD5
+- Obfuscates C2 address using XOR+Base64+RC4+MD5
 - Generates TLS certificates
 - Updates CNC and Bot source code
 - Builds all components
