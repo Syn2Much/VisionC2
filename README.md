@@ -194,7 +194,7 @@ optional: protect UPX packed binaries from string analysis https://github.com/Sy
 - `!cfbypass <url> <duration>` - Cloudflare UAM bypass attack
 - `!syn/!ack/!gre/!dns` - Protocol-specific attacks
 
----
+
 ---
 
 ## 🏗️ Architecture Overview
@@ -210,10 +210,27 @@ VisionC2 operates on a client-server model with clear separation between adminis
                                          ▼
 ┌─────────────────┐                ┌─────────────────┐
 │   Bot Agents    │◄───────────────┤  Bot Registry   │
-│ (14+ Architectures)│                │ & Management   │
+│ (14+ Architectures)│                │ & Management │
 └─────────────────┘                └─────────────────┘
 ```
-
+```
+┌──────────────────────────────────────────────────────────────┐
+│ 📡 C2 Resolution - How Bots Find Your Server                 │
+├──────────────────────────────────────────────────────────────┤
+│ The bot uses a multi-method resolution system:               │
+│                                                              │
+│ Resolution Order (automatic fallback):                       │
+│   1. DNS TXT Record  → Checks for TXT record on domain       │
+│   2. DoH TXT Lookup  → Cloudflare/Google DNS-over-HTTPS      │
+│   3. A Record        → Falls back to standard DNS A record   │
+│   4. Direct IP       → Uses the value as-is if IP:port       │
+│                                                              │
+│ You can enter:                                               │
+│   • Direct IP      → 192.168.1.100 (simplest)                │
+│   • Domain name    → c2.example.com (uses A record)          │
+│   • TXT domain     → lookup.example.com (advanced)           │
+└──────────────────────────────────────────────────────────────┘
+```
 ---
 
 
