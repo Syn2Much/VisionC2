@@ -5,8 +5,9 @@
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-**VisionC2** is an advanced botnet framework built in Go focused on network stress testing. Features end-to-end TLS 1.3 encryption, anti-analysis techniques, and DDOS/RCE/SOCKS modules.
+**VisionC2** is an advanced botnet focused on network stress testing it features end-to-end TLS 1.3 encryption, anti-analysis techniques, and DDOS/RCE/SOCKS modules. It was built to be setup via setup script meaning there are no code changes required.
 
+<img width="820" height="766" alt="Screenshot 2026-01-28 200107" src="https://github.com/user-attachments/assets/100267cf-d5e2-4bc0-856c-3e62e84c443f" />
 
 ## 🚀 Installation & Setup
 
