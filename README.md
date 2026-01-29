@@ -11,7 +11,7 @@
 
 ## 📋 Changelog
 
-### v3.3 - January 2026
+### v3.3 - Febuary 2026
 
 - `!stop` command - Instantly halt all running attacks
 - HTTPS/TLS 1.3 flood attack with HTTP/2 fingerprinting
