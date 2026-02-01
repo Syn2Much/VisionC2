@@ -1,4 +1,3 @@
-
 # VisionC2 – Advanced Botnet Command & Control Framework
 
 ## 📑 Table of Contents
@@ -11,17 +10,18 @@
 - [⚖️ Disclaimer](#️-disclaimer)
 - [🤝 Community & Support](#-community--support)
 
-
 ![VisionC2 Banner](https://img.shields.io/badge/VisioNNet-V3.3-red)
 ![Go Version](https://img.shields.io/badge/Go-1.23.0+-blue)
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
+#
+**VisionC2** is an advanced command and control framework with 3 modules DDOS/RCE/SOCKS5 the framework features multi-layer encryption, TLS 1.3 communication, and supports 14+ CPU architectures out of the box.
 
-**VisionC2** 
-*hides the C2 Url behind 4 layers of encryption(XOR,RC4,MD5,B64). Vision is built to be setup via setup script meaning there are no code changes required.*
+**Vision is built to be setup via setup script meaning there are no code changes required.**
+
+*Performance: 2 Servers = 40k RPS/2-6 gbps*
 ![Animation](https://github.com/user-attachments/assets/35b58bb7-04ac-4318-9bd3-ceaed2a0235b)
 
-*2 Servers = 40k RPS*
 ---
 
 ## 🚀 Installation & Setup
@@ -30,7 +30,7 @@
 
 ```bash
 sudo apt update && sudo apt install -y upx-ucl openssl git wget gcc python3
-# Go 1.23+ required - see https://go.dev/dl/
+# Go 1.23+ required - download from https://go.dev/dl/
 ```
 
 ### ⭐ Use the Setup Wizard (Recommended)
@@ -43,7 +43,7 @@ python3 setup.py
 
 > 💡 **Setup Wizard handles Encryption, Certs, and Code Updates. The entire setup for Vision takes no more then 5 minutes.**
 
----
+### Setup Wizard Flow
 
 ```
 ╔══════════════════════════════════════════════════════════╗
@@ -132,19 +132,38 @@ python3 setup.py
 - Source code updates
 - Building CNC + 14 bot architectures
 
+
+
 ## 🎯 Quick Usage
 
+### Starting the C2 Server
+
 ```bash
-# Start server
-cd cnc && ./cnc
-
-# Connect admin (in another terminal)
-nc YOUR_IP YOUR_ADMIN_PORT
-# Type "spamtec" → login prompt appears
-
-# Bot binaries ready in: bot/bins/
-optional: protect UPX packed binaries from string analysis https://github.com/Syn2Much/upx-stripper
+cd cnc
+./cnc
 ```
+
+The CNC server will start listening on:
+- **Port 443 (TLS)**: For bot connections (fixed, cannot be changed)
+- **Admin Port (configurable)**: For admin console connections (default: 420)
+
+### Connecting to Admin Console
+
+```bash
+# In another terminal
+nc YOUR_SERVER_IP YOUR_ADMIN_PORT
+```
+
+Once connected:
+1. Type `spamtec` to trigger the login prompt
+2. Enter your credentials (default: `admin:admin`)
+3. Type `help` to see available commands
+
+### Bot Deployment
+
+Bot binaries are located in `bot/bins/` after building. The directory contains executables for 14+ architectures:
+
+> **Optional**: Protect UPX packed binaries from string analysis using [upx-stripper](https://github.com/Syn2Much/upx-stripper)
 
 ## 🏗️ Architecture Overview
 
@@ -162,6 +181,10 @@ VisionC2 operates on a client-server model with clear separation between adminis
 │ (14+ Architectures)│                │ & Management │
 └─────────────────┘                └─────────────────┘
 ```
+
+### C2 Resolution System
+
+Bots use a multi-method resolution system to find your C2 server:
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -181,6 +204,26 @@ VisionC2 operates on a client-server model with clear separation between adminis
 │   • TXT domain     → lookup.example.com (advanced)           │
 └──────────────────────────────────────────────────────────────┘
 ```
+
+### Communication Protocol
+
+1. **TLS 1.3 Encryption**: All communications use TLS 1.3 with perfect forward secrecy
+2. **Multi-Layer Obfuscation**: C2 address encrypted with 4 layers (XOR, RC4, MD5, Base64)
+3. **HMAC Authentication**: Challenge-response system to verify bot authenticity
+4. **Heartbeat System**: Regular check-ins to maintain connection and receive commands
+
+## 🛠️ Command Reference
+
+### User Management Commands
+
+- `help` - Context-aware help system (shows available commands based on your clearance level)
+- `db` - User database management (Owner only)
+  - `db add <username> <password> <clearance>` - Add new user
+  - `db del <username>` - Remove user
+  - `db list` - List all users
+- `private` - Specialized commands based on clearance level
+- `clear` - Clear the console screen
+- `exit` / `quit` - Disconnect from admin console
 
 ## 🛠️ Command Reference
 
@@ -216,17 +259,19 @@ VisionC2 operates on a client-server model with clear separation between adminis
 - `!tls <url> <duration>` - Alias for HTTPS flood
 - `!cfbypass <url> <duration>` - Cloudflare UAM bypass attack
 - `!syn/!ack/!gre/!dns` - Protocol-specific attacks
-
+  
 ## 📋 Changelog
-### v3.4 - February 2026
-- BOT Send total device ram on registry
-- BOT Debug Logged full connection/register/tls/main loop
-- CNC Update New Eye Logo
-- CNC Show Total Bot Ram tracked
 
-### v3.3 - February 2026
+### v3.4 - January 2026
+- **BOT**: Added support for using Layer7 attacks behind proxy list
+  > `!http target.com 443 60 -p https://example.com/proxies.txt`
+- **BOT**: Send total device RAM on registry
+- **BOT**: Debug Logged full connection/register/tls/main loop
+- **CNC**: Updated New Eye Logo
+- **CNC**: Show Total Bot RAM tracked
 
-- `!stop` command - Instantly halt all running attacks
+### v3.3 - January 2026
+- Added `!stop` command - Instantly halt all running attacks
 - HTTPS/TLS 1.3 flood attack with HTTP/2 fingerprinting
 - Cloudflare UAM bypass attack
 - DNS TXT record C2 resolution with DoH fallback
@@ -236,41 +281,54 @@ VisionC2 operates on a client-server model with clear separation between adminis
 - Anti-analysis obfuscation (meaningless function names)
 
 ### v3.2 - January 2026
-
 - Added Reverse Socks 5 Modules
 - Cleaned up CNC UI
 - Built Setup.py to automate setup process
 
 ### v3.1 - December 2025
-
 - Initial release with TLS 1.3 encrypted communications
 - 14 architecture cross-compilation support
 - HMAC challenge-response authentication
 
 ## 📋 WIP/TODO
-- Multiple/Rotating Ports
-- Locker/Killer to stay on the device and kill competing malware
-- Spread/Self-Rep Mechanism
-- Enhanced Daemonize
-- Single Instance/Port Takeover Networking  
+- Multiple/Rotating Ports for C2 connections
+- Locker/Killer to stay on the device and eliminate competing malware
+- Spread/Self-Rep Mechanism for lateral movement
+- Enhanced Daemonize with better stealth
+- Single Instance/Port Takeover Networking capabilities
+- Web-based admin interface
+- Encrypted configuration storage
+- Geographic targeting and filtering
+- Blockchain-based C2 fallback system
 
 ## ⚖️ Disclaimer
 
-**Authorized security research only.** Obtain written permission before use. The developers assume no liability and are not responsible for any misuse or damage caused by this program.
+**WARNING: FOR AUTHORIZED SECURITY RESEARCH ONLY**
+
+**LEGAL REQUIREMENTS:**
+1. Obtain written permission from system owners before testing
+2. Use only on systems you own or have explicit authorization to test
+3. Comply with all applicable laws and regulations
+4. Do not use for malicious purposes
+
+The developers assume no liability and are not responsible for any misuse or damage caused by this program. By using this software, you agree to use it responsibly and legally.
 
 ## 🤝 Community & Support
 
-### Contributing
-
-We welcome contributions from security professionals:
-
-- Code improvements and optimizations
-- Additional evasion techniques
-- Enhanced security features
-- Documentation and examples 
-
 ### Acknowledgments
 
-Built upon the framework of [1birdo](https://github.com/1Birdo)'s BotnetGo
+- Built upon the framework of [1birdo](https://github.com/1Birdo)'s BotnetGo
+- Thanks to the security research community for feedback and testing
+- Contributors and testers who help improve the framework
 
-📧 **Contact**: [dev@sinners.city](mailto:dev@sinners.city)
+### Support
+
+- **GitHub Issues**: For bug reports and feature requests
+- **Email**: [dev@sinners.city](mailto:dev@sinners.city) for security-related concerns
+- **Discord**: Community server (link in repository)
+
+### License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
