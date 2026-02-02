@@ -135,6 +135,11 @@ screen ./cnc
 
 > 💡 Use `screen` to keep the C2 running after disconnecting. Reattach with `screen -r`.
 
+The CNC server will start listening on:
+
+- **Port 443 (TLS)**: For bot connections (fixed, cannot be changed)
+- **Admin Port (configurable)**: For admin console connections (default: 420)
+
 ### Connecting to Admin Console
 
 ```bash
@@ -148,74 +153,63 @@ Once connected:
 2. Enter your credentials (default: `admin:changeme`)
 3. Type `help` to see available commands
 
-### Rebuilding Bots (After Initial Setup)
-
-```bash
-cd bot
-./build.sh
-```
-> Use this to rebuild bot binaries without changing C2 configuration.
-### Updating C2 Address (After Initial Setup)
-
-```bash
-python setup.py
-select option 2
-Makes Code Updates & Rebuilds
-```
-> Use this to update/move C2s without losing old bots (keeps certs, crypt seed, magic key & version)
-
-
-
-The CNC server will start listening on:
-
-- **Port 443 (TLS)**: For bot connections (fixed, cannot be changed)
-- **Admin Port (configurable)**: For admin console connections (default: 420)
-
-
-
 ### Bot Deployment
 
 Bot binaries are located in `bot/bins/` after building. The directory contains executables for 14+ architectures.
 
 ---
 
+### 🔧 Rebuilding Bots (After Initial Setup)
+
+```bash
+cd bot
+./build.sh
+```
+
+> Rebuild bot binaries without changing the C2 configuration.
+
+---
+
+### 🌐 Updating C2 Address (After Initial Setup)
+
+```bash
+python setup.py
+# select option 2
+# makes code updates & rebuilds
+```
+
+> Update or move C2 servers without losing existing bots
+> (preserves certs, crypto seed, magic key, and version).
+
+---
+
+
 ## 🏗️ Architecture Overview
 
-VisionC2 operates on a client-server model with clear separation between administrative interfaces and bot agents:
+```
+      Admin Console
+       (Multi-User)
+           │ TLS 1.3
+           ▼
+        C2 Server
+       (Go Backend)
+           │ TLS 1.3
+           ▼
+  Bot Registry & Management
+           ▲
+           │
+       Bot Agents
+   (14+ Architectures)
+```
 
-```
-┌─────────────────┐    TLS 1.3    ┌─────────────────┐
-│   Admin Console │◄──────────────►│    C2 Server    │
-│  (Multi-User)   │                │  (Go Backend)   │
-└─────────────────┘                └─────────────────┘
-                                         │ TLS 1.3
-                                         ▼
-┌─────────────────┐                ┌─────────────────┐
-│   Bot Agents    │◄───────────────┤  Bot Registry   │
-│ (14+ Architectures)│             │ & Management    │
-└─────────────────┘                └─────────────────┘
-```
+**C2 Resolution (How Bots Find Your Server)**
 
-### C2 Resolution System
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│ 📡 C2 Resolution - How Bots Find Your Server                 │
-├──────────────────────────────────────────────────────────────┤
-│ The bot uses a multi-method resolution system:               │
-│                                                              │
-│ Resolution Order (automatic fallback):                       │
-│   1. DNS TXT Record  → Checks for TXT record on domain       │
-│   2. DoH TXT Lookup  → Cloudflare/Google DNS-over-HTTPS      │
-│   3. A Record        → Falls back to standard DNS A record   │
-│   4. Direct IP       → Uses the value as-is if IP:port       │
-│                                                              │
-│ You can enter:                                               │
-│   • Direct IP      → 192.168.1.100 (simplest)                │
-│   • Domain name    → c2.example.com (uses A record)          │
-│   • TXT domain     → lookup.example.com (advanced)           │
-└──────────────────────────────────────────────────────────────┘
-```
+| Method         | Description / Fallback                    | Example Input        |
+| -------------- | ----------------------------------------- | -------------------- |
+| DNS TXT Record | Checks domain TXT record                  | `lookup.example.com` |
+| DoH TXT Lookup | Cloudflare/Google DNS-over-HTTPS          | `lookup.example.com` |
+| A Record       | Standard DNS fallback                     | `c2.example.com`     |
+| Direct IP      | Uses IP:port directly if no DNS available | `192.168.1.100`      |
 
 ---
 
