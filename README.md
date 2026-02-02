@@ -12,7 +12,7 @@
 - [🤝 Community & Support](#-community--support)
 
 
-![VisionC2 Banner](https://img.shields.io/badge/VisioNNet-V3.3-red)
+![VisionC2 Banner](https://img.shields.io/badge/VisionNet-V1.5-red)
 ![Go Version](https://img.shields.io/badge/Go-1.23.0+-blue)
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
