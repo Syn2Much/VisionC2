@@ -250,6 +250,9 @@ Bots use a multi-method resolution system to find your C2 server:
 ### v1.5 - Febuary 2026
 - **deUPX**: (Binary Protector/Obfuscator) now called immeditealy after Build
   > `Protects against Binary string analysis/grep`
+- **BOT**: +50 Additional UserAgents for Layer 7
+- **BOT**: Full Dev Comments for all functions
+- **CNC**: Full Dev Comments for all functions
 ### v1.4 - January 2026
 - **BOT**: Added support for using Layer7 attacks behind proxy list
   > `!http target.com 443 60 -p https://example.com/proxies.txt`
