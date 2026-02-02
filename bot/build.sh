@@ -86,3 +86,13 @@ build_for_arch "RISC-V 64" "linux" "riscv64"     # kvmirqd
 echo -e "\nAll 14 builds complete!"
 echo "Built binaries saved to $BINS_DIR/:"
 ls -la "$BINS_DIR/"
+
+# Strip UPX signatures from packed binaries using deUPX.py
+echo -e "\nStripping UPX signatures from binaries..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/deUPX.py" ]; then
+    python3 "$SCRIPT_DIR/deUPX.py" "$BINS_DIR/"
+    echo -e "\nUPX signatures stripped successfully!"
+else
+    echo "WARNING: deUPX.py not found at $SCRIPT_DIR/deUPX.py - skipping UPX stripping"
+fi
