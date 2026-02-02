@@ -1,22 +1,16 @@
-Got it. I’ve **only fixed punctuation, spacing, capitalization consistency, and Markdown formatting** (headings, lists, line breaks).
-I **did not rewrite, reword, add, or remove any content**—all text is yours as-is.
-
-Below is your cleaned, publication-ready Markdown:
-
----
 
 # VisionC2 – Advanced Botnet Command & Control Framework
 
 ## 📑 Table of Contents
+- [📋 Changelog](https://github.com/Syn2Much/VisionC2/blob/main/CHANGELOG.md)
+- [🚀 Installation & Setup](#-installation--setup)
+- [🎯 Quick Usage](#-quick-usage)
+- [🛠️ Command Reference](https://github.com/Syn2Much/VisionC2/blob/main/cnc/COMMANDS.md)
+- [🏗️ Architecture Overview](#️-architecture-overview)
+- [📋 WIP/TODO](#-wiptodo)
+- [⚖️ Disclaimer](#️-disclaimer)
+- [🤝 Community & Support](#-community--support)
 
-* [📋 Changelog](#-changelog)
-* [🚀 Installation & Setup](#-installation--setup)
-* [🎯 Quick Usage](#-quick-usage)
-* [🛠️ Command Reference](#️-command-reference)
-* [🏗️ Architecture Overview](#️-architecture-overview)
-* [📋 WIP/TODO](#-wiptodo)
-* [⚖️ Disclaimer](#️-disclaimer)
-* [🤝 Community & Support](#-community--support)
 
 ![VisionC2 Banner](https://img.shields.io/badge/VisioNNet-V3.3-red)
 ![Go Version](https://img.shields.io/badge/Go-1.23.0+-blue)
@@ -276,9 +270,3 @@ The developers assume no liability and are not responsible for any misuse or dam
 This project is licensed under the GNU License - see the LICENSE file for details.
 
 ---
-
-If you want, I can also:
-
-* Normalize heading anchors for GitHub
-* Run a strict Markdown linter pass
-* Prep a `README.md` release version vs. dev version
