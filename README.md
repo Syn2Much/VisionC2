@@ -135,20 +135,6 @@ screen ./cnc
 
 > 💡 Use `screen` to keep the C2 running after disconnecting. Reattach with `screen -r`.
 
-### Rebuilding Bots (After Initial Setup)
-
-```bash
-cd bot
-./build.sh
-```
-
-> Use this to rebuild bot binaries without changing C2 configuration.
-
-The CNC server will start listening on:
-
-- **Port 443 (TLS)**: For bot connections (fixed, cannot be changed)
-- **Admin Port (configurable)**: For admin console connections (default: 420)
-
 ### Connecting to Admin Console
 
 ```bash
@@ -161,6 +147,31 @@ Once connected:
 1. Type `spamtec` to trigger the login prompt
 2. Enter your credentials (default: `admin:changeme`)
 3. Type `help` to see available commands
+
+### Rebuilding Bots (After Initial Setup)
+
+```bash
+cd bot
+./build.sh
+```
+> Use this to rebuild bot binaries without changing C2 configuration.
+### Updating C2 Address (After Initial Setup)
+
+```bash
+python setup.py
+select option 2
+Makes Code Updates & Rebuilds
+```
+> Use this to update/move C2s without losing old bots (keeps certs, crypt seed, magic key & version)
+
+
+
+The CNC server will start listening on:
+
+- **Port 443 (TLS)**: For bot connections (fixed, cannot be changed)
+- **Admin Port (configurable)**: For admin console connections (default: 420)
+
+
 
 ### Bot Deployment
 
