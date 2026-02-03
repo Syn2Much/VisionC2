@@ -709,8 +709,6 @@ func (c *client) writeGeneralCommands(conn net.Conn) {
 		"║  \033[1;32mGeneral Commands\033[1;97m                                           ║",
 		"║    bots           - List all connected bots                  ║",
 		"║    clear/cls      - Clear screen                             ║",
-		"║    banner         - Show banner                              ║",
-		"║    help           - Show this help menu                      ║",
 		"║    ongoing        - Show ongoing attacks                     ║",
 		"║    logout/exit    - Disconnect from C2                       ║",
 		"║  \033[1;31mAttack Commands\033[1;97m                                            ║",
@@ -1067,23 +1065,23 @@ func showBanner(conn net.Conn) {
 	conn.Write([]byte("\033[38;5;93m                              ░░░░░▒▒▒▒▒▒▒▒▒▒▒▒░░░░░\033[0m\r\n"))
 	conn.Write([]byte("\033[38;5;99m                        ░░▒▒▓▓████████████████████▓▓▒▒░░\033[0m\r\n"))
 	conn.Write([]byte("\033[38;5;105m                    ░▒▓███▓▒░░                  ░░▒▓███▓▒░\033[0m\r\n"))
-	conn.Write([]byte("\033[38;5;111m                 ░▓██▓░░    ╭─────────────────────────╮   ░░▓██▓░\033[0m\r\n"))
-	conn.Write([]byte("\033[38;5;117m               ▒██▓░       │\033[38;5;196m  ☾ \033[38;5;231mV I S I O N \033[38;5;196m℣ \033[38;5;231mC 2 \033[38;5;117m │       ░▓██▒\033[0m\r\n"))
-	conn.Write([]byte("\033[38;5;123m             ▒██▒          ├─────────────────────────┤          ▒██▒\033[0m\r\n"))
-	conn.Write([]byte(fmt.Sprintf("\033[38;5;159m            ▓█▓           │ \033[38;5;46m●\033[38;5;231m Status: \033[38;5;46mONLINE\033[38;5;159m          │           ▓█▓\033[0m\r\n")))
-	conn.Write([]byte(fmt.Sprintf("\033[38;5;195m           ▓█▒      ╭─────│ \033[38;5;214m◈\033[38;5;231m Bots: \033[38;5;46m%-4d\033[38;5;195m             │─────╮      ▒█▓\033[0m\r\n", getBotCount())))
-	conn.Write([]byte(fmt.Sprintf("\033[38;5;231m          ▒█▓     ╱\033[38;5;196m ◉◉◉ \033[38;5;231m│ \033[38;5;214m◈\033[38;5;231m Proto: \033[38;5;214m%s\033[38;5;231m      │\033[38;5;196m ◉◉◉ \033[38;5;231m╲     ▓█▒\033[0m\r\n", PROTOCOL_VERSION)))
-	conn.Write([]byte("\033[38;5;195m           ▓█▒      ╰─────│ \033[38;5;214m◈\033[38;5;231m Encrypt: \033[38;5;46mTLS 1.3\033[38;5;195m     │─────╯      ▒█▓\033[0m\r\n"))
-	conn.Write([]byte(fmt.Sprintf("\033[38;5;159m            ▓█▓           │ \033[38;5;214m◈\033[38;5;231m RAM: \033[38;5;46m%-14s\033[38;5;159m │           ▓█▓\033[0m\r\n", formatRAM(getTotalRAM()))))
-	conn.Write([]byte("\033[38;5;123m             ▒██▒          ├─────────────────────────┤          ▒██▒\033[0m\r\n"))
-	conn.Write([]byte("\033[38;5;117m               ▒██▓░       │\033[38;5;245m  help \033[38;5;240m• \033[38;5;245mcommands \033[38;5;240m• \033[38;5;245mexit \033[38;5;117m│       ░▓██▒\033[0m\r\n"))
-	conn.Write([]byte("\033[38;5;111m                 ░▓██▓░░    ╰─────────────────────────╯   ░░▓██▓░\033[0m\r\n"))
+	conn.Write([]byte("\033[38;5;111m                 ░▓██▓░░  ╔═════════════════════════╗  ░░▓██▓░\033[0m\r\n"))
+	conn.Write([]byte("\033[38;5;117m               ▒██▓░     ║\033[38;5;196m  ☾ \033[38;5;231mV I S I O N \033[38;5;196m℣ \033[38;5;231mC 2  \033[38;5;117m  ║   ░▓██▒\033[0m\r\n"))
+	conn.Write([]byte("\033[38;5;123m             ▒██▒        ╠═════════════════════════╣        ▒██▒\033[0m\r\n"))
+	conn.Write([]byte(fmt.Sprintf("\033[38;5;159m            ▓█▓          ║ \033[38;5;46m●\033[38;5;231m Status:  \033[38;5;46mONLINE\033[38;5;159m       ║         ▓█▓\033[0m\r\n")))
+	conn.Write([]byte(fmt.Sprintf("\033[38;5;195m           ▓█▒           ║ \033[38;5;214m◈\033[38;5;231m Bots:    \033[38;5;46m%-4d\033[38;5;195m         ║          ▒█▓\033[0m\r\n", getBotCount())))
+	conn.Write([]byte(fmt.Sprintf("\033[38;5;231m          ▒█▓            ║ \033[38;5;214m◈\033[38;5;231m Proto:   \033[38;5;214m%-11s\033[38;5;231m  ║         ▓█▒\033[0m\r\n", PROTOCOL_VERSION)))
+	conn.Write([]byte("\033[38;5;195m           ▓█▒           ║ \033[38;5;214m◈\033[38;5;231m Encrypt: \033[38;5;46mTLS 1.3\033[38;5;195m      ║        ▒█▓\033[0m\r\n"))
+	conn.Write([]byte(fmt.Sprintf("\033[38;5;159m            ▓█▓          ║ \033[38;5;214m◈\033[38;5;231m RAM:     \033[38;5;46m%-11s\033[38;5;159m  ║       ▓█▓\033[0m\r\n", formatRAM(getTotalRAM()))))
+	conn.Write([]byte("\033[38;5;123m             ▒██▒        ╠═════════════════════════╣        ▒██▒\033[0m\r\n"))
+	conn.Write([]byte("\033[38;5;117m               ▒██▓░     ║\033[38;5;245m  help \033[38;5;240m• \033[38;5;245mattack \033[38;5;240m• \033[38;5;245mexit  \033[38;5;117m ║    ░▓██▒\033[0m\r\n"))
+	conn.Write([]byte("\033[38;5;111m                 ░▓██▓░░ ╚═════════════════════════╝  ░░▓██▓░\033[0m\r\n"))
 	conn.Write([]byte("\033[38;5;105m                    ░▒▓███▓▒░░                  ░░▒▓███▓▒░\033[0m\r\n"))
 	conn.Write([]byte("\033[38;5;99m                        ░░▒▒▓▓████████████████████▓▓▒▒░░\033[0m\r\n"))
 	conn.Write([]byte("\033[38;5;93m                              ░░░░░▒▒▒▒▒▒▒▒▒▒▒▒░░░░░\033[0m\r\n"))
 	conn.Write([]byte("\r\n"))
 
-	conn.Write([]byte("\033[38;5;240m                  ══════════ ☠ Ready To Strike ☠ ══════════\033[0m\r\n"))
+	conn.Write([]byte("\033[38;5;240m                   ══════════ ☠ Ready To Strike ☠ ══════════\033[0m\r\n"))
 	conn.Write([]byte("\r\n"))
 }
 
@@ -1098,13 +1096,6 @@ func authUser(conn net.Conn, reader *bufio.Reader) (bool, *client) {
 	for i := 0; i < 3; i++ { // 3 attempts max
 		conn.Write([]byte("\033[2J\033[H")) // Clear screen
 		conn.Write([]byte("\033[0m"))       // Reset colors
-
-		// Animated loading effect
-		loadingFrames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
-		for j := 0; j < 10; j++ {
-			conn.Write([]byte(fmt.Sprintf("\033[H\033[38;5;196m\r                    %s Initializing secure connection...\033[0m", loadingFrames[j%len(loadingFrames)])))
-			time.Sleep(80 * time.Millisecond)
-		}
 
 		conn.Write([]byte("\033[2J\033[H")) // Clear screen
 		// Stylized eye
