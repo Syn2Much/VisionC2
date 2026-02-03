@@ -18,7 +18,6 @@
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ---
-
 #### 🎯 Bot Capabilities
 
 - **Layer 4**
@@ -39,7 +38,6 @@
   - Turn any agent into a SOCKS5 proxy server on a specified port
 
 ---
-
 #### 🔒 Security Features
 
 - **TLS 1.3** with perfect forward secrecy for all communications
@@ -59,7 +57,6 @@
   > Multi-stage sandbox and analysis environment detection
 
 ---
-
 **Vision is built to be set up via a setup script, meaning there are no code changes required.**
 
 *Performance: 2 servers = 40k RPS / 2–6 Gbps*
@@ -123,7 +120,6 @@ Step 5/5: Build
 - Building CNC + 14 bot architectures
 
 ---
-
 ## 🎯 Quick Usage
 
 ### Starting the C2 Server
@@ -158,63 +154,54 @@ Once connected:
 Bot binaries are located in `bot/bins/` after building. The directory contains executables for 14+ architectures.
 
 ---
+### Configuration File
 
-### 🔧 Rebuilding Bots (After Initial Setup)
+After setup, check `setup_config.txt` for your configuration:
 
-```bash
-cd bot
-./build.sh
 ```
+============================================================
+VisionC2 Configuration
+============================================================
+[C2 Server]
+C2 Address: c2.example.com:443
+Admin Port: 420
+Bot Port: 443
 
-> Rebuild bot binaries without changing the C2 configuration.
+[Security]
+Magic Code: IhxWZGJDzdSviX$s
+Protocol Version: r5.6-stable
 
----
-
-### 🌐 Updating C2 Address (After Initial Setup)
-
-```bash
-python setup.py
-# select option 2
-# makes code updates & rebuilds
+[Usage]
+1. Start CNC: cd cnc && ./cnc
+2. Connect Admin: nc c2.example.com 420
+3. Login trigger: spamtec
+4. Bot binaries: bot/bins/
 ```
-
-> Update or move C2 servers without losing existing bots
-> (preserves certs, crypto seed, magic key, and version).
-
----
-
-
 ## 🏗️ Architecture Overview
-
 ```
-      Admin Console
-       (Multi-User)
-           │ TLS 1.3
-           ▼
-        C2 Server
-       (Go Backend)
-           │ TLS 1.3
-           ▼
-  Bot Registry & Management
-           ▲
-           │
-       Bot Agents
-   (14+ Architectures)
+Admin Console
+     │ TLS 1.3
+     ▼
+   C2 Server
+     │
+ Bot Registry
+     ▲
+     │
+  Bot Agents
+ (14+ arch)
 ```
+**C2 Resolution (Order)**
 
-**C2 Resolution (How Bots Find Your Server)**
+1. DoH TXT
+2. DNS TXT
+3. A Record
+4. Direct IP
 
-| Method         | Description / Fallback                    | Example Input        |
-| -------------- | ----------------------------------------- | -------------------- |
-| DOH TXT Record | Cloudflare/Google DNS-over-HTTPS                  | `lookup.example.com` |
-| DNS TXT Lookup | Checks Domain Text Record                 | `lookup.example.com` |
-| A Record       | Standard DNS fallback                     | `c2.example.com`     |
-| Direct IP      | Uses IP:port directly if no DNS available | `192.168.1.100`      |
+**Inputs:** `lookup.example.com` · `c2.example.com` · `192.168.1.100`
 
 ---
-
 ## 📋 WIP/TODO
-
+- BubbleTea/TUI View CNC Panel
 - Auto Generated DGA Fallback Domains for bot
 - Locker/Killer to stay on the device and eliminate competing malware
 - Spread/Self-Rep Mechanism 
@@ -222,7 +209,6 @@ python setup.py
 - Single Instance/Port Takeover Networking capabilities
 
 ---
-
 ## ⚖️ Disclaimer
 
 **WARNING: FOR AUTHORIZED SECURITY RESEARCH ONLY**
