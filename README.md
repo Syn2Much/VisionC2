@@ -1,120 +1,113 @@
 
 # VisionC2 – Advanced Botnet Command & Control Framework
 
-## 📑 Table of Contents
-
-- [🚀 Installation & Setup](#-installation--setup)
-- [🎯 Quick Usage](#-quick-usage)
-- [🛠️ Command Reference](https://github.com/Syn2Much/VisionC2/blob/main/cnc/COMMANDS.md)
-- [🏗️ Architecture Overview](#️-architecture-overview)
-- [📋 Changelog](https://github.com/Syn2Much/VisionC2/blob/main/CHANGELOG.md)
-- [💡 Full Guide](https://github.com/Syn2Much/VisionC2/blob/main/USAGE.md)
-
-
-
 ![VisionC2 Banner](https://img.shields.io/badge/VisionNet-V1.5-red)
 ![Go Version](https://img.shields.io/badge/Go-1.23.0+-blue)
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
----
-#### 🎯 Bot Capabilities
+**VisionC2** is an advanced Command & Control framework focused on stress testing, featuring enterprise-grade encryption, multi-architecture support, and remote shell/reverse socks capabilities.
 
-- **Layer 4**
+## 📋 Table of Contents
 
-  - UDP, TCP, SYN, ACK, GRE, and DNS-based Attack Methods
+- [✨ Features](#-features)
+- [🚀 Quick Start](#-quick-start)
+- [🏗️ Architecture](#️-architecture)
+- [📖 Usage Guide](#-usage-guide)
+- [🔒 Security Features](#-security-features)
+- [⚖️ Disclaimer](#️-disclaimer)
 
-- **Layer 7**
+## ✨ Features
 
-  - HTTP / HTTPS / TLS traffic with HTTP/2 fingerprinting
-  - Cloudflare UAM bypass with captcha solving
+### 🎯 Bot Capabilities
+- **Layer 4 Attacks**: UDP, TCP, SYN, ACK, GRE, DNS-based methods
+- **Layer 7 Attacks**: HTTP/HTTPS/TLS with HTTP/2 fingerprinting, Cloudflare UAM bypass with captcha solving
+- **Remote Code Execution**: Shell command execution with real-time output or fire-and-forget mode
+- **SOCKS5 Proxy**: Turn agents into SOCKS5 proxy servers
 
-- **RCE**
+### 🔒 Security & Stealth
+- **TLS 1.3** with perfect forward secrecy (zero plain-text communications)
+- **No hardcoded C2**: Multi-layer obfuscation (RC4, XOR, byte substitution, MD5)
+- **HMAC Authentication**: Challenge–response verification for agent integrity
+- **Anti-Analysis**: Multi-stage sandbox and analysis environment detection
 
-  - Send shell commands to bot(s) with real-time output streaming or fire-and-forget mode
+### ⚡ Performance
+- **2 servers = 30k-40k RPS / 2–6 Gbps** (depending on method and target)
+- **14+ architecture support**
+- **Automated setup** (5-minute installation)
 
-- **SOCKS5**
-
-  - Turn any agent into a SOCKS5 proxy server on a specified port
-
----
-#### 🔒 Security Features
-
-- **TLS 1.3** with perfect forward secrecy for all communications
-
-  > Zero plain-text communications
-
-- **No hardcoded C2**
-
-  > C2 address protected via RC4, XOR, byte substitution, and MD5
-
-- **HMAC Authentication**
-
-  > Challenge–response verification for agent integrity
-
-- **Anti-Analysis Protections**
-
-  > Multi-stage sandbox and analysis environment detection
-
----
-**Vision is built to be set up via a setup script, meaning there are no code changes required.**
-
-*Performance: 2 servers = 30k-40k RPS / 2–6 Gbps Depending on Method and Target*
-
----
-
-## 🚀 Installation & Setup
+## 🚀 Quick Start
 
 ### Prerequisites
-
 ```bash
 sudo apt update && sudo apt install -y upx-ucl openssl git wget gcc python3 screen
 # Go 1.23+ required - download from https://go.dev/dl/
 ```
 
-### ⭐ Use the Setup Wizard (Required for Encrypting C2 URL/IP)
-
+### Installation
 ```bash
 git clone https://github.com/Syn2Much/VisionC2.git
 cd VisionC2
 python3 setup.py
 ```
 
-> 💡 **Setup Wizard handles Encryption, Certs, and Code Updates. The entire setup for Vision takes no more then 5 minutes.**
+### Basic Usage
+1. **Start C2 Server**:
+   ```bash
+   cd cnc
+   screen ./cnc
+   ```
 
-```text
-Setup Wizard Flow (Summary)
+2. **Connect Admin Console**:
+   ```bash
+   nc YOUR_SERVER_IP YOUR_ADMIN_PORT
+   # Type 'spamtec' for login prompt
+   # Default credentials: admin:changeme
+   ```
 
-[1] Full Setup        → New C2, magic code, certs (fresh install)
-[2] C2 URL Update    → Change C2 address only
-[0] Exit
+3. **Deploy Bots**: Binaries available in `bot/bins/` after building
 
-Step 1/5: C2 Configuration
-- C2 address: c2.domain.com:443 (TLS, fixed)
-- Admin port: 200
+## 🏗️ Architecture
 
-Step 2/5: Security Tokens
-- Magic code, protocol version, crypt seed auto-generated
-- Multi-layer obfuscation applied
-
-Step 3/5: TLS Certificates
-- 4096-bit RSA key
-- Self-signed TLS certificate generated
-
-Step 4/5: Source Updates
-- CNC and bot configuration updated
-
-Step 5/5: Build
-- CNC server built
-- Bot binaries built (14 architectures)
+```
+Admin Console
+     │ TLS 1.3
+     ▼
+   C2 Server
+     │
+ Bot Registry
+     ▲ TLS 1.3
+     │
+  Bot Agents
+ (14+ architectures)
 ```
 
-**That's it!** The wizard handles everything:
+### C2 Resolution Order
+1. DoH TXT Record
+2. DNS TXT Record  
+3. A Record
+4. Direct IP
+
+**Supported Inputs**: `lookup.example.com` · `c2.example.com` · `192.168.1.100`
+
+## 🛠️ Installation Details
+
+### Setup Wizard
+VisionC2 uses an interactive setup wizard that handles:
+- **C2 Configuration**: Address, ports, and settings
+- **Security Setup**: Magic codes, encryption keys, protocol versions
+- **Certificate Generation**: 4096-bit RSA keys and TLS certificates
+- **Binary Compilation**: CNC server and bot binaries for 14+ architectures
+
+### Wizard Options
+```
+[1] Full Setup        → New C2, magic code, certs (fresh install)
+[2] C2 URL Update    → Change C2 address only  
+[0] Exit
+```
 
 ### Configuration File
-
-After setup, check `setup_config.txt` for your configuration:
-
+After setup, review `setup_config.txt`:
 ```
 ============================================================
 VisionC2 Configuration
@@ -134,102 +127,82 @@ Protocol Version: r5.6-stable
 3. Login trigger: spamtec
 4. Bot binaries: bot/bins/
 ```
----
-## 🎯 Quick Usage
 
-### Starting the C2 Server
+## 📖 Usage Guide
 
-```bash
-cd cnc
-screen ./cnc
-```
-
-> 💡 Use `screen` to keep the C2 running after disconnecting. Reattach with `screen -r`.
-
-The CNC server will start listening on:
-
-- **Port 443 (TLS)**: For bot connections (fixed, cannot be changed)
-- **Admin Port (configurable)**: For admin console connections (default: 420)
-
-### Connecting to Admin Console
-
-```bash
-# In another terminal
-nc YOUR_SERVER_IP YOUR_ADMIN_PORT
-```
-
-Once connected:
-
-1. Type `spamtec` to trigger the login prompt
-2. Enter your credentials (default: `admin:changeme`)
-3. Type `help` to see available commands
+### C2 Server Ports
+- **Port 443 (TLS)**: Bot connections (fixed, cannot be changed)
+- **Admin Port**: Admin console connections (configurable, default: 420)
 
 ### Bot Deployment
+- Binaries are automatically built for 14+ architectures
+- Located in `bot/bins/` directory
+- No code modifications required for deployment
 
-Bot binaries are located in `bot/bins/` after building. The directory contains executables for 14+ architectures.
+### Admin Console Commands
+Type `help` after login to see available commands. Detailed command reference available in [COMMANDS.md](https://github.com/Syn2Much/VisionC2/blob/main/cnc/COMMANDS.md).
 
----
+## 🔒 Security Features
 
-## 🏗️ Architecture Overview
-```
-Admin Console
-     │ TLS 1.3
-     ▼
-   C2 Server
-     │
- Bot Registry
-     ▲
-     │
-  Bot Agents
- (14+ arch)
-```
-**C2 Resolution (Order)**
+### Communication Security
+- **TLS 1.3 Only**: All communications encrypted with perfect forward secrecy
+- **No Plaintext**: Zero unencrypted data transmission
+- **Certificate Pinning**: Self-signed certificates with 4096-bit RSA keys
 
-1. DoH TXT
-2. DNS TXT
-3. A Record
-4. Direct IP
+### C2 Obfuscation
+- **Multi-layer Encryption**: RC4, XOR, byte substitution, and MD5 hashing
+- **Dynamic Resolution**: Multiple fallback methods for C2 discovery
+- **No Hardcoded Strings**: All sensitive data encrypted at compile time
 
-**Inputs:** `lookup.example.com` · `c2.example.com` · `192.168.1.100`
+### Agent Protection
+- **HMAC Authentication**: Ensures agent integrity
+- **Sandbox Detection**: Multi-stage anti-analysis checks
+- **Environment Awareness**: Detection of analysis tools and virtual environments
 
----
-## 📋 WIP/TODO
+## 📋 Development Roadmap
+
+### In Progress
 - BubbleTea/TUI View CNC Panel
 - Auto Generated DGA Fallback Domains for bot
 - Locker/Killer to stay on the device and eliminate competing malware
+
+### Planned Features
 - Spread/Self-Rep Mechanism 
 - Enhanced Daemonize with better stealth
 - Single Instance/Port Takeover Networking capabilities
 
----
+Detailed changelog available in [CHANGELOG.md](https://github.com/Syn2Much/VisionC2/blob/main/CHANGELOG.md).
+
 ## ⚖️ Disclaimer
 
-**WARNING: FOR AUTHORIZED SECURITY RESEARCH ONLY**
+**FOR AUTHORIZED SECURITY RESEARCH ONLY**
 
-**LEGAL REQUIREMENTS:**
+### Legal Requirements:
+1. **Written Permission**: Obtain explicit written permission from system owners before testing
+2. **Authorized Systems Only**: Use only on systems you own or have explicit authorization to test
+3. **Legal Compliance**: Comply with all applicable laws and regulations in your jurisdiction
+4. **No Malicious Use**: Do not use for any malicious, unauthorized, or illegal purposes
 
-1. Obtain written permission from system owners before testing
-2. Use only on systems you own or have explicit authorization to test
-3. Comply with all applicable laws and regulations
-4. Do not use for malicious purposes
+### Liability Notice:
+The developers assume no liability and are not responsible for any misuse, damage, or legal consequences resulting from the use of this software. By using VisionC2, you agree to use it responsibly and legally.
 
-The developers assume no liability and are not responsible for any misuse or damage caused by this program. By using this software, you agree to use it responsibly and legally.
+## 🤝 Support & Community
 
----
-
-## 🤝 Community & Support
+### Documentation
+- **Full Guide**: [USAGE.md](https://github.com/Syn2Much/VisionC2/blob/main/USAGE.md)
+- **Command Reference**: [COMMANDS.md](https://github.com/Syn2Much/VisionC2/blob/main/cnc/COMMANDS.md)
+- **Changelog**: [CHANGELOG.md](https://github.com/Syn2Much/VisionC2/blob/main/CHANGELOG.md)
 
 ### Acknowledgments
-
 - Built upon the framework of [1birdo](https://github.com/1Birdo)'s BotnetGo
 
-### Support
-
+### Support Channels
 - **GitHub Issues**: For bug reports and feature requests
-- **Email**: [dev@sinners.city](mailto:dev@sinners.city) for security-related concerns
+- **Security Contact**: [dev@sinners.city](mailto:dev@sinners.city) for security-related concerns
+- **Community**: GitHub discussions and documentation
 
 ### License
-
 This project is licensed under the GNU License - see the LICENSE file for details.
 
 ---
+
