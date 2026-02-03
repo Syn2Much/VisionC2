@@ -1,5 +1,4 @@
 
-
 ## 📋 Changelog
 
 All notable changes to **VisionC2** are documented below.
@@ -8,6 +7,26 @@ All notable changes to **VisionC2** are documented below.
 
 ### v1.6 — February 2026
 
+#### 🔧 Core Improvements
+
+* **Target DNS Resolution Order Changed**
+  * Cloudflare DoH now prioritized over system DNS for target resolution
+  * System DNS now used as final fallback instead of first attempt
+  * Improves reliability in environments with restricted local DNS
+
+* **Cron-Based Persistence on Startup**
+  * Adds cron job that checks every minute if bot is running
+  * Automatically restarts bot if killed, until system reboot
+  * Skips if cron entry already exists to avoid duplicates
+
+* **Proxy Validation Before Attacks**
+  * CNC validates all proxies in parallel against httpbin.org
+  * Only working proxies sent to bots, all bots use same validated list
+
+* **Reduced Bot-to-CNC Chatter**
+  * Bots no longer send attack status messages back to CNC
+  * Cleaner server logs, reduced bandwidth overhead, CNC already tracks attacks locally
+  
 #### 🎨 UI / UX
 
 * **Login Screen Redesign**
@@ -117,14 +136,15 @@ All notable changes to **VisionC2** are documented below.
 
 ## Version History Summary
 
-| Version | Date     | Highlights                           |
-| ------- | -------- | ------------------------------------ |
-| v1.6    | Feb 2026 | UI overhaul, command menu rework     |
-| v1.5    | Feb 2026 | UPX stripping, docs, +50 user agents |
-| v1.4    | Jan 2026 | Proxy support for Layer 7            |
-| v1.3    | Jan 2026 | RAM tracking, debug logging          |
-| v1.2    | Jan 2026 | RC4 obfuscation, setup automation    |
-| v1.1    | Dec 2025 | Initial release                      |
+| Version | Date     | Highlights                                         |
+| ------- | -------- | ---------------------------------------------------|
+| v1.6    | Feb 2026 | DoH-first target resolve, persist fix, UI overhaul |
+| v1.5    | Feb 2026 | UPX stripping, docs, +50 user agents               |
+| v1.4    | Jan 2026 | Proxy support for Layer 7                          |
+| v1.3    | Jan 2026 | RAM tracking, debug logging                        |
+| v1.2    | Jan 2026 | RC4 obfuscation, setup automation                  |
+| v1.1    | Dec 2025 | Initial release                                    |
 
 ---
 
+---
