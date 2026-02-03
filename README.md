@@ -142,33 +142,17 @@ Protocol Version: r5.6-stable
 ### Admin Console Commands
 Type `help` after login to see available commands. Detailed command reference available in [COMMANDS.md](https://github.com/Syn2Much/VisionC2/blob/main/cnc/COMMANDS.md).
 
-## 🔒 Security Features
-
-### Communication Security
-- **TLS 1.3 Only**: All communications encrypted with perfect forward secrecy
-- **No Plaintext**: Zero unencrypted data transmission
-- **Certificate Pinning**: Self-signed certificates with 4096-bit RSA keys
-
-### C2 Obfuscation
-- **Multi-layer Encryption**: RC4, XOR, byte substitution, and MD5 hashing
-- **Dynamic Resolution**: Multiple fallback methods for C2 discovery
-- **No Hardcoded Strings**: All sensitive data encrypted at compile time
-
-### Agent Protection
-- **HMAC Authentication**: Ensures agent integrity
-- **Sandbox Detection**: Multi-stage anti-analysis checks
-- **Environment Awareness**: Detection of analysis tools and virtual environments
 
 ## 📋 Development Roadmap
 
 ### In Progress
 - BubbleTea/TUI View CNC Panel
-- Auto Generated DGA Fallback Domains for bot
+- Enhanced Daemonize with better stealth
 - Locker/Killer to stay on the device and eliminate competing malware
 
 ### Planned Features
+- Auto Generated DGA Fallback Domains for bot
 - Spread/Self-Rep Mechanism 
-- Enhanced Daemonize with better stealth
 - Single Instance/Port Takeover Networking capabilities
 
 Detailed changelog available in [CHANGELOG.md](https://github.com/Syn2Much/VisionC2/blob/main/CHANGELOG.md).
@@ -176,12 +160,6 @@ Detailed changelog available in [CHANGELOG.md](https://github.com/Syn2Much/Visio
 ## ⚖️ Disclaimer
 
 **FOR AUTHORIZED SECURITY RESEARCH ONLY**
-
-### Legal Requirements:
-1. **Written Permission**: Obtain explicit written permission from system owners before testing
-2. **Authorized Systems Only**: Use only on systems you own or have explicit authorization to test
-3. **Legal Compliance**: Comply with all applicable laws and regulations in your jurisdiction
-4. **No Malicious Use**: Do not use for any malicious, unauthorized, or illegal purposes
 
 ### Liability Notice:
 The developers assume no liability and are not responsible for any misuse, damage, or legal consequences resulting from the use of this software. By using VisionC2, you agree to use it responsibly and legally.
@@ -198,7 +176,7 @@ The developers assume no liability and are not responsible for any misuse, damag
 
 ### Support Channels
 - **GitHub Issues**: For bug reports and feature requests
-- **Security Contact**: [dev@sinners.city](mailto:dev@sinners.city) for security-related concerns
+- **Contact**: [dev@sinners.city](mailto:dev@sinners.city) 
 - **Community**: GitHub discussions and documentation
 
 ### License
