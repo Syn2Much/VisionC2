@@ -560,11 +560,11 @@ def save_config(base_path: str, config: dict):
         f.write(f"Valid Days: {config['cert']['days']}\n\n")
 
         f.write("[Usage]\n")
-        f.write("1. Start CNC: cd cnc && ./cnc\n")
+        f.write("1. Start CNC: ./server\n")
         f.write(
-            f"2. Connect Admin: nc {config['c2_address'].split(':')[0]} {config['admin_port']}\n"
+            f"2. Connect Admin(multi user mode): nc {config['c2_address'].split(':')[0]} {config['admin_port']}\n"
         )
-        f.write("3. Login trigger: spamtec\n")
+        f.write("3. Login trigger(multi user mode): spamtec\n")
         f.write("4. Bot binaries: bot/bins/\n")
 
     return config_path
