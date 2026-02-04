@@ -6,13 +6,13 @@
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-**VisionC2** is a modern, high-performance Command & Control framework built for stress testing and security research. It includes enterprise-grade encryption (TLS 1.3), multi-architecture bot support (14+), remote shell, SOCKS5 proxying, and an interactive terminal user interface.
-
-## 🎨 NEW: Fully Interactive TUI Panel
+**VisionC2** is a modern, Go based botnet framework focused on network stress testing. It includes enterprise-grade encryption (TLS 1.3 + HMAC + String Obfuscation), multi-architecture bot support (14+), remote shell, SOCKS5 proxying, and an interactive terminal user interface.
 
 <p align="center">
 <b>VisionC2 now features a complete Terminal User Interface built in BubbleTea</b>
 </p>
+
+![Animation(1)](https://github.com/user-attachments/assets/a1b48f12-ebb5-4582-8e6d-e61eb521ac10)
 
 ## Quick Start
 
