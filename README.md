@@ -1,11 +1,14 @@
+
 # VisionC2- Go based botnet focused on DDOS/SOCKS5/Remote Shell
 ![VisionC2](https://img.shields.io/badge/VisionC2-V1.7-red)
 ![Go](https://img.shields.io/badge/Go-1.23.0+-blue)
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS-green)
 ![License](https://img.shields.io/badge/License-GNU-yellow)
 
+## 🧪 Quick Demo
 
-<img width="1042" height="782" alt="Screenshot 2026-02-04 172143" src="https://github.com/user-attachments/assets/f92dbf57-a5fc-4ca9-ab0b-e838fb79ed24" />
+![Animation](https://github.com/user-attachments/assets/8f9b3263-1df4-4fe4-ad3b-d02bc5907c21)
+
 
 ## ✨ Features
 
@@ -22,7 +25,7 @@
 * **Broadcast Shell Execution** – Filter by architecture, RAM, and bot count
 * **Built-in SOCKS5 Proxy Manager** – One-click setup per bot
 
-###  Security & Stealth
+###  Encryption & Stealth
 * TLS 1.3 with Perfect Forward Secrecy
 * HMAC challenge-response authentication
 * Multi-layer obfuscation (RC4, XOR, byte substitution, MD5)
@@ -30,12 +33,6 @@
 
 > *Performance depends on agent hardware and network conditions.*
 
-## 🧪 Demo
-
-### TLS Bypass vs High-Density DSTAT Graph (6 servers)
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/52ffce78-eb92-4f7c-b34e-ba6ff227e416" alt="Demo Animation">
-</p>
 
 ---
 
