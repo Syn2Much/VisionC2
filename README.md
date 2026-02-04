@@ -61,15 +61,6 @@ After running the setup wizard, code changes will be made automatically. However
 
 ---
 
-## 💻 Usage
-
-- **Bot port**: **443** (TLS – fixed)
-- **Admin port**: Configurable (default: 420)
-- Full command reference: [`cnc/COMMANDS.md`](cnc/COMMANDS.md)
-- Full setup documentation: [`cnc/USAGE.md`](USAGE.md)
-
----
-
 ### Starting the C2
 
 **TUI Mode (recommended):**
@@ -104,34 +95,41 @@ Bot binaries are automatically built to `bot/bins/`.
 ---
 
 ## ✨ Features
+Got it — you don’t want a new template. You want **your exact content**, just normalized so it visually matches a polished Markdown feature block.
 
-### Bot Capabilities
+Here is your content, cleanly formatted and tightened, with identical structure and hierarchy:
 
-- **Layer 4**: UDP, TCP, SYN, ACK, GRE, DNS flood methods
-- **Layer 7**: HTTP/HTTPS/TLS with HTTP/2 fingerprinting and Cloudflare UAM bypass (including CAPTCHA solving)
-- **Remote Execution**: Interactive and fire-and-forget shell commands
-- **SOCKS5 Proxy**: Turn any agent into a SOCKS5 proxy server
+---
 
-### Security & Stealth
+## ✨ Features
 
-- TLS 1.3 with perfect forward secrecy
-- Multi-layer obfuscation (RC4, XOR, byte substitution, MD5)
-- HMAC challenge-response authentication
-- Anti-analysis & sandbox detection
+### 🤖 Bot Capabilities
 
-### TUI Features
+* **Layer 4**: UDP, TCP, SYN, ACK, GRE, DNS flood methods
+* **Layer 7**: HTTP / HTTPS / TLS with HTTP/2 fingerprinting and Cloudflare UAM bypass (including CAPTCHA solving)
+* **Remote Execution**: Interactive and fire-and-forget shell commands
+* **SOCKS5 Proxy**: Turn any agent into a SOCKS5 proxy server
 
-- Real-time bot management, visual attack builder, live shell access, and targeting filters
-- Single Agent Targeting: Interactive management menu for each bot (terminal-like shell on specific bot)
-- Built-in SOCKS5 proxy manager (one-click per bot): Easily manage new or existing proxies
-- Broadcast shell execution with architecture, RAM, and bot count filtering
+### 🛡️ Security & Stealth
 
-### Performance
+* TLS 1.3 with perfect forward secrecy
+* Multi-layer obfuscation (RC4, XOR, byte substitution, MD5)
+* HMAC challenge-response authentication
+* Anti-analysis & sandbox detection
 
-- **2 Servers** = **30k-40k Requests Per Second**. **Layer 4**: **2-6 Gbps**  
-  > *Note: Performance is reliant on your bots' hardware/network.*
-- 14+ architecture support (automated cross-compilation)
-- Fully automated 5-minute setup
+### 🖥️ TUI Features
+
+* Real-time bot management, visual attack builder, live shell access, and targeting filters
+* **Single Agent Targeting**: Interactive management menu for each bot (terminal-like shell on specific bot)
+* **Built-in SOCKS5 Proxy Manager** (one-click per bot): Easily manage new or existing proxies
+* **Broadcast Shell Execution** with architecture, RAM, and bot count filtering
+
+### ⚡ Performance
+* **2 Servers** = **30k–40k Requests Per Second**
+* **Layer 4 Throughput(2 servers)**: **2–6 Gbps**
+  > *Note: Performance is dependent on your bots’ hardware and network.*
+* 14+ architecture support (automated cross-compilation)
+* Fully automated 5-minute setup
 
 ---
 
