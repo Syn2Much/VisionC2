@@ -1,83 +1,28 @@
+## ☾℣☽ VisionC2 Changelog 
 
-## 📋 Changelog
+### v1.7 — Feb 2026
 
-All notable changes to **VisionC2** are documented below.
+**Full TUI Control Panel**
+* Complete interactive terminal UI (default mode via `./cnc`)
+* Real-time bot dashboard with shell access & management commands
+* Consolidated Attack Center with live countdowns & progress
+* SOCKS5 proxy manager with status controls
+* Toast notifications & connection history logs
 
----
+**Optimizations & Docs**
+* HTTP/L7 improvements: connection pooling & keep-alive
+* Rewritten documentation (USAGE.md, COMMANDS.md) for TUI
 
-### v1.7 — February 2026
+### v1.6 — Feb 2026
+**Core Improvements**
+* DNS: Prioritizes Cloudflare DoH over system DNS
+* Persistence: Cron-based auto-restart on bot death
+* Proxies: Validated in parallel before attacks
+* Reduced bot-to-CNC status chatter
 
-#### 🎨 Full TUI Control Panel (BubbleTea)
-
-* **Complete Terminal User Interface**
-  * Interactive dashboard with real-time bot stats and gradient ASCII banner
-  * No telnet/netcat required — TUI is now the default mode
-  * `./cnc` starts TUI, `./cnc --split` for legacy telnet mode
-
-* **Bot Management View**
-  * Real-time bot list with ID, IP, Architecture, RAM, and Uptime
-  * Direct shell access to individual bots via `[enter]`
-  * Bot commands: `[i]` Info, `[p]` Persist, `[r]` Reinstall, `[k]` Kill
-
-* **Remote Shell**
-  * Interactive shell session with single bot
-  * Command history support
-  * Hotkeys: `Ctrl+F` Clear, `Ctrl+P` Persist, `Ctrl+R` Reinstall
-
-* **Broadcast Shell**
-  * Execute commands on ALL bots simultaneously
-  * Targeting filters:
-    * `Ctrl+A` — Filter by architecture (amd64, arm64, mips, etc.)
-    * `Ctrl+G` — Filter by minimum RAM
-    * `Ctrl+B` — Limit max number of bots
-  * Confirmation prompts for dangerous broadcast commands
-
-* **Attack Center (Consolidated)**
-  * Two-tab interface: `[⚡ Launch]` and `[📊 Ongoing]`
-  * Interactive attack form with method picker
-  * Live countdown timers and progress bars for ongoing attacks
-  * `[s]` Stop all attacks from Ongoing tab
-  * Auto-reset form fields after launching attack
-
-* **SOCKS5 Manager**
-  * View all bots with socks status (Active/Stopped/None)
-  * `[s]` Start socks on selected bot (just enter port, binds to 0.0.0.0)
-  * `[x]` Stop socks on selected bot
-  * Three view modes: All Bots, Active Socks, Stopped
-
-* **Connection Logs**
-  * Full history of bot connects/disconnects
-  * Filter by: All, Connections only, Disconnections only
-
-* **Toast Notifications**
-  * Non-blocking notifications for attack launches, stops, and actions
-  * Auto-expire after 3-4 seconds
-
-#### 🔧 HTTP/Layer 7 Optimizations
-
-* **Connection Pooling & Keep-Alive**
-  * Reuses TCP connections across requests
-  * New HTTP Client Config/Settings
-  * Adjusted timeout limits and way we start go routines
-
-#### 📚 Documentation
-
-* **USAGE.md Rewritten**
-  * Full TUI documentation with view screenshots
-  * Updated startup instructions (TUI default)
-  * Hotkey reference for each view
-
-* **COMMANDS.md Rewritten**
-  * Complete TUI hotkey reference
-  * Quick reference card
-  * Split mode commands for backwards compatibility
-
-* **README.md Updated**
-  * TUI feature highlight at top
-  * Updated Quick Start for TUI mode
-  * Moved TUI from roadmap to "Recently Completed"
-
----
+**UI Updates**
+* Redesigned login screen with animations & lockout
+* Streamlined command menus (`attack`/`methods` split)
 
 ### v1.6 — February 2026
 
