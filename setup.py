@@ -472,6 +472,13 @@ def build_cnc(cnc_path: str) -> bool:
             error(f"Build failed: {result.stderr}")
             return False
 
+        # Copy binary to main directory as 'server'
+        base_path = os.path.dirname(cnc_path)
+        src = os.path.join(cnc_path, "cnc")
+        dst = os.path.join(base_path, "server")
+        shutil.copy2(src, dst)
+        info(f"Copied CNC binary to {dst}")
+
         return True
     except FileNotFoundError:
         error("Go not found. Please install Go 1.23+")
