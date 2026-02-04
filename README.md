@@ -1,33 +1,11 @@
-# VisionC2- Go based CNC Framework
+# VisionC2- Go based botnet focused on DDOS/SOCKS5/Remote Shell
 ![VisionC2](https://img.shields.io/badge/VisionC2-V1.7-red)
 ![Go](https://img.shields.io/badge/Go-1.23.0+-blue)
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS-green)
 ![License](https://img.shields.io/badge/License-GNU-yellow)
 
-```
- █████   █████  ███           ███                           █████████   ████████ 
-░░███   ░░███  ░░░           ░░░                           ███░░░░░███ ███░░░░███
- ░███    ░███  ████   █████  ████   ██████  ████████      ███     ░░░ ░░░    ░███
- ░███    ░███ ░░███  ███░░  ░░███  ███░░███░░███░░███    ░███            ███████ 
- ░░███   ███   ░███ ░░█████  ░███ ░███ ░███ ░███ ░███    ░███           ███░░░░  
-  ░░░█████░    ░███  ░░░░███ ░███ ░███ ░███ ░███ ░███    ░░███     ███ ███      █
-    ░░███      █████ ██████  █████░░██████  ████ █████    ░░█████████ ░██████████
-     ░░░      ░░░░░ ░░░░░░  ░░░░░  ░░░░░░  ░░░░ ░░░░░      ░░░░░░░░░  ░░░░░░░░░░ 
-                                                                                                                                                               
-  Bots: 47  │  Attacks: 20  │  Uptime: 3h 25m │ CPU: 168 cores │ RAM: 240 GB                   
 
-
-  ▸ 🤖 BOT MANAGEMENT
-    ⚡ ATTACK CENTER
-    📊 BROADCAST SHELL
-    🧦 SOCKS MANAGER
-    📜 HELP & INFO
-    ❓ EXIT
-
-  [↑/↓] Navigate  [enter] Select  [q] Quit
-```
-
----
+<img width="1042" height="782" alt="Screenshot 2026-02-04 172143" src="https://github.com/user-attachments/assets/f92dbf57-a5fc-4ca9-ab0b-e838fb79ed24" />
 
 ## ✨ Features
 
@@ -80,7 +58,8 @@ python3 setup.py
 
 ## ⚙️ Configuration
 
-After setup, review `setup_config.txt`:
+Code changes are made automatically via setup.py
+Review `setup_config.txt` to see current:
 * C2 address & ports
 * Magic code & encryption keys
 * Generated 4096-bit TLS certificates
@@ -121,7 +100,7 @@ See `bot/build.sh` or `USAGE.md` for full mapping.
 
 ---
 ---
-## 🧠 Architecture Overview
+## Architecture Overview
 
 ```
 [ Admin ] → [ C2 Server/TUI ] ↔ [ Bot Agents ]
@@ -179,7 +158,7 @@ GNU License – see `LICENSE`
 
 ---
 
-## 🤝 Support
+## Support
 
 * GitHub Issues for bugs & feature requests
 * Documentation in `USAGE.md`
