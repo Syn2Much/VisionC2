@@ -48,47 +48,27 @@
 ## 🧠 Architecture Overview
 
 ```
-Admin Console ──TLS 1.3──► C2 Server ◄──TLS 1.3── Bot Agents (14+ architectures)
-```
+[ Admin Console ]
+        │
+        │  TLS 1.3
+        ▼
+[ C2 Server ] ── TLS 1.3 ──► [ Bot Agents (14+ arches) ]
+   │                                   │
+   │                                   ├─ Sandbox check → exit
+   │                                   ├─ Persistence (cron / rc.local)
+   │                                   ├─ C2 resolve:
+   │                                   │   EncURL → DoH/DNS → IP
+   │                                   ├─ HMAC auth:
+   │                                   │   Challenge → Response → OK
+   │                                   │   (MD5 + MAGIC, Base64)
+   │                                   └─ Runtime:
+   │                                       Cmd loop / Shell / SOCKS5
+   │
+   └─ Issues HMAC challenge
+      Verifies response
+      Queues commands
 
-### Bot Startup Flow
 
-```
-START → Sandbox Check ─[detected]─► EXIT(200)
-          │
-          ▼
-    Persistence (rc.local + cron)
-          │
-          ▼
-    C2 Resolution:
-      Decrypt URL → DoH TXT → DNS TXT → A Record → Direct IP
-          │
-          ▼
-    TLS Connect → HMAC Auth → Command Loop
-```
-
-### HMAC Challenge-Response
-
-```
-BOT                                    C2 SERVER
- │ ──── TLS Handshake ───────────────► │
- │ ◄─── AUTH_CHALLENGE:<random_32> ─── │
- │      Hash: Base64(MD5(challenge + MAGIC + challenge))
- │ ──── AUTH_RESPONSE:<hash> ────────► │
- │ ◄─── AUTH_SUCCESS ────────────────► │
- │ ──── ARCH|RAM|VERSION ────────────► │
- │ ◄═══ Command Loop ════════════════► │
-```
-
-### C2 URL Decryption (4-Layer)
-
-```
-Base64 Blob
- → Base64 Decode
- → XOR (derived key)
- → RC4
- → Byte Sub (ROL3, XOR 0xAA)
- → MD5 Verify
 ```
 
 ---
@@ -187,11 +167,11 @@ See `bot/build.sh` or `USAGE.md` for full mapping.
 
 ## 📚 Documentation
 
-| File              | Description                      |
-| ----------------- | -------------------------------- |
-| `USAGE.md`        | Setup, deployment, and TUI usage |
-| `cnc/COMMANDS.md` | Full CNC command reference       |
-| `CHANGELOG.md`    | Version history                  |
+| File | Description |
+|------|-------------|
+| [USAGE.md](USAGE.md) | Setup, deployment, and TUI usage |
+| [COMMANDS.md](cnc/COMMANDS.md) | Full CNC command reference |
+| [CHANGELOG.md](CHANGELOG.md) | Version history |
 
 ---
 
@@ -205,7 +185,7 @@ The authors assume no responsibility for misuse or legal consequences.
 
 ## 📜 License
 
-MIT License — see `LICENSE`
+GNU License — see `LICENSE`
 
 ---
 
