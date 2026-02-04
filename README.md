@@ -100,13 +100,13 @@ After setup, review `setup_config.txt`:
 
 **TUI Mode (recommended)**
 ```bash
-cd cnc
-./cnc
+./server
+# After running setup a server binary will be copied to the main VisionC2 directory
 ```
 
 **Split / Multi-User Mode**
 ```bash
-./cnc --split
+./server --split
 # nc <server-ip> <admin-port>
 ```
 
