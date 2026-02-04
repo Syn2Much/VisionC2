@@ -6,13 +6,13 @@
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-> **VisionC2** is a Go based botnet focused on network stress testing. It includes enterprise-grade encryption (TLS 1.3 + HMAC), multi-architecture bot support (14+), remote shell, SOCKS5 proxying, and an interactive terminal user interface.
+> **VisionC2** is a Go based botnet with a TUI based CNC focused on network stress testing. It includes enterprise-grade encryption (TLS 1.3 + HMAC), multi-architecture bot support (14+), remote shell, SOCKS5 proxying, and an interactive terminal user interface.
 
 <p align="center">
-<b>VisionC2 now features a complete Terminal User Interface built in BubbleTea</b>
+<b>Watch Vision's TLS Bypass Method crash one of the largest DSTAT Graphs</b>
 </p>
 
-![Animation(1)](https://github.com/user-attachments/assets/a1b48f12-ebb5-4582-8e6d-e61eb521ac10)
+![Animation](https://github.com/user-attachments/assets/52ffce78-eb92-4f7c-b34e-ba6ff227e416)
 
 ## Quick Start
 
