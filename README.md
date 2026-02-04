@@ -1,19 +1,20 @@
-# VisionC2 – Advanced Botnet Command & Control Framework
-> **VisionC2** is a Go-based C2 framework for **network stress testing**. Features a full-screen TUI, TLS 1.3 + HMAC auth + sandbox evasion, remote shell, SOCKS5 proxy, and advanced Layer 4/7 attack methods.
----
+# VisionC2- Go based CNC Framework
 ![VisionC2](https://img.shields.io/badge/VisionC2-V1.7-red)
 ![Go](https://img.shields.io/badge/Go-1.23.0+-blue)
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS-green)
 ![License](https://img.shields.io/badge/License-GNU-yellow)
 
 ```
-  ____   ____.__       .__              _________  ________  
-  \   \ /   /|__| _____|__| ____   ____ \_   ___ \ \_____  \ 
-   \   Y   / |  |/  ___/  |/  _ \ /    \/    \  \/  /  ____/ 
-    \     /  |  |\___ \|  (  <_> )   |  \     \____/       \ 
-     \___/   |__/____  >__|\____/|___|  /\______  /\_______ \
-                     \/               \/        \/         \/
-Bots: 47  │  Attacks: 20  │  Uptime: 3h 25m │ Cores: 128 │ Ram: 82640MB                    
+ █████   █████  ███           ███                           █████████   ████████ 
+░░███   ░░███  ░░░           ░░░                           ███░░░░░███ ███░░░░███
+ ░███    ░███  ████   █████  ████   ██████  ████████      ███     ░░░ ░░░    ░███
+ ░███    ░███ ░░███  ███░░  ░░███  ███░░███░░███░░███    ░███            ███████ 
+ ░░███   ███   ░███ ░░█████  ░███ ░███ ░███ ░███ ░███    ░███           ███░░░░  
+  ░░░█████░    ░███  ░░░░███ ░███ ░███ ░███ ░███ ░███    ░░███     ███ ███      █
+    ░░███      █████ ██████  █████░░██████  ████ █████    ░░█████████ ░██████████
+     ░░░      ░░░░░ ░░░░░░  ░░░░░  ░░░░░░  ░░░░ ░░░░░      ░░░░░░░░░  ░░░░░░░░░░ 
+                                                                                                                                                               
+  Bots: 47  │  Attacks: 20  │  Uptime: 3h 25m │ CPU: 168 cores │ RAM: 240 GB                   
 
 
   ▸ 🤖 BOT MANAGEMENT
@@ -48,12 +49,6 @@ Bots: 47  │  Attacks: 20  │  Uptime: 3h 25m │ Cores: 128 │ Ram: 82640MB
 * HMAC challenge-response authentication
 * Multi-layer obfuscation (RC4, XOR, byte substitution, MD5)
 * Anti-analysis & sandbox detection
-
-###  Performance & Scalability
-* **2 Servers** → **30k–40k RPS**
-* **Layer 4 Throughput (2 servers)** → **2–6 Gbps**
-* 14+ architectures with automated cross-compilation
-* Fully automated ~5-minute setup
 
 > *Performance depends on agent hardware and network conditions.*
 
