@@ -2,7 +2,7 @@
 
 ![VisionC2](https://img.shields.io/badge/VisionC2-V1.7-red) ![Go](https://img.shields.io/badge/Go-1.23.0+-blue) ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS-green) ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-> VisionC2 is a Go-based botnet with a TUI CNC for network stress testing, featuring TLS 1.3 encryption, 14+ architecture support, remote shell, SOCKS5 proxying, and an interactive terminal UI.
+> VisionC2 is a Go-based botnet with a TUI CNC for network stress testing, featuring TLS 1.3 encryption, 14+ architecture support, remote shell, SOCKS5 proxying, and sophisticated attack methods. 
 ---
 
 ## 📑 Table of Contents
