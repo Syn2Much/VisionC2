@@ -21,16 +21,33 @@ import (
 // ============================================================================
 
 // loadTLSConfig loads X.509 certificates and configures secure TLS settings
-// Requires server.crt (certificate) and server.key (private key) in current dir
+// Checks both ./cnc/certificates/ (project root) and ./certificates/ (cnc dir)
 // Enforces TLS 1.2 minimum to reject outdated/vulnerable protocols
 // Prefers X25519 and P256 curves for key exchange (modern and fast)
 // Server cipher preference prevents clients from choosing weak ciphers
 // Fatal error if certs missing - CNC cannot operate without encryption
 func loadTLSConfig() *tls.Config {
-	cert, err := tls.LoadX509KeyPair("./certificates/server.crt", "./certificates/server.key")
-	if err != nil {
+	// Try project root path first (./cnc/certificates/), then local path (./certificates/)
+	certPaths := []struct{ cert, key string }{
+		{"./cnc/certificates/server.crt", "./cnc/certificates/server.key"},
+		{"./certificates/server.crt", "./certificates/server.key"},
+	}
+
+	var cert tls.Certificate
+	var err error
+	var loaded bool
+
+	for _, p := range certPaths {
+		cert, err = tls.LoadX509KeyPair(p.cert, p.key)
+		if err == nil {
+			loaded = true
+			break
+		}
+	}
+
+	if !loaded {
 		fmt.Printf("[FATAL] Failed to load TLS certificates: %v\n", err)
-		fmt.Println("[FATAL] Make sure server.crt and server.key exist in the current directory")
+		fmt.Println("[FATAL] Make sure server.crt and server.key exist in ./cnc/certificates/ or ./certificates/")
 		os.Exit(1)
 	}
 
