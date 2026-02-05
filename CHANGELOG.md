@@ -2,11 +2,12 @@
 
 ### v1.8 — Feb 2026
 
-**Features**
 
+**Features**
 * CPU core tracking (per bot + total in stats bar)
 * TUI proxy URL field for L7 attacks
-* Cyberpunk-themed Attack Center UI 
+* Cyberpunk-themed Attack Center UI
+
 
 **Proxy Optimizations**
 
@@ -18,6 +19,7 @@
 * UPX compression fix (`-1` instead of `--best --lzma`)
 * Setup.py copies binary to project root as `server`
 * Flexible cert paths (works from root or cnc dir)
+* Update CNC with Prettier Banners
 
 ---
 
