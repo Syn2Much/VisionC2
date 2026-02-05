@@ -17,7 +17,8 @@
 
 ## 🧪 Quick Demo
 
-![VisionC2 TUI Demo](https://github.com/user-attachments/assets/8f9b3263-1df4-4fe4-ad3b-d02bc5907c21)
+![Animation](https://github.com/user-attachments/assets/d8dc9a34-9965-499b-aba3-d567413016d7)
+
 ---
 ## ✨ Features
 
