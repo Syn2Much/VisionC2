@@ -591,12 +591,10 @@ def print_summary(config: dict):
     print()
 
     print(f"{Colors.BRIGHT_CYAN}  Quick Start:{Colors.RESET}")
-    print(f"    1. Start CNC:    {Colors.GREEN}cd cnc && ./server{Colors.RESET}")
+    print(f"    Start CNC:    {Colors.GREEN}screen ./server{Colors.RESET}")
     c2_ip = config.get("c2_address", "localhost:443").split(":")[0]
     admin_port = config.get("admin_port", "420")
-    print(f"    2. Connect:      {Colors.GREEN}nc {c2_ip} {admin_port}{Colors.RESET}")
-    print(f"    3. Login:        {Colors.GREEN}spamtec{Colors.RESET}")
-    print(f"    4. Bot bins:     {Colors.GREEN}bins/{Colors.RESET}")
+    print(f"    Bot bins:     {Colors.GREEN}bins/{Colors.RESET}")
     print()
 
 
