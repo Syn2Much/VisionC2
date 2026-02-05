@@ -16,10 +16,11 @@
 
 **Build Fixes**
 
-* UPX compression fix (`-1` instead of `--best --lzma`)
+* UPX compression fix 
 * Setup.py copies binary to project root as `server`
 * Flexible cert paths (works from root or cnc dir)
 * Update CNC with Prettier Banners
+* Modular Bot/CNC file structure improved 
 
 ---
 
