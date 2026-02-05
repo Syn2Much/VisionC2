@@ -191,4 +191,4 @@ This software is provided strictly for educational, research, and authorized pen
 ## 📜 License
 GNU General Public License v3.0 — see [LICENSE](LICENSE)
 
-<div align="center"> <sub>Maintained with ❤️ by the Syn</sub> </div> 
+<div align="center"> <sub>Maintained with ❤️ by Syn</div> 
