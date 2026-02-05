@@ -69,7 +69,7 @@
 │                          │  │                       │                                                  │
 │ Clean ──────────────────►│  ▼ DNS resolve:          │ REGISTER:ver:id:arch:ram:cpu ─────────────────►  │
 │                          │  DoH TXT → UDP TXT       │                                                  │
-│                          │  → A Record → Raw IP     │ ◄──────── Command Loop (180s timeout) ────────►  │
+│                          │  → A Record → Raw IP     │ ◄──────── Command Loop (Encypted over TLS)       │
 │                          │  │                       │  PING/PONG │ !shell │ !http │ !syn │ !persist    │
 │                          │  └──────────────────────►│                                                  │
 └──────────────────────────┴──────────────────────────┴──────────────────────────────────────────────────┘
