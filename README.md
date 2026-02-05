@@ -52,7 +52,7 @@ cd VisionC2
 chmod +x *
 
 python3 setup.py
-# CNC and Bot Binaries will be built during this proccess
+# CNC will be built as ./server in ./VisionC2 root directory. Binaries will be built to ./VisionC2/bins
 ```
 
 ## ⚙️ Configuration
