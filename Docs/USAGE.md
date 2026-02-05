@@ -90,13 +90,13 @@ After completion, you'll have:
 
 ```
 VisionC2/
-├── cnc/
-│   ├── cnc              # CNC server binary
+├── cnc/certificates              
 │   ├── server.crt       # TLS certificate
 │   └── server.key       # TLS private key
-├── bot/
-│   └── bins/            # 14 bot binaries (different architectures)
+├── bins/
+│   └──...            # 14 bot binaries (different architectures)
 └── setup_config.txt     # Your configuration summary
+└── server    # Cnc Server Binary
 ```
 
 ---
@@ -436,7 +436,7 @@ Go to **📊 Ongoing Attacks** to see:
 ## 🔨 Rebuilding Bots Only
 
 ```bash
-cd VisionC2/bot
+cd VisionC2/tools
 ./build.sh
 ```
 
@@ -449,7 +449,7 @@ Builds all 14 architectures with UPX compression.
 ### Location
 
 ```
-VisionC2/cnc/
+VisionC2/cnc/certificates
 ├── server.crt    # Public certificate
 └── server.key    # Private key
 ```
@@ -461,7 +461,7 @@ VisionC2/cnc/
 python3 setup.py  # Select [1] Full Setup
 
 # Manual
-cd cnc
+cd cnc/certificates
 openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt -days 365 -nodes
 ```
 
@@ -482,11 +482,11 @@ openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt -days 365 
 
 ```bash
 # Option 1: Run as root
-sudo ./cnc
+sudo ./server
 
 # Option 2: Set capabilities (recommended)
-sudo setcap 'cap_net_bind_service=+ep' ./cnc
-./cnc
+sudo setcap 'cap_net_bind_service=+ep' ./server
+./server
 ```
 
 ### Bots Not Connecting
@@ -495,14 +495,6 @@ sudo setcap 'cap_net_bind_service=+ep' ./cnc
 2. Verify C2 in `setup_config.txt`
 3. Test TLS: `openssl s_client -connect YOUR_SERVER:443`
 
-### Forgot Password
-
-```bash
-cd cnc
-rm users.json
-./cnc
-# New password shown on startup
-```
 
 ### Build Errors
 
@@ -517,9 +509,9 @@ sudo apt install upx-ucl
 ---
 
 ## 📚 Additional Resources
-
-- [Command Reference](cnc/COMMANDS.md) - Full TUI hotkey and command reference
-- [Changelog](CHANGELOG.md) - Version history
+- [Architecture](Docs/ARCHITECTURE.md) - Full technical details
+- [Command Reference](Docs/COMMANDS.md) - Full TUI hotkey and command reference
+- [Changelog](Docs/CHANGELOG.md) - Version history
 
 ---
 
