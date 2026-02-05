@@ -13,9 +13,6 @@
 
 </div>
 
-> Vision is designed for stress testing, red-team operations, and large-scale agent management with built-in Layer 4/7 DDoS attacks, SOCKS5 proxying, interactive remote shell, and strong anti-analysis protections.
-
-
 ![Animation](https://github.com/user-attachments/assets/fd8d324f-f925-407a-8b3b-02b3bed34c90)
 
 
