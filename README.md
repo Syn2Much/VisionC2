@@ -69,20 +69,26 @@ Review `setup_config.txt` to see current:
 
 ---
 
+
 ### Running the C2
-**Recommended (TUI)**
+**Recommended (TUI Mode)**
 ```bash
-./server
+screen ./server
+# Press Ctrl+A then D to detach from screen session
+# Reattach with: screen -r
 ```
 
-**Split/Multi-user mode(Legacy Mode)**
+**Telnet/Multi-User Mode (Legacy)**
 ```bash
-./server --split
+screen ./server --split
 # Then connect with: nc <c2-ip> <admin-port>
-# type "spamtec" to trigger hidden login portal
-(uses users.json db)
+# Type "spamtec" to trigger hidden login portal
+# Uses users.json database for authentication
+
+# Detach from screen: Ctrl+A then D
+# Reattach: screen -r
 ```
-[COMMANDS.md](cnc/COMMANDS.md) | **Complete CNC command reference**     
+[COMMANDS.md](cnc/COMMANDS.md) | **Complete CNC command reference**  
 
 Bot binaries are automatically cross-compiled to `bot/bins/`.
 
