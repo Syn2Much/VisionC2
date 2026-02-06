@@ -22,7 +22,7 @@
 - [Documentation](#-documentation)
 - [Roadmap](#%EF%B8%8F-roadmap)
 
-> **Vision** is a Go-based C2 framework secured by TLS 1.3 with HMAC challenge-response authentication, multi-layer C2 address encryption, and sandbox evasion through VM/debugger detection — compiling persistent agents for 14+ architectures.
+> **Vision** is a Go-based C2 framework featuring a simple one click setup script. Secured by TLS 1.3 with HMAC challenge-response authentication, multi-layer C2 address encryption, and sandbox evasion through VM/debugger detection — compiling persistent agents for 14+ architectures.
 
 ![Animation](https://github.com/user-attachments/assets/4475a3a1-b3a5-4bb3-b00a-b30e88210dcd)
 
