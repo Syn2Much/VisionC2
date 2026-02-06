@@ -32,9 +32,9 @@
 
 | Command | Description |
 |---------|-------------|
-| `!shell`, `!exec` | Execute command with output |
+| `!shell`, `!exec` | Execute shell command with output |
 | `!stream` | Real-time command streaming output |
-| `!detach`, `!bg` | Run command in background |
+| `!detach`, `!bg` | Run shell command in background |
 | `!stop` | Stop all attacks |
 | `!udpflood` | UDP flood attack |
 | `!tcpflood` | TCP connection flood |
