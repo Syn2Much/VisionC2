@@ -82,7 +82,7 @@ The setup script will:
 
 1. Generate 4096-bit TLS certificates
 2. Create encryption keys and magic codes
-3. Configure C2 address and ports
+3. Automatically update source code with user provided details
 4. Cross-compile bot binaries for all architectures
 5. Build the CNC server binary
 
@@ -94,7 +94,7 @@ The setup script will:
 
 ## 🖥️ Running the C2 Server
 
-### **Option 1: TUI Mode (Recommended)**
+### **Option 1: TUI Mode (Recommended/Full Features)**
 
 ```bash
 # Start in screen session for persistence
@@ -104,7 +104,7 @@ screen ./server
 # Reattach: screen -r 
 ```
 
-### **Option 2: Telnet/Multi-User Mode**
+### **Option 2: Telnet/Multi-User Mode (Legacy/For Renting Spots)**
 
 ```bash
 # Start with split admin interface
