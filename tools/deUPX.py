@@ -52,14 +52,32 @@ def setup_logging(log_file: Optional[str] = None) -> logging.Logger:
 
 logger = setup_logging()
 
+# ============================================================================
+# IMPORTANT: Do NOT strip structural UPX markers like UPX!, UPX0, UPX1, UPX2
+# or the hex magic \x55\x50\x58\x21. These are used by the embedded
+# decompressor stub at runtime to locate the compressed payload. Replacing
+# them will make the binary silently fail to execute.
+#
+# Only strip cosmetic/informational strings that are safe to remove.
+# ============================================================================
+
 UPX_STRINGS = [
-    b"$Id: UPX ",
-    b"UPX!",
+    # Info/version strings (safe to strip - purely cosmetic)
     b"$Info: This file is packed with the UPX executable packer http://upx.sf.net $",
     b"$Id: UPX 4.22 Copyright (C) 1996-2024 the UPX Team. All Rights Reserved. $",
-    b"UPX!u",
+    b"$Id: UPX ",
+    # URLs and references (safe to strip)
     b"http://upx.sf.net",
-    b"UPX",
+    b"upx.sourceforge.net",
+    b"upx.sf.net",
+    b"github.com/upx/upx",
+    b"the UPX Team",
+    # Copyright notices (safe to strip)
+    b"Copyright (C) 1996-",
+    b"Markus Oberhumer",
+    b"Laszlo Molnar",
+    b"John F. Reiser",
+    # Version strings like "UPX 4." (safe, these are info strings not magic)
     b"UPX 0.",
     b"UPX 1.",
     b"UPX 2.",
@@ -70,25 +88,6 @@ UPX_STRINGS = [
     b"UPX 7.",
     b"UPX 8.",
     b"UPX 9.",
-    # Section names
-    b"UPX0",
-    b"UPX1",
-    b"UPX2",
-    # URLs and references
-    b"upx.sourceforge.net",
-    b"upx.sf.net",
-    b"github.com/upx/upx",
-    b"the UPX Team",
-    # Copyright notices
-    b"Copyright (C) 1996-",
-    b"Markus Oberhumer",
-    b"Laszlo Molnar",
-    b"John F. Reiser",
-    # PE/DLL specific patterns
-    b"UPX!",
-    b"\x55\x50\x58\x21",  # UPX! in hex
-    b"UPX0\x00",
-    b"UPX1\x00",
 ]
 
 # Binary file extensions to always process
