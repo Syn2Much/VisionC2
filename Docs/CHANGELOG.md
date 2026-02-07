@@ -1,15 +1,26 @@
 ## ☾℣☽ VisionC2 Changelog
 
-
 ### v1.9 — Feb 2026
-- Fixed issue with UPX stripping tool being to aggressive and corrupting binaries
-- Daemonize (WIP
-- TUI Updates (WIP)
 
+**Bot Metadata Expansion**
+
+* GeoIP country lookup on bot connect (ip-api.com, no DB needed)
+* Process name reporting (disguised binary name visible in TUI)
+* Uplink speed measurement (in-memory bandwidth test, no files written)
+* Extended REGISTER protocol: `version:botID:arch:ram:cpu:procname:uplink`
+
+**TUI Bot List Overhaul**
+
+* New columns: GEO, PROCESS, UPLINK
+* Country code highlighted in yellow, process name in purple, uplink in green
+* Fixed UPX stripping tool corrupting binaries (preserved structural UPX markers)
+  
 
 
 ### v1.8 — Feb 2026
+
 **Features**
+
 * CPU core tracking (per bot + total in stats bar)
 * TUI proxy URL field for L7 attacks
 * Cyberpunk-themed Attack Center UI
@@ -20,12 +31,13 @@
 * Round-robin rotation with 2s timeouts
 
 **Build Fixes**
-* Moved around some files for readability 
-* UPX compression fix 
+
+* Moved around some files for readability
+* UPX compression fix
 * Setup.py copies binary to project root as `server`
 * Flexible cert paths (works from root or cnc dir)
 * Update CNC with Prettier Banners
-* Modular Bot/CNC file structure improved 
+* Modular Bot/CNC file structure improved
 
 ---
 
