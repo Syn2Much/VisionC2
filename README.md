@@ -8,6 +8,10 @@
 `DDoS` · `SOCKS5 Proxy` · `Remote Shell` · `Multi-Arch` · `TUI Dashboard`
 
 ---
+<img width="1461" height="670" alt="Screenshot 2026-02-07 214839" src="https://github.com/user-attachments/assets/89abefce-815f-4114-90ea-d51674ff3bb8" />
+
+> **Vision** is a Go-based C2 framework featuring a simple one click setup script. Secured by TLS 1.3 + HMAC authentication, multi-layer C2 address encryption, and sandbox evasion through VM/Debugger detection — compiling persistent agents for 14+ architectures.
+
 ![Go](https://img.shields.io/badge/Go-1.23.0+-00ADD8?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS-009688?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-GNU%20GPLv3-yellow?style=for-the-badge)
@@ -22,13 +26,8 @@
 - [Documentation](#-documentation)
 - [Roadmap](#%EF%B8%8F-roadmap)
 
-> **Vision** is a Go-based C2 framework featuring a simple one click setup script. Secured by TLS 1.3 + HMAC authentication, multi-layer C2 address encryption, and sandbox evasion through VM/Debugger detection — compiling persistent agents for 14+ architectures.
-
-![Animation](https://github.com/user-attachments/assets/4475a3a1-b3a5-4bb3-b00a-b30e88210dcd)
-
 ---
-
-## 🤖 Features
+## 🤖 Commands
 
 | Command | Description |
 |---------|-------------|
