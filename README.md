@@ -2,18 +2,16 @@
 <div align="center">
 
 # ☾℣☽ision C2
+
 ![Go](https://img.shields.io/badge/Go-1.23.0+-00ADD8?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS-009688?style=for-the-badge)
-![License](https://img.shields.io/badge/License-GNU%20GPLv3-yellow?style=for-the-badge)
-
 
 
 **Vision** is a Go-based C2 framework featuring one-click setup, TLS-secured communications, layered C2 address obfuscation, sandbox evasion, and cross-compiled persistent agents for **14+ architectures**.
-
 <img src="https://github.com/user-attachments/assets/89abefce-815f-4114-90ea-d51674ff3bb8" alt="Vision C2 Dashboard" width="90%" />
 
-`DDoS` · `SOCKS5 Proxy` · `Remote Shell` · `Multi-Arch` · `TUI Dashboard`
-
+📘 **Changelog:** You can always find the latest and complete change history in  
+[`Docs/CHANGELOG.md`](Docs/CHANGELOG.md)
 </div>
 
 ---
@@ -23,7 +21,7 @@
 
 
 
-The CNC runs as a Bubble Tea–based TUI providing live bot telemetry, attack control, and remote command execution.
+The CNC runs as a Terminal User Interface providing live bot telemetry, attack control, and remote command execution.
 
 **Features**
 - Dashboard: bot count, RAM / CPU usage, uptime
