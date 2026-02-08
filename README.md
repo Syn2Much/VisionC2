@@ -40,13 +40,14 @@ Interactive shell access with real-time output and command history.
 
 <div align="center">
   <img
-    src="https://github.com/user-attachments/assets/7dc65c29-b072-484e-9b5c-bcb628147c88"
-    alt="Remote Shell View"
-    width="95%"
+<img width="1157" height="675" alt="Screenshot 2026-02-07 224828" src="https://github.com/user-attachments/assets/063bcbf2-bb95-4d92-849e-f7a2ce8fb957" />
   />
 </div>
 
 ---
+
+## ⚔️ Attack Builder
+
 ### Layer 4 (Network)
 
 | Method    | Protocol     | Technique                     |
@@ -67,9 +68,7 @@ Interactive shell access with real-time output and command history.
 | CF Bypass       | Session reuse, cookie persistence     |
 
 
-## ⚔️ Attack Builder
-
-<div align="center">
+<div>
   <img
     src="https://github.com/user-attachments/assets/2dc9356a-3d60-4a02-b377-f8df40bf4426"
     alt="CNC Dashboard"
