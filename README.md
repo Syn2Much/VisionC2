@@ -12,13 +12,15 @@
 
 <img width="973" height="658" alt="Screenshot 2026-02-07 224651" src="https://github.com/user-attachments/assets/9c6d9ada-a8ff-499e-8445-8d8ea2409936" />
 
-📘 **Changelog:** You can always find the latest and complete change history in  
+ **Changelog:** You can always find the latest and complete change history in  
 [`Docs/CHANGELOG.md`](Docs/CHANGELOG.md)
 
 </div>
 
 
-## 🖥️ CNC/TUI (Bubble Tea)
+## CNC/TUI (Bubble Tea)
+> Built in BubbleTea for ease of use and arrow key control 
+
 **Features**
 - Dashboard: bot count, RAM / CPU usage, uptime
 - Bot list with live stats and actions
@@ -30,6 +32,8 @@
 ---
 
 ## ⚔️ Attack Builder
+
+> Vision features a collection of high performance stress testing methods broadcasted to all bots 
 
 ### Layer 4 (Network)
 
@@ -49,20 +53,14 @@
 | HTTP Flood      | GET/POST requests, randomized headers |
 | HTTPS/TLS Flood | TLS handshake with request bursts     |
 | CF Bypass       | Session reuse, cookie persistence     |
+| Proxies         | All L7 can optionally use a proxy list|
 ---
 
-<div>
-  <img
-    src="https://github.com/user-attachments/assets/2dc9356a-3d60-4a02-b377-f8df40bf4426"
-    alt="CNC Dashboard"
-    width="90%"
-  />
-</div>
 
 
-### Remote Shell
+## Remote Shell
 
-Interactive shell access with real-time output and command history.
+> Interactive shell access on each agent with real-time output and command history.
 
 <div align="center">
   <img
