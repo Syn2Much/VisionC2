@@ -1,5 +1,15 @@
 ## ☾℣☽ VisionC2 Changelog
 
+### v2.0 — Feb 2026
+
+**Bot Single-Instance & Speed Cache**
+
+* Persistent speed test cache (`/tmp/.net_metric`) — avoids re-running bandwidth test on every reconnect
+* PID-based single-instance lock (`/tmp/.net_lock`) — new instance kills old via SIGTERM/SIGKILL and takes over
+* Both files use `/tmp` namespace, auto-cleaned on reboot so stale state never persists
+
+---
+
 ### v1.9 — Feb 2026
 
 **Bot Metadata Expansion**
@@ -15,8 +25,6 @@
 * Country code highlighted in yellow, process name in purple, uplink in green
 * Fixed UPX stripping tool corrupting binaries (preserved structural UPX markers)
   
-
-
 ### v1.8 — Feb 2026
 
 **Features**
