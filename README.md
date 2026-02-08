@@ -8,7 +8,8 @@
 
 
 **Vision** is a Go-based C2 framework featuring one-click setup, TLS-secured communications, layered C2 address obfuscation, sandbox evasion, and cross-compiled persistent agents for **14+ architectures**.
-<img src="https://github.com/user-attachments/assets/89abefce-815f-4114-90ea-d51674ff3bb8" alt="Vision C2 Dashboard" width="90%" />
+
+<img width="973" height="658" alt="Screenshot 2026-02-07 224651" src="https://github.com/user-attachments/assets/9c6d9ada-a8ff-499e-8445-8d8ea2409936" />
 
 📘 **Changelog:** You can always find the latest and complete change history in  
 [`Docs/CHANGELOG.md`](Docs/CHANGELOG.md)
