@@ -19,7 +19,7 @@
 
 ### C2 Interface (TUI)
 Built with BubbleTea for intuitive keyboard-controlled navigation:
-- **Dashboard**: Real-time bot count, system resource monitoring (RAM/CPU), and uptime
+- **Dashboard**: Real-time bot count, system resource monitoring (RAM/CPU), download speed, and uptime
 - **Bot Management**: Live statistics and action controls for connected agents
 - **Attack Builder**: Configurable attack methods with target and duration controls
 - **Remote Shell**: Interactive shell access (broadcast and per-bot)
