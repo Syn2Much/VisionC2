@@ -1,4 +1,31 @@
+
 ## ☾℣☽ VisionC2 Changelog
+
+### v2.2 — Feb 2026
+
+**Anti-Analysis Hardening**
+
+* Expanded `winnti()` detection: 30+ additional Unix analysis tools (debuggers, RE, network capture, malware analysis, syscall monitoring, scanners, memory forensics)
+* Enhanced parent-process debugger checks (incl. lldb, ida, ghidra, frida, sysdig, bpftrace)
+* Sandbox behavior updated: randomized 24–27h sleep, then clean `os.Exit(0)`
+
+  * Evades dynamic analysis timeouts
+  * Avoids suspicious fast-exit signals
+
+---
+
+### v2.1 — Feb 2026
+
+**Full Unix Daemonization**
+
+* New `stuxnet()` performs complete daemonization at startup
+
+  * Re-exec with env marker, parent exit, init adoption
+  * New session (`setsid`), `/` chdir, `umask(0)`
+  * stdio redirected to `/dev/null`
+* Debug safeguard: daemonization skipped in `debugMode` to preserve `deoxys()` logging
+
+---
 
 ### v2.0 — Feb 2026
 
@@ -176,15 +203,20 @@
 
 ## Version History Summary
 
-| Version | Date     | Highlights                                         |
-| ------- | -------- | ---------------------------------------------------|
-| v1.7    | Feb 2026 | Full TUI panel, HTTP optimizations, consolidated UI|
-| v1.6    | Feb 2026 | DoH-first target resolve, persist fix, UI overhaul |
-| v1.5    | Feb 2026 | UPX stripping, docs, +50 user agents               |
-| v1.4    | Jan 2026 | Proxy support for Layer 7                          |
-| v1.3    | Jan 2026 | RAM tracking, debug logging                        |
-| v1.2    | Jan 2026 | RC4 obfuscation, setup automation                  |
-| v1.1    | Dec 2025 | Initial release                                    |
+| Version | Date     | Highlights                                          |
+| ------- | -------- | --------------------------------------------------- |
+| v2.2    | Feb 2026 | Expanded anti-analysis, benign sleep, file merge     |
+| v2.1    | Feb 2026 | Full Unix daemonization, signal hardening            |
+| v2.0    | Feb 2026 | Single-instance lock, speed cache                    |
+| v1.9    | Feb 2026 | GeoIP, process name, uplink speed, TUI overhaul      |
+| v1.8    | Feb 2026 | CPU tracking, proxy UI, build fixes                  |
+| v1.7    | Feb 2026 | Full TUI panel, HTTP optimizations, consolidated UI  |
+| v1.6    | Feb 2026 | DoH-first target resolve, persist fix, UI overhaul   |
+| v1.5    | Feb 2026 | UPX stripping, docs, +50 user agents                 |
+| v1.4    | Jan 2026 | Proxy support for Layer 7                            |
+| v1.3    | Jan 2026 | RAM tracking, debug logging                          |
+| v1.2    | Jan 2026 | RC4 obfuscation, setup automation                    |
+| v1.1    | Dec 2025 | Initial release                                      |
 
 ---
 
