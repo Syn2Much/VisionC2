@@ -20,10 +20,9 @@
 ### C2 Interface (TUI)
 Built with BubbleTea for intuitive keyboard-controlled navigation:
 - **Dashboard**: Real-time bot count, system resource monitoring (RAM/CPU), download speed, and uptime
-- **Bot Management**: Live statistics and action controls for connected agents
 - **Attack Builder**: Configurable attack methods with target and duration controls
 - **Remote Shell**: Interactive shell access (broadcast and per-bot)
-- **SOCKS5 Proxy**: Built-in proxy server management
+- **SOCKS5 Proxy**: Built-in proxy server management (per-bot)
 - **Help System**: Integrated documentation and command reference
 
 ### Security & Obfuscation
@@ -132,14 +131,10 @@ Agent Startup Sequence
    └─ Encrypted bidirectional communication
 ```
 
-**Communication Protocol:**
-- All traffic encrypted via TLS
-- HMAC-signed challenge/response
-- Structured registration payload: `botid:arch:ram:cpu:uplink:process`
-
 ## 📖 Documentation
 - **Changelog**: [`Docs/CHANGELOG.md`](Docs/CHANGELOG.md)
 - **Commands**: [`Docs/COMMANDS.md`](Docs/COMMANDS.md)
+- **Usage**: [`Docs/USAGE.md`](Docs/USAGE.md)
 
 ## ⚠️ Legal Disclaimer
 
