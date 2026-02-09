@@ -5,7 +5,7 @@
 
 **Full Unix Daemonization**
 
-* New `stuxnet()` performs complete daemonization at startup
+* New Bot Process performs complete daemonization at startup
 
   * Re-exec with env marker, parent exit, init adoption
   * New session (`setsid`), `/` chdir, `umask(0)`
@@ -15,7 +15,7 @@
 
 **Anti-Analysis Hardening**
 
-* Expanded `winnti()` detection: 30+ additional Unix analysis tools (debuggers, RE, network capture, malware analysis, syscall monitoring, scanners, memory forensics)
+* Expanded sandbox detection: 30+ additional Unix analysis tools (debuggers, RE, network capture, malware analysis, syscall monitoring, scanners, memory forensics)
 * Enhanced parent-process debugger checks (incl. lldb, ida, ghidra, frida, sysdig, bpftrace)
 * Sandbox behavior updated: randomized 24–27h sleep, then clean `os.Exit(0)`
 
