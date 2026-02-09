@@ -30,7 +30,7 @@ build_for_arch() {
     
     echo -e "\nBuilding for $arch_name..."
     
-    local OUTPUT="$PROJECT_ROOT/${AMBS[$INDEX]}"
+    local OUTPUT="$BINS_DIR/${AMBS[$INDEX]}"
     
     cd "$PROJECT_ROOT"
     
@@ -59,8 +59,6 @@ build_for_arch() {
         upx -9 "$OUTPUT" 2>/dev/null || \
         echo "UPX compression skipped for $arch_name"
     fi
-    # Move to bins directory
-    mv "$OUTPUT" "$BINS_DIR/"
     INDEX=$((INDEX + 1))
 }
 
