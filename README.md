@@ -1,11 +1,10 @@
 
 <div align="center">
 
-# VisionC2
+# VisionC2 
 
-**Advanced, modular C2 framework** focused on evasion, performance, and wide attack protocol coverage.
+**Advanced, modular C2 framework** focused on evasion, performance, and wide attack protocol coverage. Engineered for mass Unix server remote control and large stress test.
 
-**⚠️ This project is intended for authorized security research and red teaming only.**
 
 ![Vision C2](vision-banner.svg)
 ---
@@ -25,13 +24,12 @@
 
 | Category              | Feature                                                                 |
 |-----------------------|-------------------------------------------------------------------------|
-|  CNC/C2             | Full-featured interactive TUI control panel                             |
+|  CNC                 | Full-featured interactive TUI control panel (BubbleTea)                             |
 |  Communication      | Modern TLS 1.3 encrypted bot ↔ server communication                    |
 |  Attack Methods      | Layer 4 (network) & Layer 7 (application) attack methods                |
-|  Evasion            | Strong anti-analysis & sandbox evasion                                  |
+|  Evasion            | Strong anti-analysis & sandbox evasion (HMAC/MD5 Auth, Proc Scan, Debugger Check)                                |
 |  Stealth            | Full Unix daemonization + single-instance enforcement                   |
-|  C2 Resilience      | C2 URL decryption + resilient DNS Res fallback chain                            |
-|  Build & Packing     | UPX-aware signature stripping                                           |
+|  C2 Resilience      | Supports TXT Records, A Records, Direct IP. Never stored in plaintext.    |
 |  Cross-Platform     | Multi-architecture bot binaries (14 targets out-of-the-box)             |
 
 ## ⚔️ Attack Methods
