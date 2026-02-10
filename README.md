@@ -1,10 +1,9 @@
 
 <div align="center">
 
-# VisionC2 
+# ☾℣☽ VisionC2
 
-**Advanced, modular C2 framework** focused on evasion, performance, and wide attack protocol coverage. Engineered for mass Unix server remote control and large stress test.
-
+> **TLS-encrypted command & control** — 14-arch cross-compilation, raw-socket L4 + HTTP/2 Rapid Reset L7 floods, remote shell, reverse proxy, and a real-time TUI built in Go. One `setup.py`, thousands of agents.
 
 ![Vision C2](vision-banner.svg)
 ---
@@ -32,7 +31,7 @@
 |  Persistent          | Automatic Crontabs, startup Scripts, rexecute downloader on reboot                 |
 |  C2 Resilience      | Supports TXT Records, A Records, Direct IP. (No Plaintext/Bot Decrypts C2 at runtime)    |
 |  Cross-Platform     | Multi-architecture bot binaries (14 targets out-of-the-box/ Custom UPX Packer included)             |
-|  Auto-Setup      | Prebuilt interactive 1000 line Python Script to automate Config Setup and Build (updates source code)              |
+|  Auto-Setup         | Interactive Python Script to automate Config Setup and Build (updates source code)              |
 
 ## ⚔️ Attack Methods
 
