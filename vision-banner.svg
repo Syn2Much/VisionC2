@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#050510"/>
+      <stop offset="50%" style="stop-color:#0a0a1a"/>
+      <stop offset="100%" style="stop-color:#050510"/>
+    </linearGradient>
+    <linearGradient id="cyanGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00e5ff"/>
+      <stop offset="50%" style="stop-color:#00bcd4"/>
+      <stop offset="100%" style="stop-color:#0091ea"/>
+    </linearGradient>
+    <linearGradient id="purpleGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#7c4dff"/>
+      <stop offset="50%" style="stop-color:#651fff"/>
+      <stop offset="100%" style="stop-color:#536dfe"/>
+    </linearGradient>
+    <linearGradient id="c2Grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#00e5ff"/>
+      <stop offset="100%" style="stop-color:#7c4dff"/>
+    </linearGradient>
+    <linearGradient id="barGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#00e5ff"/>
+      <stop offset="50%" style="stop-color:#651fff"/>
+      <stop offset="100%" style="stop-color:#00e5ff"/>
+    </linearGradient>
+    <filter id="bigGlow">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="dimGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="200" fill="url(#bg)" rx="12"/>
+
+  <!-- Subtle hex grid pattern -->
+  <g opacity="0.04" stroke="#00e5ff">
+    <line x1="0" y1="40" x2="800" y2="40" stroke-width="0.5"/>
+    <line x1="0" y1="80" x2="800" y2="80" stroke-width="0.5"/>
+    <line x1="0" y1="120" x2="800" y2="120" stroke-width="0.5"/>
+    <line x1="0" y1="160" x2="800" y2="160" stroke-width="0.5"/>
+    <line x1="80" y1="0" x2="80" y2="200" stroke-width="0.5"/>
+    <line x1="160" y1="0" x2="160" y2="200" stroke-width="0.5"/>
+    <line x1="240" y1="0" x2="240" y2="200" stroke-width="0.5"/>
+    <line x1="320" y1="0" x2="320" y2="200" stroke-width="0.5"/>
+    <line x1="400" y1="0" x2="400" y2="200" stroke-width="0.5"/>
+    <line x1="480" y1="0" x2="480" y2="200" stroke-width="0.5"/>
+    <line x1="560" y1="0" x2="560" y2="200" stroke-width="0.5"/>
+    <line x1="640" y1="0" x2="640" y2="200" stroke-width="0.5"/>
+    <line x1="720" y1="0" x2="720" y2="200" stroke-width="0.5"/>
+  </g>
+
+  <!-- Diagonal scan lines -->
+  <g opacity="0.025" stroke="#7c4dff">
+    <line x1="0" y1="0" x2="200" y2="200" stroke-width="0.5"/>
+    <line x1="100" y1="0" x2="300" y2="200" stroke-width="0.5"/>
+    <line x1="200" y1="0" x2="400" y2="200" stroke-width="0.5"/>
+    <line x1="300" y1="0" x2="500" y2="200" stroke-width="0.5"/>
+    <line x1="400" y1="0" x2="600" y2="200" stroke-width="0.5"/>
+    <line x1="500" y1="0" x2="700" y2="200" stroke-width="0.5"/>
+    <line x1="600" y1="0" x2="800" y2="200" stroke-width="0.5"/>
+  </g>
+
+  <!-- Left accent bar -->
+  <rect x="0" y="0" width="3" height="200" fill="url(#barGrad)" opacity="0.9"/>
+
+  <!-- Eye icon (vision) -->
+  <g transform="translate(50, 72)" filter="url(#softGlow)">
+    <!-- Outer eye shape -->
+    <ellipse cx="28" cy="28" rx="28" ry="18" fill="none" stroke="#00e5ff" stroke-width="2" opacity="0.8"/>
+    <!-- Iris -->
+    <circle cx="28" cy="28" r="11" fill="none" stroke="#7c4dff" stroke-width="2" opacity="0.9"/>
+    <!-- Pupil -->
+    <circle cx="28" cy="28" r="5" fill="#00e5ff" opacity="0.9"/>
+    <!-- Pupil inner -->
+    <circle cx="28" cy="28" r="2" fill="#ffffff" opacity="0.6"/>
+    <!-- Glint -->
+    <circle cx="32" cy="24" r="1.5" fill="#ffffff" opacity="0.8"/>
+    <!-- Scan line across eye -->
+    <line x1="0" y1="28" x2="56" y2="28" stroke="#00e5ff" stroke-width="0.5" opacity="0.3"/>
+    <!-- Pulsing ring -->
+    <circle cx="28" cy="28" r="16" fill="none" stroke="#00e5ff" stroke-width="0.5" opacity="0.4">
+      <animate attributeName="r" values="14;20;14" dur="3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.4;0.1;0.4" dur="3s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Main title: VISION -->
+  <text x="125" y="115" font-family="'Courier New', 'Fira Code', monospace" font-size="68" font-weight="900" fill="url(#cyanGlow)" filter="url(#bigGlow)" letter-spacing="10">VISION</text>
+
+  <!-- C2 -->
+  <text x="540" y="118" font-family="'Courier New', 'Fira Code', monospace" font-size="72" font-weight="900" fill="url(#c2Grad)" filter="url(#bigGlow)" opacity="0.95">C2</text>
+
+  <!-- Go badge -->
+  <rect x="660" y="82" width="38" height="20" rx="4" fill="none" stroke="#00e5ff" stroke-width="1" opacity="0.5"/>
+  <text x="679" y="96" font-family="'Courier New', monospace" font-size="11" fill="#00e5ff" text-anchor="middle" opacity="0.7">GO</text>
+
+  <!-- Tagline -->
+  <text x="130" y="148" font-family="'Courier New', 'Fira Code', monospace" font-size="11" fill="#444466" letter-spacing="3">COMMAND &amp; CONTROL FRAMEWORK</text>
+
+  <!-- Status indicators on right -->
+  <g transform="translate(710, 40)">
+    <circle cx="0" cy="0" r="3" fill="#00e5ff" opacity="0.6">
+      <animate attributeName="opacity" values="0.6;0.2;0.6" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <text x="10" y="4" font-family="'Courier New', monospace" font-size="9" fill="#334" letter-spacing="1">DDOS</text>
+  </g>
+  <g transform="translate(710, 58)">
+    <circle cx="0" cy="0" r="3" fill="#7c4dff" opacity="0.6">
+      <animate attributeName="opacity" values="0.6;0.2;0.6" dur="2.5s" repeatCount="indefinite"/>
+    </circle>
+    <text x="10" y="4" font-family="'Courier New', monospace" font-size="9" fill="#334" letter-spacing="1">R-SHELL</text>
+  </g>
+  <g transform="translate(710, 76)">
+    <circle cx="0" cy="0" r="3" fill="#00e5ff" opacity="0.6">
+      <animate attributeName="opacity" values="0.6;0.2;0.6" dur="1.8s" repeatCount="indefinite"/>
+    </circle>
+    <text x="10" y="4" font-family="'Courier New', monospace" font-size="9" fill="#334" letter-spacing="1">REV-PROXY</text>
+  </g>
+
+  <!-- Bottom accent line -->
+  <line x1="125" y1="162" x2="690" y2="162" stroke="#7c4dff" stroke-width="1" opacity="0.1"/>
+
+  <!-- Decorative dots -->
+  <circle cx="130" cy="175" r="2" fill="#00e5ff" opacity="0.35"/>
+  <circle cx="140" cy="175" r="2" fill="#7c4dff" opacity="0.25"/>
+  <circle cx="150" cy="175" r="2" fill="#00e5ff" opacity="0.15"/>
+
+  <!-- Blinking cursor -->
+  <rect x="680" y="168" width="8" height="14" fill="#00e5ff" opacity="0.5">
+    <animate attributeName="opacity" values="0.5;0;0.5" dur="1s" repeatCount="indefinite"/>
+  </rect>
+</svg>
