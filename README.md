@@ -12,7 +12,7 @@
 
 ![Go](https://img.shields.io/badge/Go-1.23.0+-00ADD8?style=for-the-badge&logo=go)
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS-009688?style=for-the-badge&logo=linux&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-4c1?style=for-the-badge)
+![License](https://img.shields.io/badge/License-GNU%20GPL-blue?style=for-the-badge&logo=go)
 
 [![Architecture](https://img.shields.io/badge/Full_Architecture-Documentation-blueviolet?style=for-the-badge)](Docs/ARCHITECTURE.md)
 
