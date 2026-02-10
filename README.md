@@ -1,8 +1,11 @@
 
 <div align="center">
 
-## **VisionC2 - Go Based C2 & Agent**
+# VisionC2
 
+**Advanced, modular C2 framework** focused on evasion, performance, and wide attack protocol coverage.
+
+**⚠️ This project is intended for authorized security research and red teaming only.**
 
 ![Vision C2](vision-banner.svg)
 ---
@@ -11,29 +14,18 @@
 ![License](https://img.shields.io/badge/License-MIT-4c1?style=for-the-badge)
 
 <br>
-
-
-
-
 </div>
 
-### ✨ Features Overview
-
-| Category                   | Feature         | Description                                           |
-| -------------------------- | --------------- | ----------------------------------------------------- |
-| **C2 Interface (TUI)**     | Dashboard       | Live bot count, CPU/RAM usage, download speed, uptime |
-|                            | Attack Builder  | Configure attack method, target, and duration         |
-|                            | Remote Shell    | Interactive shell (broadcast or per-bot)              |
-|                            | SOCKS5 Proxy    | Built-in per-bot proxy management                     |
-|                            | Help System     | Integrated docs and command reference                 |
-| **Security & Obfuscation** | Encrypted Comms | TLS 1.2+ secured channels                             |
-|                            | C2 Obfuscation  | Base64 → XOR → RC4 → checksum                         |
-|                            | Evasion         | Sandbox & VM detection                                |
-|                            | Authentication  | HMAC challenge/response                               |
-|                            | Binary Safety   | No plaintext C2 addresses                             |
-| **Cross-Platform**         | Architectures   | 14+ CPU architectures (Mips,x86,ARM,PPC,ETC)          |
-|                            | OS Support      | Linux, Windows, macOS                                 |
-|                            | Deployment      | One-click setup                                       |
+## Features
+- Modern TLS 1.3 encrypted communication
+- Multi-architecture bot binaries (14 targets)
+- Full-featured TUI control panel
+- Layer 4 & Layer 7 attack methods
+- Proxy support (HTTP/SOCKS5)
+- Strong anti-analysis & sandbox evasion
+- Unix daemonization & single-instance enforcement
+- DoH-first C2 resolution
+- UPX-aware build stripping
 
 ## ⚔️ Attack Methods
 
