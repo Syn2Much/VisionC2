@@ -1,234 +1,162 @@
 
-## ☾℣☽ VisionC2 Changelog
+# VisionC2 Changelog
 
-### v2.1 — Feb 2026
-
-**Full Unix Daemonization**
-
-* New Bot Process performs complete daemonization at startup
-
-  * Re-exec with env marker, parent exit, init adoption
-  * New session (`setsid`), `/` chdir, `umask(0)`
-  * stdio redirected to `/dev/null`
-* Debug safeguard: daemonization skipped in `debugMode` to preserve `deoxys()` logging
+All notable changes to the VisionC2 project are documented in this file.
 
 
-**Anti-Analysis Hardening**
+## [2.1] - 2026-02
 
-* Expanded sandbox detection: 30+ additional Unix analysis tools (debuggers, RE, network capture, malware analysis, syscall monitoring, scanners, memory forensics)
-* Enhanced parent-process debugger checks (incl. lldb, ida, ghidra, frida, sysdig, bpftrace)
-* Sandbox behavior updated: randomized 24–27h sleep, then clean `os.Exit(0)`
+### Added
+- Full Unix daemonization of the bot process at startup
+  - Re-execution with environment marker
+  - Parent process exit and adoption by init (PID 1)
+  - New session via `setsid()`, change directory to `/`, `umask(0)`
+  - Redirection of stdin/stdout/stderr to `/dev/null`
 
-  * Evades dynamic analysis timeouts
-  * Avoids suspicious fast-exit signals
+### Changed
+- Debug mode now skips daemonization to preserve logging (`deoxys()` output)
 
-**Registration Timeout Fix**
+### Security / Anti-Analysis
+- Significantly expanded sandbox and analysis environment detection
+  - 30+ additional signatures for Unix analysis tools (debuggers, RE tools, network capture, malware sandboxes, syscall monitors, scanners, memory forensics)
+  - Improved parent-process debugger checks (lldb, IDA, Ghidra, Frida, sysdig, bpftrace, …)
+- Sandboxed environments now wait randomized **24–27 hours** before performing a clean `os.Exit(0)`
+  - Evades short dynamic analysis timeouts
+  - Avoids suspicious rapid-exit behavior
 
-* Fixed 20s disconnect caused by speed test blocking the auth→register path
-  * Bot metadata (ID, arch, RAM, CPU, proc, uplink) now pre-computed once in `main()` before the connection loop
-  * REGISTER sent instantly after AUTH_SUCCESS — no more timeout race
-  * CNC registration timeout increased to 25s 
-* Cached metadata stored in package-level vars, reused across reconnects
+### Fixed
+- **Registration timeout / disconnect issue**
+  - Speed test no longer blocks the auth → register path
+  - Bot metadata (ID, architecture, RAM, CPU cores, process name, uplink speed) is now pre-computed once in `main()` before entering the connection loop
+  - `REGISTER` packet is sent immediately after `AUTH_SUCCESS`
+  - CNC registration timeout increased from 20s → **25s**
+  - Metadata cached in package-level variables and reused on reconnects
 
-**Build Fix**
+### Build
+- `build.sh` now outputs binaries directly into `bins/` directory
+- Removed unnecessary stale binary cleanup/move step
 
-* `build.sh` now compiles directly into `bins/` (was building to project root then `mv`)
-* Removed stale binary cleanup step — no longer needed
+## [2.0] - 2026-02
 
+### Added
+- Persistent uplink speed test cache (`/tmp/.net_metric`)
+  - Prevents redundant bandwidth tests on every reconnect
+- Single-instance enforcement via PID-based lock file (`/tmp/.net_lock`)
+  - New instance sends SIGTERM → SIGKILL to old process if present
+  - Lock and cache files stored in `/tmp` — automatically cleaned on reboot
 
----
+## [1.9] - 2026-02
 
-### v2.0 — Feb 2026
+### Added
+- GeoIP country lookup at connection time (via ip-api.com, no local DB)
+- Bot process name reporting (disguised name shown in TUI)
+- In-memory uplink speed measurement (no disk writes)
+- Extended `REGISTER` payload format:  
+  `version:botID:arch:ram:cpu:procname:uplink`
 
-**Bot Single-Instance & Speed Cache**
+### Changed
+- Bot list in TUI now includes new columns: **GEO**, **PROCESS**, **UPLINK**
+  - Country code highlighted in yellow
+  - Process name in purple
+  - Uplink speed in green
 
-* Persistent speed test cache (`/tmp/.net_metric`) — avoids re-running bandwidth test on every reconnect
-* PID-based single-instance lock (`/tmp/.net_lock`) — new instance kills old via SIGTERM/SIGKILL and takes over
-* Both files use `/tmp` namespace, auto-cleaned on reboot so stale state never persists
+### Fixed
+- UPX stripping process no longer corrupts binary structure (preserves UPX metadata)
 
----
+## [1.8] - 2026-02
 
-### v1.9 — Feb 2026
+### Added
+- Per-bot and total CPU core count tracking (displayed in stats bar)
+- Proxy URL input field for Layer 7 attacks in TUI
+- Cyberpunk-themed **Attack Center** interface
 
-**Bot Metadata Expansion**
+### Changed
+- Proxy list fetching moved to bot-side (no CNC validation → higher RPS)
+- Proxy rotation uses round-robin with 2-second per-proxy timeout
 
-* GeoIP country lookup on bot connect (ip-api.com, no DB needed)
-* Process name reporting (disguised binary name visible in TUI)
-* Uplink speed measurement (in-memory bandwidth test, no files written)
-* Extended REGISTER protocol: `version:botID:arch:ram:cpu:procname:uplink`
+### Build & Tooling
+- Improved file organization and modular structure
+- Fixed UPX compression issues
+- `setup.py` now places the server binary in project root as `server`
+- More flexible certificate path handling
+- Updated CNC login / header banners with cleaner design
 
-**TUI Bot List Overhaul**
+## [1.7] - 2026-02
 
-* New columns: GEO, PROCESS, UPLINK
-* Country code highlighted in yellow, process name in purple, uplink in green
-* Fixed UPX stripping tool corrupting binaries (preserved structural UPX markers)
-  
-### v1.8 — Feb 2026
+### Added
+- Full interactive **Terminal User Interface (TUI)** – launched by default with `./cnc`
+  - Real-time bot dashboard
+  - Shell access to bots
+  - Management commands
+  - Consolidated **Attack Center** with live timers and progress
+  - SOCKS5 proxy manager with status controls
+  - Toast notifications
+  - Connection history log
 
-**Features**
+### Improved
+- HTTP / Layer 7 attack performance: connection pooling + keep-alive
+- Rewritten TUI-focused documentation (`USAGE.md`, `COMMANDS.md`)
+- Smoother `setup.py` experience with clearer instructions
 
-* CPU core tracking (per bot + total in stats bar)
-* TUI proxy URL field for L7 attacks
-* Cyberpunk-themed Attack Center UI
+## [1.6] - 2026-02
 
-**Proxy Optimizations**
+### Added / Changed
+- DNS resolution now prefers Cloudflare DoH over system resolver
+- Bot persistence via cron-based auto-restart
+- Parallel proxy validation before launching attacks
+- Reduced status update traffic between bot and CNC
 
-* Bot-side proxy fetching (no CNC validation, max RPS)
-* Round-robin rotation with 2s timeouts
+### UI
+- Redesigned login screen with animations and lockout mechanism
+- Split and streamlined command menus (`attack` / `methods`)
 
-**Build Fixes**
+## [1.5] - 2026-01 / 02
 
-* Moved around some files for readability
-* UPX compression fix
-* Setup.py copies binary to project root as `server`
-* Flexible cert paths (works from root or cnc dir)
-* Update CNC with Prettier Banners
-* Modular Bot/CNC file structure improved
+### Build & Evasion
+- Automatic UPX signature stripping (`deUPX.py`) integrated into `build.sh`
 
----
+### Documentation
+- Full function-level commenting of CNC and bot code
+- Command reference moved to `cnc/COMMANDS.md`
+- Setup summary printed at the end of `setup.py`
 
-### v1.7 — Feb 2026
+### Bot
+- Added +50 User-Agents for better Layer 7 fingerprint diversity
+- C2 domain resolution order:  
+  DoH TXT → DNS TXT → A record → direct IP
 
-**Full TUI Control Panel**
+## [1.4] - 2026-01
 
-* Complete interactive terminal UI (default mode via `./cnc`)
-* Real-time bot dashboard with shell access & management commands
-* Consolidated Attack Center with live countdowns & progress
-* SOCKS5 proxy manager with status controls
-* Toast notifications & connection history logs
-
-**Optimizations & Docs**
-
-* HTTP/L7 improvements: connection pooling & keep-alive
-* Rewritten documentation (USAGE.md, COMMANDS.md) for TUI
-* Improved Setup.py flow and helper text
-
-### v1.6 — Feb 2026
-
-**Core Improvements**
-
-* DNS: Prioritizes Cloudflare DoH over system DNS
-* Persistence: Cron-based auto-restart on bot death
-* Proxies: Validated in parallel before attacks
-* Reduced bot-to-CNC status chatter
-
-**UI Updates**
-
-* Redesigned login screen with animations & lockout
-* Streamlined command menus (`attack`/`methods` split)
-
----
-
-### v1.5 — January 2026
-
-#### 🔧 Build & Tooling
-
-* **Automatic UPX Signature Stripping**
-
-  * `deUPX.py` added and integrated into `build.sh`
-  * Runs automatically post-setup to reduce static detection
-
-#### 📚 Documentation
-
-* **Full Code Documentation**
-
-  * CNC and Bot functions fully commented
-* **Command Reference**
-
-  * Moved to `cnc/COMMANDS.md`
-* **Setup Summary**
-
-  * Configuration summary printed after setup
-
-#### 🤖 Bot Enhancements
-
-* **+50 User-Agents**
-
-  * Expanded Layer 7 fingerprints
-* **DoH-First C2 Resolution**
-
-  * Resolution order: DoH TXT → DNS TXT → A → Direct IP
-
----
-
-### v1.4 — January 2026
-
-#### 🚀 Features
-
-* **Proxy List Support (Layer 7)**
-
-  * Commands: `!http`, `!https`, `!tls`, `!cfbypass`
-  * Formats: `ip:port`, `ip:port:user:pass`, `http://`, `socks5://`
-  * Example:
-
+### Added
+- Layer 7 proxy list support
+  - Commands: `!http`, `!https`, `!tls`, `!cfbypass`
+  - Supported formats: `ip:port`, `user:pass@ip:port`, `http://…`, `socks5://…`
+  - Example:  
     ```
     !http target.com 443 60 -p https://example.com/proxies.txt
     ```
 
----
+## [1.3] - 2026-01
 
-### v1.3 — January 2026
+### Added
+- Total RAM reporting on bot registration
+- Detailed debug logging (connection, TLS, auth, registration, commands)
+- Stability improvements for Cloudflare / TLS bypass methods
 
-#### 🚀 Features
+## [1.2] - 2026-01
 
-* **RAM Tracking**
+### Security
+- Improved C2 address obfuscation (RC5 → RC4, XOR → RC4 → MD5 → Base64)
 
-  * Bots report total RAM on registration
-* **Debug Logging**
+### Tooling
+- Fully automated `setup.py` script
+- Initial RCE and proxy support modules
+- Early Cloudflare / TLS bypass functionality
 
-  * Connection, TLS, auth, registration, command flow
-* **CF / TLS Bypass Improvements**
+## [1.1] - 2025-12
 
-  * Stability and reliability updates
-
----
-
-### v1.2 — January 2026
-
-#### 🔒 Security
-
-* **C2 Address Obfuscation**
-
-  * RC5 → RC4
-  * XOR → RC4 → MD5 → Base64
-
-#### 🛠️ Tooling
-
-* **Automated `setup.py`**
-* **RCE & Proxy Modules**
-* **Early CF/TLS bypass support**
-
----
-
-### v1.1 — December 2025
-
-#### 🎉 Initial Release
-
-* **TLS 1.3 Encrypted Communications**
-* **14-Architecture Cross-Compilation**
-
-  * amd64, 386, arm, arm64, mips, mipsle, mips64, mips64le
-* **HMAC Challenge-Response Authentication**
-
----
-
-## Version History Summary
-
-| Version | Date     | Highlights                                          |
-| ------- | -------- | --------------------------------------------------- |
-| v2.2    | Feb 2026 | Expanded anti-analysis, benign sleep, file merge     |
-| v2.1    | Feb 2026 | Full Unix daemonization, signal hardening            |
-| v2.0    | Feb 2026 | Single-instance lock, speed cache                    |
-| v1.9    | Feb 2026 | GeoIP, process name, uplink speed, TUI overhaul      |
-| v1.8    | Feb 2026 | CPU tracking, proxy UI, build fixes                  |
-| v1.7    | Feb 2026 | Full TUI panel, HTTP optimizations, consolidated UI  |
-| v1.6    | Feb 2026 | DoH-first target resolve, persist fix, UI overhaul   |
-| v1.5    | Feb 2026 | UPX stripping, docs, +50 user agents                 |
-| v1.4    | Jan 2026 | Proxy support for Layer 7                            |
-| v1.3    | Jan 2026 | RAM tracking, debug logging                          |
-| v1.2    | Jan 2026 | RC4 obfuscation, setup automation                    |
-| v1.1    | Dec 2025 | Initial release                                      |
-
----
-
----
+### Initial Release
+- TLS 1.3 encrypted bot ↔ CNC communication
+- Cross-compilation for 14 architectures:
+  - `amd64`, `386`, `arm`, `arm64`, `mips`, `mipsle`, `mips64`, `mips64le`, …
+- HMAC-based challenge-response authentication
