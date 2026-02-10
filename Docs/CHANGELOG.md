@@ -12,7 +12,7 @@ All notable changes to the VisionC2 project are documented in this file.
   - Batched HEADERS + RST_STREAM pairs (100 per flush) for maximum throughput
   - Automatic reconnection when stream IDs are exhausted
   - Full proxy CONNECT tunnel support (`-p` / `-pu` flags)
-  - 
+    
 ## [2.1] - 2026-02
 
 ### Added
