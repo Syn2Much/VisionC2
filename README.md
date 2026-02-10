@@ -16,38 +16,46 @@
 <br>
 </div>
 
-## Features
-- Modern TLS 1.3 encrypted communication
-- Multi-architecture bot binaries (14 targets)
-- Full-featured TUI control panel
-- Layer 4 & Layer 7 attack methods
-- Proxy support (HTTP/SOCKS5)
-- Strong anti-analysis & sandbox evasion
-- Unix daemonization & single-instance enforcement
-- DoH-first C2 resolution
-- UPX-aware build stripping
+
+
+
+## ✨ Key Features
+
+| Category              | Feature                                                                 |
+|-----------------------|-------------------------------------------------------------------------|
+|  CNC/C2             | Full-featured interactive TUI control panel                             |
+|  Communication      | Modern TLS 1.3 encrypted bot ↔ server communication                    |
+|  Attack Methods      | Layer 4 (network) & Layer 7 (application) attack methods                |
+|  Evasion            | Strong anti-analysis & sandbox evasion                                  |
+|  Stealth            | Full Unix daemonization + single-instance enforcement                   |
+|  C2 Resilience      | C2 URL decryption + resilient DNS Res fallback chain                            |
+|  Build & Packing     | UPX-aware signature stripping                                           |
+|  Cross-Platform     | Multi-architecture bot binaries (14 targets out-of-the-box)             |
 
 ## ⚔️ Attack Methods
 
-### Layer 4 (Network Layer)
-| Method      | Protocol | Description                          |
-|-------------|----------|--------------------------------------|
-| UDP Flood   | UDP      | High-volume 1024-byte payload spam  |
-| TCP Flood   | TCP      | Connection exhaustion attack        |
-| SYN Flood   | Raw TCP  | SYN packets with random source ports|
-| ACK Flood   | Raw TCP  | ACK packet flooding                 |
-| GRE Flood   | GRE (47) | GRE protocol packets with max payload|
-| DNS Flood   | UDP/DNS  | Random DNS query types (A/AAAA/MX/NS)|
+### Layer 4 (Network / Transport Layer)
+
+| Method       | Protocol       | Description                                          |
+|--------------|----------------|------------------------------------------------------|
+| UDP Flood    | UDP            | High-volume 1024-byte payload spam                   |
+| TCP Flood    | TCP            | Connection table exhaustion attack                   |
+| SYN Flood    | Raw TCP        | SYN packets with randomized source ports             |
+| ACK Flood    | Raw TCP        | ACK packet flooding                                  |
+| GRE Flood    | GRE (47)       | GRE protocol packets with maximum payload            |
+| DNS Flood    | UDP / DNS      | Randomized DNS query types (A, AAAA, MX, NS, etc.)   |
 
 ### Layer 7 (Application Layer)
-| Method          | Description                                  |
-|-----------------|----------------------------------------------|
-| HTTP Flood      | GET/POST requests with randomized headers    |
-| HTTPS/TLS Flood | TLS handshake exhaustion with request bursts |
-| CF Bypass       | CloudFlare bypass via session/cookie reuse  |
-| Proxy Support   | All L7 methods support proxy list integration|
+
+| Method          | Description                                                  |
+|-----------------|--------------------------------------------------------------|
+| HTTP Flood      | GET/POST requests with randomized headers & user-agents      |
+| HTTPS/TLS Flood | TLS handshake exhaustion + burst of full requests            |
+| CF Bypass       | Cloudflare bypass via session/cookie reuse & fingerprinting  |
+| Proxy Support   | Full proxy list integration for all L7 methods (HTTP/SOCKS5) |
 
 ![Animation](https://github.com/user-attachments/assets/bab596ce-5269-42ca-ae97-cae26437ae41)
+
 ## 🚀 Installation
 
 ### Prerequisites
