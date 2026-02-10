@@ -119,7 +119,7 @@
 
 ---
 
-### v1.5 — February 2026
+### v1.5 — January 2026
 
 #### 🔧 Build & Tooling
 
