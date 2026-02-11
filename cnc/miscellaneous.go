@@ -48,7 +48,7 @@ type User struct {
 
 func AuthUser(username string, password string) (bool, *User) {
 	users := []User{}
-	usersFile, err := os.ReadFile("users.json")
+	usersFile, err := os.ReadFile(USERS_FILE)
 	if err != nil {
 		return false, nil
 	}
