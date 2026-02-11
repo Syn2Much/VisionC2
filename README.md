@@ -3,7 +3,7 @@
 
 # ☾℣☽ VisionC2
 
- > **TLS-encrypted C2 with 14-arch cross-compilation** — Deploy thousands of agents via one `setup.py` to execute L4/L7 DDoS floods, remote shells, and network pivots through a real-time Go TUI
+ > **TLS-encrypted C2 & Agent with 14-arch cross-compilation** — Setup and Deploy within 5 minutes using `setup.py` to execute L4/L7 DDoS floods, remote shells, and establish SOCKS5 through a real-time Go TUI
  ---
 ![Go](https://img.shields.io/badge/Go-1.23.0+-00ADD8?style=for-the-badge&logo=go)
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS-009688?style=for-the-badge&logo=linux&logoColor=white)
