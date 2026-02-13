@@ -3,8 +3,8 @@
 
 # ☾℣☽ VisionC2
 
- > **TLS-encrypted C2 & Agent with 14-arch cross-compilation** — Setup and Deploy within 5 minutes using `setup.py` to execute L4/L7 DDoS floods, remote shells, and establish SOCKS5 through a real-time Go TUI
- ---
+ > Vision is a Go-based C2 (TUI) and Agent with HMAC Auth, TLS 1.3 Comms, Layer 4/7 Attacks , Remote Shell, Reverse SOCKS5, and Advance Anti-Anaylsis and Obfuscation Techniques server over a Go TUI
+> 
 ![Go](https://img.shields.io/badge/Go-1.23.0+-00ADD8?style=for-the-badge&logo=go)
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS-009688?style=for-the-badge&logo=linux&logoColor=white)
 ![License](https://img.shields.io/badge/License-GNU%20GPL-blue?style=for-the-badge&logo=go)
