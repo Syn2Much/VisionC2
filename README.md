@@ -21,45 +21,53 @@
 
 ## Key Features
 
-**CNC** — Full-featured interactive TUI control panel built with BubbleTea.
+🤖 **CNC** — Full-featured TUI control panel built with BubbleTea
 
-**Communication** — Modern TLS 1.3 encrypted bot-to-server communication.
+🔒 **Communication** — Modern TLS 1.3 encrypted bot-to-server
 
-**Attack Methods** — Layer 4 (network) and Layer 7 (application) attack methods.
+⚔️ **Attack Methods** — Layer 4 (network) and Layer 7 (application)
 
-**Evasion** — Anti-analysis and sandbox evasion including HMAC/MD5 auth, process scanning, and debugger detection.
+🕵️ **Evasion** — Anti-analysis: HMAC/MD5 auth, process scanning, debugger detection
 
-**Stealth** — Full Unix daemonization with single-instance enforcement (Mirai-style).
+👻 **Stealth** — Unix daemonization + single-instance enforcement (Mirai-style)
 
-**Persistence** — Automatic cronjobs, startup service scripts, and reinfection on device reboot.
+♻️ **Persistence** — Auto cronjobs, startup scripts, reinfection on reboot
 
-**C2 Resilience** — Supports TXT records, A records, and direct IP. No plaintext — the bot decrypts C2 addresses at runtime.
+📡 **C2 Resilience** — TXT/A records + direct IP support. Decrypts C2 addresses at runtime
 
-**Cross-Platform** — Multi-architecture bot binaries with 14 targets out of the box. Custom UPX packer included.
+💻 **Cross-Platform** — 14 multi-arch targets out the box + custom UPX packer
 
-**Auto-Setup** — Interactive Python script to automate config setup and build, updating source code directly.
+⚡ **Auto-Setup** — Python script automates config + build, updates source directly
 
 ---
 
 ## Attack Methods
 
-### Layer 4 (Network / Transport)
+### Layer 4 (Network/Transport)
 
-- **UDP Flood** — High-volume 1024-byte payload spam over UDP.
-- **TCP Flood** — Connection table exhaustion over TCP.
-- **SYN Flood** — SYN packets with randomized source ports (raw TCP).
-- **ACK Flood** — ACK packet flooding (raw TCP).
-- **GRE Flood** — GRE protocol (47) packets with maximum payload.
-- **DNS Flood** — Randomized DNS query types (A, AAAA, MX, NS, etc.) over UDP.
+**UDP Flood** — High-volume 1024-byte payload spam
+
+**TCP Flood** — Connection table exhaustion
+
+**SYN Flood** — SYN packets with randomized source ports (raw TCP)
+
+**ACK Flood** — ACK packet flooding (raw TCP)
+
+**GRE Flood** — GRE protocol (47) packets with max payload
+
+**DNS Flood** — Randomized DNS query types (A, AAAA, MX, NS, etc.)
 
 ### Layer 7 (Application)
 
-- **HTTP Flood** — GET/POST requests with randomized headers and user-agents.
-- **HTTPS/TLS Flood** — TLS handshake exhaustion combined with burst requests.
-- **CF Bypass** — Cloudflare bypass via session/cookie reuse and fingerprinting.
-- **Rapid Reset** — HTTP/2 exploit (CVE-2023-44487) using batched HEADERS + RST_STREAM framing.
-- **Proxy Support** — Full proxy list integration for all L7 methods (HTTP and SOCKS5).
+**HTTP Flood** — GET/POST with randomized headers + user-agents
 
+**HTTPS/TLS Flood** — TLS handshake exhaustion + burst requests
+
+**CF Bypass** — Cloudflare bypass via session/cookie reuse + fingerprinting
+
+**Rapid Reset** — HTTP/2 exploit (CVE-2023-44487) with batched HEADERS + RST_STREAM
+
+**Proxy Support** — Full proxy integration for all L7 methods (HTTP + SOCKS5)
 ---
 
 ##  Installation
