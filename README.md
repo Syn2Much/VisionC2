@@ -63,14 +63,21 @@
 ---
 
 ##  Installation
-
 ### Prerequisites
 ```bash
 # Ubuntu/Debian
 sudo apt update && sudo apt install -y \
     upx-ucl openssl git wget gcc python3 screen build-essential
-```
 
+
+# Install Go (1.23+ required)
+wget https://go.dev/dl/go1.23.4.linux-amd64.tar.gz
+sudo rm -rf /usr/local/go
+sudo tar -C /usr/local -xzf go1.23.4.linux-amd64.tar.gz
+echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+source ~/.bashrc
+go version  # verify installation
+```
 ### Quick Setup
 1. **Clone the repository**
    ```bash
@@ -78,7 +85,6 @@ sudo apt update && sudo apt install -y \
    cd VisionC2
    chmod +x *
    ```
-
 2. **Run interactive setup**
    ```bash
    python3 setup.py
@@ -88,7 +94,6 @@ sudo apt update && sudo apt install -y \
    - Create encryption keys and configuration
    - Cross-compile binaries for all supported architectures
    - Build the C2 server binary
-
 3. **Output locations**
    - C2 Server: `./server`
    - Agent Binaries: `./bins/`
@@ -146,7 +151,7 @@ Bot Binary
 
 ##  Documentation
 
-- **Full Docs**: [`Docs/USAGE.md`](Docs/ARCHITECTURE.md.md)
+- **Full Docs**: [`Docs/ARCHITECTURE.md`](Docs/ARCHITECTURE.md.md)
 - **Changelog**: [`Docs/CHANGELOG.md`](Docs/CHANGELOG.md)
 - **Commands**: [`Docs/COMMANDS.md`](Docs/COMMANDS.md)
 - **Usage**: [`Docs/USAGE.md`](Docs/USAGE.md)
