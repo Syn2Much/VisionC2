@@ -3,8 +3,26 @@
 
 All notable changes to the VisionC2 project are documented in this file.
 
-## [2.2.1] - 2026-02 
-z
+## [2.3] - 2026-02
+
+### Added
+- **Comprehensive Help & Documentation menu** in the TUI
+  - Expanded from 5 sections to 9: Quick Start, Navigation, Attacks, Bot Management, Shell Controls, SOCKS Proxy, Network & Security, Troubleshooting, About
+  - New Quick Start guide with step-by-step onboarding
+  - SOCKS Proxy section with controls, view modes, and usage examples
+  - Network & Security section covering TLS, evasion, persistence, and architectures
+  - Troubleshooting section with common issues and fixes
+  - Expanded About page with project metadata, docs listing, and legal info
+  - Page indicator and wider layout for better readability
+  - Added Rapid Reset (`!rapidreset`) to the attack methods documentation
+
+### Changed
+- **Version bumped to V2.3** across TUI and changelog
+
+---
+
+## [2.2.1] - 2026-02
+
 ### Fixed
 
 - **ARM/RISC-V build failure** — `syscall.Dup2` undefined on `linux/arm64` and `linux/riscv64`
