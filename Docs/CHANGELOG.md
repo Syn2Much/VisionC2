@@ -16,7 +16,28 @@ All notable changes to the VisionC2 project are documented in this file.
   - Page indicator and wider layout for better readability
   - Added Rapid Reset (`!rapidreset`) to the attack methods documentation
 
+- **Broadcast shell — tabbed interface** with post-exploitation tooling
+  - Three tabs: **Command**, **Shortcuts**, **Linux** (←/→ to switch)
+  - **Shortcuts tab** — 10 pre-built post-exploitation actions (flush firewall, kill logging, clear history, kill EDR/monitors, disable cron, timestomp, DNS flush, kill sysmon, persist all, reinstall all)
+  - **Linux tab** — 14 recon helpers (system info, network, open ports, users with shell, SUID binaries, writable dirs, cron jobs, Docker/LXC, SSH keys, credentials, sudo check, process tree, kernel version, mount points)
+  - Scrollable lists with cursor navigation, enter to execute
+
+- **Broadcast confirmation gate** — all broadcast commands now require explicit `[y/n]` confirmation before sending
+  - Shows exact target count: `⚠️ Broadcast to N bots: <command>`
+  - Bot count reflects active filters (arch, RAM, max bots)
+  - Applies to typed commands, shortcut selections, and `ctrl+p`/`ctrl+r` hotkeys
+  - `countFilteredBots()` helper added to count matching bots without sending
+
+- **Remote shell — Linux helpers tab**
+  - Two tabs: **Shell**, **Linux** (←/→ to switch)
+  - Linux tab shows the same 14 recon helpers as broadcast, targeting the single connected bot
+  - Enter executes the selected helper and auto-switches to Shell tab to view output
+
 ### Changed
+- **Broadcast shell runs fully detached** — commands sent as `!detach` instead of `!exec`, bots do not return output
+  - Removed shell output area from broadcast view, replaced with command history and toast notifications
+  - `ctrl+p`/`ctrl+r` routed through the same confirmation flow
+- **`renderShortcutList`** refactored to standalone function with explicit cursor parameter, reused by both broadcast and remote shell views
 - **Version bumped to V2.3** across TUI and changelog
 
 ---
