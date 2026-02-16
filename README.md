@@ -12,7 +12,7 @@
 [![Architecture](https://img.shields.io/badge/Full_Architecture-Documentation-blueviolet?style=for-the-badge)](Docs/ARCHITECTURE.md)
 [![Changelog](https://img.shields.io/badge/Full_ChangeLog-Documentation-blueviolet?style=for-the-badge)](Docs/CHANGELOG.md)
 
-![Animation](https://github.com/user-attachments/assets/270e68e1-a90f-4a71-ac64-1c4c0f4b3bec)
+![Animation](https://github.com/user-attachments/assets/f6620c74-031b-46f6-94b6-c6676e51ef80)
 
 </div>
 
