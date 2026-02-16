@@ -293,6 +293,29 @@ func getBotCount() int {
 	return count
 }
 
+// countFilteredBots returns the number of authenticated bots matching the given filters
+func countFilteredBots(archFilter string, minRAM int64, maxBots int) int {
+	botConnsLock.RLock()
+	defer botConnsLock.RUnlock()
+	count := 0
+	for _, botConn := range botConnections {
+		if !botConn.authenticated {
+			continue
+		}
+		if archFilter != "" && botConn.arch != archFilter {
+			continue
+		}
+		if minRAM > 0 && botConn.ram < minRAM {
+			continue
+		}
+		count++
+		if maxBots > 0 && count >= maxBots {
+			break
+		}
+	}
+	return count
+}
+
 // getTotalRAM calculates total RAM across all authenticated bots (in MB)
 // Thread-safe: uses RLock for concurrent read access
 // Sums up RAM values reported by each bot during registration
