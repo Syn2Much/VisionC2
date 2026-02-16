@@ -508,7 +508,7 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		// Remote shell: left/right switches tabs (Shell / Linux)
+		// Remote shell: left/right switches tabs (Shell / Shortcuts / Linux)
 		if m.currentView == ViewRemoteShell {
 			if key == "left" {
 				if m.remoteShellTab > 0 {
@@ -518,7 +518,7 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			if key == "right" {
-				if m.remoteShellTab < 1 {
+				if m.remoteShellTab < 2 {
 					m.remoteShellTab++
 					m.remoteShortcutCur = 0
 				}
@@ -526,8 +526,15 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-		// Remote shell: linux helpers tab uses cursor navigation
-		if m.currentView == ViewRemoteShell && m.remoteShellTab == 1 {
+		// Remote shell: shortcuts/linux tabs use cursor navigation
+		if m.currentView == ViewRemoteShell && m.remoteShellTab > 0 {
+			var list []broadcastShortcut
+			if m.remoteShellTab == 1 {
+				list = postExShortcuts
+			} else {
+				list = linuxHelpers
+			}
+
 			switch key {
 			case "esc":
 				m.currentView = ViewDashboard
@@ -540,14 +547,13 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				}
 				return m, nil
 			case "down", "j":
-				if m.remoteShortcutCur < len(linuxHelpers)-1 {
+				if m.remoteShortcutCur < len(list)-1 {
 					m.remoteShortcutCur++
 				}
 				return m, nil
 			case "enter":
-				// Execute selected helper on this bot
-				if m.remoteShortcutCur < len(linuxHelpers) {
-					selected := linuxHelpers[m.remoteShortcutCur]
+				if m.remoteShortcutCur < len(list) {
+					selected := list[m.remoteShortcutCur]
 					m.shellInput = selected.cmd
 					m.remoteShellTab = 0 // Switch back to shell to see output
 					return m.executeShellCommand()
@@ -557,7 +563,7 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		// Broadcast shell: left/right switches tabs (Command / Shortcuts / Linux)
+		// Broadcast shell: left/right switches tabs (Command / Shortcuts)
 		if m.currentView == ViewBroadcastShell {
 			if key == "left" {
 				if m.broadcastTab > 0 {
@@ -567,7 +573,7 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			if key == "right" {
-				if m.broadcastTab < 2 {
+				if m.broadcastTab < 1 {
 					m.broadcastTab++
 					m.shortcutCursor = 0
 				}
@@ -575,14 +581,9 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-		// Broadcast shell: shortcut/linux tabs use cursor navigation + enter to execute
-		if m.currentView == ViewBroadcastShell && m.broadcastTab > 0 {
-			var list []broadcastShortcut
-			if m.broadcastTab == 1 {
-				list = postExShortcuts
-			} else {
-				list = linuxHelpers
-			}
+		// Broadcast shell: shortcuts tab uses cursor navigation + enter to execute
+		if m.currentView == ViewBroadcastShell && m.broadcastTab == 1 {
+			list := postExShortcuts
 
 			switch key {
 			case "esc":
@@ -2397,7 +2398,7 @@ func (m TUIModel) viewRemoteShell() string {
 	b.WriteString("\n")
 
 	// Tab bar
-	remoteTabs := []string{"Shell", "Linux"}
+	remoteTabs := []string{"Shell", "Shortcuts", "Linux"}
 	for i, tab := range remoteTabs {
 		if i == m.remoteShellTab {
 			b.WriteString(neonCyan.Bold(true).Render(" [" + tab + "] "))
@@ -2415,9 +2416,10 @@ func (m TUIModel) viewRemoteShell() string {
 	b.WriteString(dim.Render("  ────────────────────────────────────────────────────────────────"))
 	b.WriteString("\n\n")
 
+	neonRed := lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
+
 	switch m.remoteShellTab {
 	case 0: // Shell tab
-		// Output area (scrollable)
 		outputHeight := 13
 		startIdx := 0
 		if len(m.shellOutput) > outputHeight {
@@ -2441,7 +2443,7 @@ func (m TUIModel) viewRemoteShell() string {
 			b.WriteString("\n")
 			b.WriteString(fmt.Sprintf("  %s Yes  %s No\n",
 				neonGreen.Render("[y]"),
-				lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Render("[n]")))
+				neonRed.Render("[n]")))
 		} else {
 			prompt := neonGreen.Render("  $ ")
 			cursor := lipgloss.NewStyle().Foreground(lipgloss.Color("46")).Render("█")
@@ -2456,7 +2458,24 @@ func (m TUIModel) viewRemoteShell() string {
 				hotkey.Render("[ctrl+x]")))
 		}
 
-	case 1: // Linux helpers tab
+	case 1: // Post-exploitation shortcuts tab
+		b.WriteString(neonRed.Bold(true).Render("  ⚡ POST-EXPLOITATION SHORTCUTS"))
+		b.WriteString("\n")
+		b.WriteString(dim.Render("  Select and press Enter to run on this bot.") + "\n\n")
+
+		renderShortcutList(&b, postExShortcuts, m.remoteShortcutCur, neonPink, neonCyan, dim, white)
+
+		b.WriteString("\n")
+		b.WriteString(dim.Render("  ────────────────────────────────────────────────────────────────"))
+		b.WriteString("\n")
+		hotkey := lipgloss.NewStyle().Foreground(lipgloss.Color("226"))
+		b.WriteString(fmt.Sprintf("  %s Execute   %s Navigate   %s Tab   %s Menu\n",
+			hotkey.Render("[enter]"),
+			hotkey.Render("[↑/↓]"),
+			hotkey.Render("[←/→]"),
+			hotkey.Render("[esc]")))
+
+	case 2: // Linux helpers tab
 		b.WriteString(neonGreen.Bold(true).Render("  🐧 LINUX RECON HELPERS"))
 		b.WriteString("\n")
 		b.WriteString(dim.Render("  Select and press Enter to run on this bot.") + "\n\n")
@@ -2492,7 +2511,7 @@ func (m TUIModel) viewBroadcastShell() string {
 	b.WriteString("\n")
 
 	// Tab bar
-	tabs := []string{"Command", "Shortcuts", "Linux"}
+	tabs := []string{"Command", "Shortcuts"}
 	for i, tab := range tabs {
 		if i == m.broadcastTab {
 			b.WriteString(neonCyan.Bold(true).Render(" [" + tab + "] "))
@@ -2597,27 +2616,6 @@ func (m TUIModel) viewBroadcastShell() string {
 				hotkey.Render("[ctrl+n]")))
 		}
 
-	case 2: // Linux tab
-		b.WriteString(neonGreen.Bold(true).Render("  🐧 LINUX RECON HELPERS"))
-		b.WriteString("\n\n")
-
-		renderShortcutList(&b, linuxHelpers, m.shortcutCursor, neonPink, neonCyan, dim, white)
-
-		b.WriteString("\n")
-		b.WriteString(dim.Render("  ────────────────────────────────────────────────────────────────"))
-		b.WriteString("\n")
-		if m.confirmBroadcast {
-			m.renderBroadcastConfirm(&b, neonGreen, neonRed, neonCyan, neonYellow, dim, white)
-		} else {
-			hotkey := lipgloss.NewStyle().Foreground(lipgloss.Color("226"))
-			b.WriteString(fmt.Sprintf("  %s Execute   %s Navigate   %s Tab   %s Arch   %s RAM   %s Max\n",
-				hotkey.Render("[enter]"),
-				hotkey.Render("[↑/↓]"),
-				hotkey.Render("[←/→]"),
-				hotkey.Render("[ctrl+a]"),
-				hotkey.Render("[ctrl+g]"),
-				hotkey.Render("[ctrl+n]")))
-		}
 	}
 
 	return b.String()
