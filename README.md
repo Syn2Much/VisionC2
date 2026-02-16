@@ -3,8 +3,7 @@
 
 # ☾℣☽ VisionC2
 
-**An advanced command and control framework featuring DDOS, RCE, and SOCKS5 modules.**
-**Multi-layer encryption, TLS 1.3 communication, and 14+ CPU architectures.**
+**TLS-encrypted C2 & Agent with 14-arch cross-compilation. Capabilities to execute L4/L7 DDoS floods, remote shells, and establish SOCKS5 through a real-time Go TUI**
 
 ![Go](https://img.shields.io/badge/Go-1.23.0+-00ADD8?style=for-the-badge&logo=go)
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS-009688?style=for-the-badge&logo=linux&logoColor=white)
