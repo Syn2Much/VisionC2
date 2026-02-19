@@ -189,6 +189,7 @@ func (c *client) showHelpMenu(conn net.Conn) {
 	// Admin+ sees shell commands
 	if c.canUseShell() {
 		c.writeShellCommands(conn)
+		c.writeSocksCommands(conn)
 	}
 
 	// Pro+ sees bot targeting

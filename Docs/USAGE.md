@@ -14,6 +14,8 @@
 - [Managing Bots](#-managing-bots)
 - [Running Attacks](#-running-attacks)
 - [Rebuilding Bots Only](#-rebuilding-bots-only)
+- [Sensitive String Encryption](#-sensitive-string-encryption)
+- [Removing Bot Persistence](#-removing-bot-persistence)
 - [TLS Certificates](#-tls-certificates)
 - [Troubleshooting](#-troubleshooting)
 
@@ -338,8 +340,18 @@ Manage SOCKS5 proxies on bots:
 
 1. Select a bot with `↑/↓`
 2. Press `s` to start socks (enter port, default 1080)
-3. Connect via `socks5://BOT_IP:PORT`
+3. Connect via `socks5://user:pass@BOT_IP:PORT` (default creds: `visionc2`/`synackrst666`)
 4. Press `x` to stop socks on selected bot
+
+**SOCKS5 Authentication:**
+
+The proxy requires username/password by default. Update credentials at runtime from a shell:
+
+```
+!socksauth <username> <password>
+```
+
+Set both to empty strings in `bot/config.go` to allow unauthenticated access.
 
 #### 📜 Connection Logs
 
@@ -364,7 +376,7 @@ View bot connection history:
 
 ### Bot Binaries
 
-Bot binaries are in `bot/bins/`:
+Bot binaries are in `bins/`:
 
 | Binary | Architecture | Use Case |
 |--------|--------------|----------|
@@ -441,6 +453,55 @@ cd VisionC2/tools
 ```
 
 Builds all 14 architectures with UPX compression.
+
+---
+
+## 🔐 Sensitive String Encryption
+
+All sensitive strings (persistence paths, sandbox indicators, analysis tools, etc.) are AES-128-CTR encrypted in `bot/config.go`. No plaintext appears in the compiled binary.
+
+### Crypto Tool
+
+Use `tools/crypto.go` to encrypt, decrypt, or regenerate blobs:
+
+```bash
+# Encrypt a string
+go run tools/crypto.go encrypt "/etc/rc.local"
+
+# Encrypt a string slice (null-separated)
+go run tools/crypto.go encrypt-slice "vmware" "vbox" "qemu"
+
+# Decrypt a hex blob
+go run tools/crypto.go decrypt <hex>
+
+# Decrypt a slice blob (shows indexed items)
+go run tools/crypto.go decrypt-slice <hex>
+
+# Regenerate all blobs for config.go
+go run tools/crypto.go generate
+
+# Verify existing config.go blobs decrypt correctly
+go run tools/crypto.go verify
+```
+
+### Updating Encrypted Strings
+
+1. Edit the plaintext values in `tools/crypto.go` (inside `cmdGenerate()`)
+2. Run `go run tools/crypto.go generate`
+3. Paste the output into `bot/config.go`
+4. Verify with `go run tools/crypto.go verify`
+
+---
+
+## 🧹 Removing Bot Persistence
+
+If the bot was accidentally run outside debug mode, use the cleanup script:
+
+```bash
+sudo bash tools/cleanup.sh
+```
+
+This removes all persistence artifacts: systemd service, hidden directory, cron jobs, rc.local entries, lock/cache files, and running processes.
 
 ---
 

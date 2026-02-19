@@ -25,9 +25,10 @@
 | 🤖 | **CNC** | Full-featured TUI control panel built with BubbleTea |
 | 🔒 | **Communication** | Modern TLS 1.3 encrypted bot-to-server |
 | ⚔️ | **Attack Methods** | Layer 4 (network) and Layer 7 (application) |
-| 🕵️ | **Evasion** | HMAC/MD5 auth, process scanning, debugger detection |
-| 👻 | **Stealth** | Unix daemonization + single-instance enforcement |
-| ♻️ | **Persistence** | Auto cronjobs, startup scripts, reinfection on reboot |
+| 🕵️ | **Evasion** | AES-128-CTR encrypted strings (zero plaintext in binary), 16-byte split XOR key, VM/sandbox/debugger detection (40+ signatures), 24-27h delayed exit on detection |
+| 👻 | **Stealth** | Unix daemonization, single-instance enforcement, disguised process names, PID lock |
+| ♻️ | **Persistence** | Systemd service + cron + rc.local, hidden directory with download script, auto-reinfection on reboot, cleanup tool included (`tools/cleanup.sh`) |
+| 🧦 | **SOCKS5 Proxy** | Full SOCKS5 pivoting through bots, RFC 1929 username/password auth, runtime credential updates |
 | 📡 | **C2 Resilience** | TXT/A records + direct IP, runtime C2 decryption |
 | 💻 | **Cross-Platform** | 14 multi-arch targets + custom UPX packer |
 | ⚡ | **Auto-Setup** | Python script automates config + build |
@@ -140,29 +141,70 @@ Bot Binary
     │
     ▼
 ┌─────────────────────────────────────────┐
+│      Runtime Decryption                 │
+│  - AES-128-CTR decrypt all sensitive    │
+│    strings from config.go hex blobs     │
+│  - 16-byte key from split XOR functions │
+└─────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────┐
 │         Startup Sequence                │
-│  - Daemonization                        │
-│  - Sandbox Detection                    │
-│  - Persistence Installation             │
-│  - Metadata Caching                     │
+│  - Daemonization (fork + setsid)        │
+│  - Single-instance enforcement (PID)    │
+│  - Sandbox/VM/debugger detection        │
+│  - Persistence (systemd + cron + rc)    │
+│  - Metadata caching                     │
 └─────────────────────────────────────────┘
     │
     ▼
 ┌─────────────────────────────────────────┐
 │      C2 Resolution & Connection         │
+│  - 5-layer C2 address decryption        │
 │  - DNS Chain (DoH → UDP → A → Raw)     │
 │  - TLS 1.2+ Handshake                   │
-│  - Authentication Challenge/Response    │
+│  - HMAC challenge/response auth         │
 └─────────────────────────────────────────┘
     │
     ▼
 ┌─────────────────────────────────────────┐
 │        Command Loop & Execution         │
-│  - Command Dispatch (blackEnergy)       │
-│  - Attack Execution (14+ methods)       │
-│  - SOCKS5 Proxy Server                  │
-│  - Shell Command Execution              │
+│  - Command dispatch                     │
+│  - L4/L7 attacks (10+ methods)          │
+│  - SOCKS5 proxy (RFC 1929 auth)         │
+│  - Remote shell / broadcast shell       │
 └─────────────────────────────────────────┘
+```
+
+---
+
+## Project Structure
+
+```
+VisionC2/
+├── setup.py                  # Interactive setup wizard
+├── server                    # Compiled CNC binary
+├── bot/                      # Bot agent
+│   ├── main.go               # Entry point, main loop
+│   ├── config.go             # All config vars + AES-encrypted sensitive strings
+│   ├── connection.go         # TLS, DNS resolution, auth, C2 handler
+│   ├── attacks.go            # L4/L7 DDoS methods + proxy support
+│   ├── opsec.go              # AES-128-CTR, RC4, key derivation, sandbox detection
+│   ├── persist.go            # Systemd, cron, rc.local persistence
+│   └── socks.go              # SOCKS5 proxy with RFC 1929 auth
+├── cnc/                      # CNC server
+│   ├── main.go               # TLS listener, server entry
+│   ├── cmd.go                # Command dispatch, help menus
+│   ├── ui.go                 # Bubble Tea TUI
+│   ├── miscellaneous.go      # RBAC, user auth
+│   └── certificates/         # TLS certs
+├── tools/
+│   ├── build.sh              # Cross-compile 14 architectures
+│   ├── crypto.go             # AES-128-CTR encrypt/decrypt/verify CLI
+│   ├── cleanup.sh            # Remove bot persistence from a machine
+│   └── deUPX.py              # UPX signature stripper
+├── bins/                     # Compiled bot binaries
+└── Docs/                     # Architecture, commands, usage, changelog
 ```
 
 ---

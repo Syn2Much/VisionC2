@@ -3,6 +3,59 @@
 
 All notable changes to the VisionC2 project are documented in this file.
 
+## [2.4] - 2026-02-19
+
+### Added
+- **SOCKS5 proxy authentication** (RFC 1929 username/password)
+  - New `socksUsername` / `socksPassword` variables in `config.go`
+  - Full method 0x02 negotiation in `socks.go` — clients must supply credentials when set
+  - Leave both empty to fall back to unauthenticated access
+  - `!socksauth <user> <pass>` command to update credentials at runtime from the TUI
+
+- **`bot/config.go`** — centralised configuration file
+  - All important constants and variables moved out of `main.go`, `socks.go`, `opsec.go`, `connection.go`, and `persist.go` into a single file
+  - Sections: C2 connection, DNS, SOCKS5 proxy, paths, misc, sensitive strings, persistence paths & payloads
+  - `setup.py` updated to read/write `config.go` instead of `main.go`
+
+- **Persistence cleanup script** (`tools/cleanup.sh`)
+  - Removes all bot persistence artifacts from a Linux machine
+  - Covers: systemd service, hidden directory, cron jobs, rc.local entries, lock/cache files, running processes
+  - All paths sourced from the same values in `config.go`
+
+- **SOCKS5 Proxy section in TUI help menu**
+  - New `writeSocksCommands()` section visible at Pro+ level
+  - Shows `!socks`, `!stopsocks`, and `!socksauth` with usage
+  - SOCKS commands removed from "Private Commands (Owner only)" section
+
+### Changed
+- **16-byte encryption key derivation** (was 4 bytes)
+  - Expanded from 4 XOR byte functions to 16 (`mew` through `marshadow`) in `opsec.go`
+  - `charizard()` now feeds all 16 bytes into the MD5 key derivation
+  - `setup.py` `derive_key_py()` updated with matching 16 XOR pairs
+  - All new randomised XOR operands — existing obfuscated C2 values must be regenerated via `setup.py`
+
+- **Persistence strings extracted to `config.go`**
+  - `persist.go` no longer contains any hardcoded paths, URLs, script templates, or service names
+  - All values (`persistHiddenDir`, `persistPayloadURL`, `persistServiceName`, `persistScriptTemplate`, etc.) live in `config.go` as package-level variables
+
+- **Sandbox/analysis detection strings extracted to `config.go`**
+  - `vmIndicators`, `analysisTools`, and `parentDebuggers` moved from inline literals in `opsec.go` to `config.go`
+
+- **AES-128-CTR encryption of all sensitive strings**
+  - No plaintext sensitive data in the compiled binary — everything decrypted at runtime
+  - Encrypted: `vmIndicators`, `analysisTools`, `parentDebuggers`, all persistence paths/names/templates, `daemonEnvKey`, `speedCachePath`, `instanceLockPath`
+  - `persistPayloadURL` left unencrypted for easy per-deployment updates
+  - New `garuda()` AES-128-CTR decrypt function in `opsec.go` (key = raw 16 XOR bytes)
+  - New `initSensitiveStrings()` in `config.go` — called first in `main()` before any other code
+  - Encrypted blobs stored as `hex.DecodeString(IV‖ciphertext)` at package level
+
+- **Unified crypto tool** (`tools/crypto.go`)
+  - Merged `encrypt_strings.go` and `verify_decrypt.go` into single CLI
+  - Subcommands: `encrypt`, `encrypt-slice`, `decrypt`, `decrypt-slice`, `generate`, `verify`
+  - Usage: `go run tools/crypto.go <command> [args...]`
+
+---
+
 ## [2.3] - 2026-02
 
 ### Added

