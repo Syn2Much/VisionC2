@@ -3,6 +3,13 @@
 
 All notable changes to the VisionC2 project are documented in this file.
 
+## [2.4.1] - 2026-02-20
+
+### Changed
+- **Reduced speed test payload from 1MB to 100KB** — faster connection setup with less bandwidth overhead
+
+---
+
 ## [2.4] - 2026-02-19
 
 ### Added
