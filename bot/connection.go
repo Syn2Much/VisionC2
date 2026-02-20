@@ -148,12 +148,12 @@ func revilUplinkCached() float64 {
 
 // revilUplink measures approximate uplink/download speed in Mbps.
 // Downloads a small test payload and measures throughput.
-// Uses a 1MB test file from a CDN for quick measurement.
+// Uses a 100KB test file from a CDN for quick measurement.
 // Returns: Speed in Mbps (float64), 0.0 on error
 func revilUplink() float64 {
 	// Small test URLs (fast CDNs)
 	testURLs := []string{
-		"http://speed.cloudflare.com/__down?bytes=1000000",
+		"http://speed.cloudflare.com/__down?bytes=100000",
 	}
 
 	client := &http.Client{
