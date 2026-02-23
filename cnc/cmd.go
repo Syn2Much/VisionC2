@@ -543,7 +543,7 @@ func handleRequest(conn net.Conn) {
 					}
 
 					// Read the raw JSON file
-					data, err := os.ReadFile(USERS_FILE)
+					data, err := os.ReadFile(usersFile)
 					if err != nil {
 						conn.Write([]byte(fmt.Sprintf("Error reading credentials file: %v\r\n", err)))
 						continue

