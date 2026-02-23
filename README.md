@@ -6,8 +6,7 @@
 **Multi-arch botnet framework with layered encryption (TLS 1.3 transport + AES-128-CTR string encryption + split-XOR keying) — 14-arch cross-compiled agents, L4/L7 floods, interactive remote shells, SOCKS5 proxying, and full persistence — driven through a real-time Go TUI**  
 
 ![Go](https://img.shields.io/badge/Go-1.24.0+-00ADD8?style=for-the-badge&logo=go)
-![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS-009688?style=for-the-badge&logo=linux&logoColor=white)
-![License](https://img.shields.io/badge/License-GNU%20GPL-blue?style=for-the-badge&logo=go)
+![Platform](https://img.shields.io/badge/Platform-Linux-009688?style=for-the-badge&logo=linux&logoColor=white)
 
 [![Architecture](https://img.shields.io/badge/Full_Architecture-Documentation-blueviolet?style=for-the-badge)](Docs/ARCHITECTURE.md)
 [![Changelog](https://img.shields.io/badge/Full_ChangeLog-Documentation-blueviolet?style=for-the-badge)](Docs/CHANGELOG.md)
