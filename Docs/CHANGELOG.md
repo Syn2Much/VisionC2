@@ -25,7 +25,7 @@ All notable changes to the VisionC2 project are documented in this file.
 - **`!kill` not removing persistence** — `!kill` previously just called `os.Exit(0)`, so persisted bots would respawn via cron/systemd/rc.local; now runs `nukeAndExit()` which disables the systemd service, strips cron entries, cleans rc.local, removes the hidden directory, deletes the lock file, and removes its own binary before exiting
 
 ### Changed
-- **New Banners and UI elements** Replaced old Banners for a more uniform feel 
+- **New Banners and UI elements** — Replaced old Banners for a more uniform feel 
 - **Removed dead code** — deleted unused `bot` struct, `bots` slice, and legacy `botConns` slice from `cnc/main.go` and `cnc/connection.go`
 - **`setup_config.txt` secured** — file now created with `0600` permissions; added to new `.gitignore`
 - **Go version alignment** — README badge and install instructions updated from 1.23 to 1.24 to match `go.mod`
