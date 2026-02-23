@@ -22,7 +22,7 @@
 | | Feature | Description |
 |---|---|---|
 | 🤖 | **CNC** | Full-featured TUI control panel built with BubbleTea |
-| 🔒 | **Communication** | Modern TLS 1.3 encrypted bot-to-server |
+| 🔒 | **Communication** | Modern TLS 1.3 encrypted bot-to-server communication on port 443 (Indistinguishable from HTTPS traffic)|
 | ⚔️ | **Attack Methods** | Layer 4 (network) and Layer 7 (application) |
 | 🕵️ | **Evasion** | AES-128-CTR encrypted strings (zero sensitive plaintext in binary), 16-byte split XOR key, VM/sandbox/debugger detection (40+ signatures), 24-27h delayed exit on detection |
 | 👻 | **Stealth** | Unix daemonization, single-instance enforcement, disguised process names, PID lock |
