@@ -89,7 +89,7 @@ go version  # verify installation
    ```bash
    git clone https://github.com/Syn2Much/VisionC2.git
    cd VisionC2
-   chmod +x *
+   chmod +x setup.py tools/*.sh
    ```
 
 2. **Run interactive setup**
@@ -129,7 +129,7 @@ screen ./server --split
 nc your-server-ip 1337
 ```
 - User database: `cnc/users.json`
-- Default login keyword: `spamtec`
+- Login keyword: configured during setup
 
 ---
 
@@ -161,7 +161,7 @@ Bot Binary
 │      C2 Resolution & Connection         │
 │  - 5-layer C2 address decryption        │
 │  - DNS Chain (DoH → UDP → A → Raw)     │
-│  - TLS 1.2+ Handshake                   │
+│  - TLS 1.3 Handshake                     │
 │  - HMAC challenge/response auth         │
 └─────────────────────────────────────────┘
     │
@@ -195,6 +195,7 @@ VisionC2/
 │   ├── main.go               # TLS listener, server entry
 │   ├── cmd.go                # Command dispatch, help menus
 │   ├── ui.go                 # Bubble Tea TUI
+│   ├── connection.go         # Bot connection handler, auth, TLS config
 │   ├── miscellaneous.go      # RBAC, user auth
 │   └── certificates/         # TLS certs
 ├── tools/
