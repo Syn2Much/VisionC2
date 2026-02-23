@@ -24,7 +24,7 @@
 | 🤖 | **CNC** | Full-featured TUI control panel built with BubbleTea |
 | 🔒 | **Communication** | Modern TLS 1.3 encrypted bot-to-server |
 | ⚔️ | **Attack Methods** | Layer 4 (network) and Layer 7 (application) |
-| 🕵️ | **Evasion** | AES-128-CTR encrypted strings (zero plaintext in binary), 16-byte split XOR key, VM/sandbox/debugger detection (40+ signatures), 24-27h delayed exit on detection |
+| 🕵️ | **Evasion** | AES-128-CTR encrypted strings (zero sensitive plaintext in binary), 16-byte split XOR key, VM/sandbox/debugger detection (40+ signatures), 24-27h delayed exit on detection |
 | 👻 | **Stealth** | Unix daemonization, single-instance enforcement, disguised process names, PID lock |
 | ♻️ | **Persistence** | Systemd service + cron + rc.local, hidden directory with download script, auto-reinfection on reboot, cleanup tool included (`tools/cleanup.sh`) |
 | 🧦 | **SOCKS5 Proxy** | Full SOCKS5 pivoting through bots, RFC 1929 username/password auth, runtime credential updates |
