@@ -11,7 +11,9 @@
 [![Architecture](https://img.shields.io/badge/Full_Architecture-Documentation-blueviolet?style=for-the-badge)](Docs/ARCHITECTURE.md)
 [![Changelog](https://img.shields.io/badge/Full_ChangeLog-Documentation-blueviolet?style=for-the-badge)](Docs/CHANGELOG.md)
 
-![Animation](https://github.com/user-attachments/assets/1e0694e4-5714-4dcb-ad18-62a7c817c53e)
+<img width="1170" height="878" alt="image" src="https://github.com/user-attachments/assets/cf5c5b51-5629-4b3c-beaa-116e6538760a" />
+
+
 
 </div>
 
@@ -35,6 +37,7 @@
 ---
 
 ## Attack Methods
+<img width="1307" height="978" alt="image" src="https://github.com/user-attachments/assets/5ebe4b6b-846b-4f52-9d01-ace4aa6caaeb" />
 
 <details>
 <summary><b>Layer 4 — Network/Transport</b></summary>
@@ -101,6 +104,7 @@ go version  # verify installation
    - Create encryption keys and configuration
    - Cross-compile binaries for all supported architectures
    - Build the C2 server binary
+<img width="806" height="831" alt="image" src="https://github.com/user-attachments/assets/cce1edb2-01b3-4786-a59e-b16e5511f8af" />
 
 3. **Output locations**
 
