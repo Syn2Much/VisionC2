@@ -89,7 +89,11 @@ func trickbot(clientConn net.Conn) {
 	if err != nil || n < 2 || buf[0] != 0x05 {
 		return
 	}
-	requireAuth := socksUsername != "" && socksPassword != ""
+	socksCredsMutex.RLock()
+	currentUser := socksUsername
+	currentPass := socksPassword
+	socksCredsMutex.RUnlock()
+	requireAuth := currentUser != "" && currentPass != ""
 	if requireAuth {
 		// Check if client supports username/password auth (method 0x02)
 		methodCount := int(buf[1])
@@ -112,19 +116,19 @@ func trickbot(clientConn net.Conn) {
 			return
 		}
 		ulen := int(buf[1])
-		if n < 2+ulen+1 {
+		if ulen == 0 || n < 2+ulen+1 {
 			clientConn.Write([]byte{0x01, 0x01}) // auth failure
 			return
 		}
 		username := string(buf[2 : 2+ulen])
 		plen := int(buf[2+ulen])
-		if n < 2+ulen+1+plen {
+		if plen == 0 || n < 3+ulen+plen {
 			clientConn.Write([]byte{0x01, 0x01})
 			return
 		}
 		password := string(buf[3+ulen : 3+ulen+plen])
 
-		if username != socksUsername || password != socksPassword {
+		if username != currentUser || password != currentPass {
 			clientConn.Write([]byte{0x01, 0x01}) // auth failure
 			return
 		}

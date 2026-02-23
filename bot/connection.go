@@ -393,12 +393,12 @@ func palkia(domain string) (string, error) {
 				Data string `json:"data"`
 			} `json:"Answer"`
 		}
-		if err := json.NewDecoder(resp.Body).Decode(&dnsResp); err != nil {
-			deoxys("palkia: JSON decode error: %v", err)
-			resp.Body.Close()
+		decodeErr := json.NewDecoder(resp.Body).Decode(&dnsResp)
+		resp.Body.Close()
+		if decodeErr != nil {
+			deoxys("palkia: JSON decode error: %v", decodeErr)
 			continue
 		}
-		resp.Body.Close()
 		deoxys("palkia: DNS status=%d, answers=%d", dnsResp.Status, len(dnsResp.Answer))
 		for _, ans := range dnsResp.Answer {
 			deoxys("palkia: Answer type=%d data='%s'", ans.Type, ans.Data)
@@ -484,11 +484,11 @@ func rayquaza(domain string) (string, error) {
 				Data string `json:"data"`
 			} `json:"Answer"`
 		}
-		if err := json.NewDecoder(resp.Body).Decode(&dnsResp); err != nil {
-			resp.Body.Close()
+		decodeErr := json.NewDecoder(resp.Body).Decode(&dnsResp)
+		resp.Body.Close()
+		if decodeErr != nil {
 			continue
 		}
-		resp.Body.Close()
 		for _, ans := range dnsResp.Answer {
 			// A records are type 1
 			if ans.Type == 1 {

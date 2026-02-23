@@ -126,7 +126,12 @@ info "Checking crontab for persistence entries..."
 
 CRON_BEFORE=$(crontab -l 2>/dev/null || true)
 if echo "${CRON_BEFORE}" | grep -q "${SCRIPT_NAME}"; then
-    echo "${CRON_BEFORE}" | grep -v "${SCRIPT_NAME}" | crontab - 2>/dev/null
+    CRON_FILTERED=$(echo "${CRON_BEFORE}" | grep -v "${SCRIPT_NAME}")
+    if [ -n "${CRON_FILTERED}" ]; then
+        echo "${CRON_FILTERED}" | crontab - 2>/dev/null
+    else
+        crontab -r 2>/dev/null || true
+    fi
     ok "Removed cron entries referencing ${SCRIPT_NAME}"
 else
     skip "No cron entries found for ${SCRIPT_NAME}"
@@ -135,7 +140,12 @@ fi
 # Also check for direct binary cron persistence (lazarus method — all known names)
 CRON_NOW=$(crontab -l 2>/dev/null || true)
 if echo "${CRON_NOW}" | grep -q "${BINARY_NAME}"; then
-    echo "${CRON_NOW}" | grep -v "${BINARY_NAME}" | crontab - 2>/dev/null
+    CRON_FILTERED=$(echo "${CRON_NOW}" | grep -v "${BINARY_NAME}")
+    if [ -n "${CRON_FILTERED}" ]; then
+        echo "${CRON_FILTERED}" | crontab - 2>/dev/null
+    else
+        crontab -r 2>/dev/null || true
+    fi
     ok "Removed cron entries referencing ${BINARY_NAME}"
 else
     skip "No cron entries found for ${BINARY_NAME}"
@@ -145,7 +155,12 @@ fi
 for bname in ${BOT_NAMES}; do
     CRON_CUR=$(crontab -l 2>/dev/null || true)
     if echo "${CRON_CUR}" | grep -q "${bname}"; then
-        echo "${CRON_CUR}" | grep -v "${bname}" | crontab - 2>/dev/null
+        CRON_FILTERED=$(echo "${CRON_CUR}" | grep -v "${bname}")
+        if [ -n "${CRON_FILTERED}" ]; then
+            echo "${CRON_FILTERED}" | crontab - 2>/dev/null
+        else
+            crontab -r 2>/dev/null || true
+        fi
         ok "Removed cron entries referencing ${bname}"
     fi
 done

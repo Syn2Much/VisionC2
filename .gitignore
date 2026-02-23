@@ -1,0 +1,11 @@
+# Setup configuration (contains secrets)
+setup_config.txt
+
+# Build artifacts
+bins/
+server
+cnc/cnc
+
+# TLS certificates
+cnc/certificates/server.crt
+cnc/certificates/server.key

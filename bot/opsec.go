@@ -235,9 +235,9 @@ func mustangPanda() string {
 //
 
 func stuxnet() {
-	// Skip daemonization in debug mode so output stays in the terminal.
+	// Skip daemonization AND signal traps in debug mode so output stays
+	// in the terminal and Ctrl-C exits cleanly.
 	if debugMode {
-		ignoreSignals()
 		return
 	}
 

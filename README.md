@@ -5,7 +5,7 @@
 
 **TLS-encrypted C2 & Agent with 14-arch cross-compilation. Capabilities to execute L4/L7 DDoS floods, remote shells, and establish SOCKS5 through a real-time Go TUI**
 
-![Go](https://img.shields.io/badge/Go-1.23.0+-00ADD8?style=for-the-badge&logo=go)
+![Go](https://img.shields.io/badge/Go-1.24.0+-00ADD8?style=for-the-badge&logo=go)
 ![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows%20%7C%20macOS-009688?style=for-the-badge&logo=linux&logoColor=white)
 ![License](https://img.shields.io/badge/License-GNU%20GPL-blue?style=for-the-badge&logo=go)
 
@@ -75,10 +75,10 @@
 sudo apt update && sudo apt install -y \
     upx-ucl openssl git wget gcc python3 screen build-essential
 
-# Install Go (1.23+ required)
-wget https://go.dev/dl/go1.23.4.linux-amd64.tar.gz
+# Install Go (1.24+ required)
+wget https://go.dev/dl/go1.24.0.linux-amd64.tar.gz
 sudo rm -rf /usr/local/go
-sudo tar -C /usr/local -xzf go1.23.4.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.24.0.linux-amd64.tar.gz
 echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
 source ~/.bashrc
 go version  # verify installation

