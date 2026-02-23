@@ -11,9 +11,7 @@
 [![Architecture](https://img.shields.io/badge/Full_Architecture-Documentation-blueviolet?style=for-the-badge)](Docs/ARCHITECTURE.md)
 [![Changelog](https://img.shields.io/badge/Full_ChangeLog-Documentation-blueviolet?style=for-the-badge)](Docs/CHANGELOG.md)
 
-<img width="1170" height="878" alt="image" src="https://github.com/user-attachments/assets/cf5c5b51-5629-4b3c-beaa-116e6538760a" />
-
-
+<img width="1189" height="747" alt="image" src="https://github.com/user-attachments/assets/e0ca5692-5ba9-4f15-be48-877c20026cdf" />
 
 </div>
 
@@ -37,7 +35,8 @@
 ---
 
 ## Attack Methods
-<img width="1307" height="978" alt="image" src="https://github.com/user-attachments/assets/5ebe4b6b-846b-4f52-9d01-ace4aa6caaeb" />
+<img width="1183" height="869" alt="image" src="https://github.com/user-attachments/assets/9b08df61-6280-40b2-9baf-a9840ca1887c" />
+
 
 <details>
 <summary><b>Layer 4 — Network/Transport</b></summary>
@@ -67,6 +66,9 @@
 </details>
 
 ---
+
+<img width="1179" height="586" alt="image" src="https://github.com/user-attachments/assets/06f7ca4c-3119-4cd3-81dd-2224d131c290" />
+
 
 ## Installation
 
