@@ -336,7 +336,7 @@ def print_banner():
     """
     print(banner)
     print(f"                 Build: 01/09/2026")
-    print(f"               Author: sintax@exploit.im")
+    print(f"               Author: SYN")
     print(f"              Version: 2.0 (Improved)")
     print()
 

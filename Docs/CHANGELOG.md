@@ -3,6 +3,17 @@
 
 All notable changes to the VisionC2 project are documented in this file.
 
+## [2.4.3] - 2026-02-26
+
+### Changed
+- **6-layer C2 address encryption** — `gothTits` is now AES-128-CTR encrypted at rest and decrypted at runtime via `garuda()` before being passed to the 5-layer `venusaur()` decoder; the C2 address (and its 5-layer encoded form) no longer appears as plaintext anywhere in the binary
+- `gothTits` changed from `const` to runtime-decrypted `var`, populated by `initSensitiveStrings()` alongside all other sensitive strings
+- `setup.py` now AES-encrypts the obfuscated C2 blob using the `garuda` key before writing `encGothTits` to `config.go`
+- Added `garuda_key()` and `aes_ctr_encrypt()` helpers to `setup.py`
+- **New TUI dashboard banner** — replaced ASCII calligraphy banner with braille-art graphic
+
+---
+
 ## [2.4.2] - 2026-02-23
 
 ### Fixed
