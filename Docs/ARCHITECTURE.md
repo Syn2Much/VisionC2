@@ -220,8 +220,19 @@ Bot Binary
     │
     ▼
 ┌─────────────────────────────────────────┐
+│      Runtime Decryption                 │
+│  - AES-128-CTR decrypt C2 address      │
+│    (encGothTits → gothTits)             │
+│  - AES-128-CTR decrypt all sensitive    │
+│    strings from config.go hex blobs     │
+│  - 16-byte key from split XOR functions │
+└─────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────┐
 │         Startup Sequence                │
 │  - Daemonization                        │
+│  - Single-instance enforcement (PID)    │
 │  - Sandbox Detection                    │
 │  - Persistence Installation             │
 │  - Metadata Caching                     │
@@ -230,23 +241,24 @@ Bot Binary
     ▼
 ┌─────────────────────────────────────────┐
 │      C2 Resolution & Connection         │
+│  - 6-layer C2 address decryption        │
 │  - DNS Chain (DoH → UDP → A → Raw)     │
-│  - TLS 1.2+ Handshake                   │
-│  - Authentication Challenge/Response    │
+│  - TLS 1.3 Handshake                    │
+│  - HMAC challenge/response auth         │
 └─────────────────────────────────────────┘
     │
     ▼
 ┌─────────────────────────────────────────┐
 │        Command Loop & Execution         │
 │  - Command Dispatch (blackEnergy)       │
-│  - Attack Execution (14+ methods)       │
+│  - Attack Execution (10+ methods)       │
 │  - SOCKS5 Proxy Server                  │
 │  - Shell Command Execution              │
 └─────────────────────────────────────────┘
 ```
 
 ### Bot C2 Obfuscation & Encryption
-The C2 address is never stored in plaintext in the binary. It goes through a **5-layer encoding pipeline** at build time (via `setup.py`) and is decoded at runtime by the bot.
+The C2 address is never stored in plaintext — or even in its intermediate 5-layer-encoded form — in the binary. It goes through a **6-layer encoding pipeline** at build time (via `setup.py`) and is decoded at runtime by the bot.
 
 **Encoding Pipeline (`setup.py` → stored in binary):**
 ```
@@ -282,16 +294,31 @@ Plaintext C2 ("192.168.1.1:443")
 └──────────────────────────────────────────────────┘
         │
         ▼
-Stored as `const gothTits = "EkAJ9ezFRv5F..."` in bot/config.go
+┌─ Layer 6: AES-128-CTR Encryption ───────────────┐
+│ aes_ctr_encrypt() using garuda key              │
+│ (raw 16-byte XOR key, NOT the MD5-derived key)  │
+│ Output: hex-encoded IV ‖ ciphertext             │
+└──────────────────────────────────────────────────┘
+        │
+        ▼
+Stored as `var encGothTits, _ = hex.DecodeString("...")` in bot/config.go
 ```
 
-**Decoding Pipeline (`venusaur()` in `opsec.go`):**
-Exact reverse of encoding:
+**Decoding Pipeline (runtime):**
+
+The bot decodes in two stages:
+
+**Stage 1 — AES decrypt (`garuda()` in `opsec.go`, called by `initSensitiveStrings()`):**
+1. **AES-128-CTR Decrypt** `encGothTits` using raw 16-byte XOR key → recovers the base64-encoded 5-layer blob into `gothTits` variable
+
+**Stage 2 — 5-layer decode (`venusaur()` in `opsec.go`, called by `dialga()`):**
 1. **Base64 Decode** → raw bytes
 2. **XOR with rotating key** → undo layer 4
 3. **RC4 Decrypt** (symmetric, same function) → undo layer 3
 4. **Reverse Byte Substitution** → `ROTATE_RIGHT(b, 3)` then `b ^= 0xAA`
 5. **MD5 Checksum Verify** → validate integrity of decoded payload
+
+This two-stage design means the AES outer layer is stripped uniformly alongside all other sensitive strings at startup, while the 5-layer inner decode only runs when the bot actually needs the C2 address.
 
 **Key Derivation (`charizard()` in `opsec.go`):**
 ```
@@ -314,7 +341,7 @@ MD5( seed + [16 XOR key bytes] + entropy )
 16-byte MD5 hash (used as RC4 key + XOR key for C2 address)
 ```
 
-**Sensitive String Encryption (`garuda()` in `opsec.go`):**
+**Sensitive String & C2 Address Encryption (`garuda()` in `opsec.go`):**
 ```
 Encrypted blob (hex-encoded IV‖ciphertext in config.go)
     │
@@ -329,8 +356,11 @@ Encrypted blob (hex-encoded IV‖ciphertext in config.go)
     ▼
 Plaintext string (or null-separated slice)
 
-initSensitiveStrings() decrypts all blobs at startup
-before any other code references them.
+initSensitiveStrings() decrypts ALL blobs at startup
+before any other code references them, including:
+  - encGothTits → gothTits (5-layer-encoded C2 address)
+  - encVmIndicators, encAnalysisTools, encParentDebuggers
+  - All persistence paths, service templates, daemon keys
 ```
 
 **Crypto CLI Tool (`tools/crypto.go`):**
@@ -384,6 +414,7 @@ Bot Binary Executed
 ┌─ initSensitiveStrings() ────────┐
 │ Decrypt all AES-128-CTR blobs   │
 │ from config.go into runtime vars│
+│ Including: encGothTits → gothTits│
 │ (must run before anything else) │
 └─────────────────────────────────┘
         │
@@ -584,9 +615,9 @@ If any check triggers → sleep **24–27 hours** (randomized jitter to outlast 
 ### Bot DNS Resolution Chain
 **`dialga()` — Main C2 Resolver:**
 ```
-gothTits constant
+gothTits (decrypted from encGothTits at startup)
     │
-    ▼ venusaur() decode
+    ▼ venusaur() decode (5-layer inner decode)
     │
     ├── Is it IP:PORT format?
     │   └── YES → Use directly
@@ -705,10 +736,10 @@ go build -trimpath -ldflags="-s -w -buildid=" -o <name> ./bot
    - `magicCode` — 16-char random (letters, digits, symbols)
    - `protocolVersion` — Random format (e.g., `v3.8`, `proto42`, `r1.5-stable`)
    - `cryptSeed` — 8-char hex for encryption key derivation
-4. Obfuscate C2 address (5-layer encoding) + verification
+4. Obfuscate C2 address (5-layer encoding) + AES-128-CTR outer layer (6 total) + verification
 5. Generate TLS certificates (4096-bit RSA, self-signed) or use custom
 6. Update source files via regex replacement:
-   - `bot/config.go`: `gothTits`, `cryptSeed`, `magicCode`, `protocolVersion`, `debugMode`
+   - `bot/config.go`: `encGothTits`, `cryptSeed`, `magicCode`, `protocolVersion`, `debugMode`
    - `cnc/main.go`: `MAGIC_CODE`, `PROTOCOL_VERSION`, `USER_SERVER_PORT`
 7. Build CNC server + bot binaries
 8. Save configuration to `setup_config.txt`
@@ -780,7 +811,7 @@ All functions use APT group / Pokémon-themed names to make code harder to under
 | `charizard` | Key derivation (MD5, for C2 address obfuscation) |
 | `venusaur` | Multi-layer C2 address decoder |
 | `blastoise` | RC4 stream cipher |
-| `garuda` | AES-128-CTR decrypt (sensitive strings) |
+| `garuda` | AES-128-CTR decrypt (sensitive strings + C2 outer layer) |
 
 **CNC Variables:**
 | Name | Real Purpose |
@@ -788,7 +819,8 @@ All functions use APT group / Pokémon-themed names to make code harder to under
 | `fancyBear` | Reconnection delay (5s) |
 | `cozyBear` | Worker count (2024) |
 | `equationGroup` | Buffer size (256) |
-| `gothTits` | Obfuscated C2 address constant |
+| `gothTits` | C2 address (AES-decrypted at runtime from `encGothTits`) |
+| `encGothTits` | AES-128-CTR encrypted 6-layer C2 blob |
 
 ---
 
