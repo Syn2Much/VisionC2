@@ -18,44 +18,19 @@
 
 ## Key Features
 
-### 🔧 Auto-Setup
-Python script automates config + build
+| | Feature | Details |
+|---|---|---|
+| 🔧 | **Auto-Setup** | Python script automates config + build |
+| 🌐 | **Cross-Platform** | 14 multi-arch targets, custom UPX packer (strips headers) |
+| 🔒 | **Comms** | TLS 1.3 on port 443, indistinguishable from standard HTTPS |
+| 🧦 | **SOCKS5 Proxy** | Full pivoting, RFC 1929 auth, runtime credential updates |
+| 💻 | **Remote Shell** | Command execution + output capture, Linux shortcuts & post-exploit helpers |
+| 🛡️ | **Evasion** | 6-layer C2 encryption (AES-128-CTR + obfuscation), encrypted strings, split XOR key, 40+ VM/sandbox/debugger signatures, 24–27h delayed exit |
+| 👻 | **Stealth** | Unix daemonization, single-instance, disguised process names, PID lock |
+| 🔁 | **Persistence** | Systemd + cron + rc.local, hidden dir w/ download script, auto-reinfection, cleanup tool included |
 
-### 🌐 Cross-Platform
-- 14 multi-arch targets
-- Custom UPX packer (strips UPX headers)
+---
 
-### 🔒 Communication
-- Modern TLS 1.3 encrypted bot-to-server communication on port 443
-- Indistinguishable from standard HTTPS traffic
-
-### 🧦 SOCKS5 Proxy
-- Full SOCKS5 pivoting through bots
-- RFC 1929 username/password auth
-- Runtime credential updates
-
-### 💻 Remote Shell
-- Execute any shell command on a bot and capture output
-- Linux shortcuts and post-exploit helpers built in
-
-### 🛡️ Evasion
-- 6-layer C2 encryption (AES-128-CTR + 5-layer obfuscation)
-- AES-128-CTR encrypted strings (zero sensitive plaintext in binary)
-- 16-byte split XOR key
-- VM/sandbox/debugger detection (40+ signatures)
-- 24–27h delayed exit on detection
-
-### 👻 Stealth
-- Unix daemonization
-- Single-instance enforcement
-- Disguised process names
-- PID lock
-
-### 🔁 Persistence
-- Systemd service + cron + rc.local
-- Hidden directory with download script
-- Auto-reinfection on reboot
-- Cleanup tool included (`tools/cleanup.sh`)
 ## Attack Methods
 
 <img width="1183" height="869" alt="image" src="https://github.com/user-attachments/assets/9b08df61-6280-40b2-9baf-a9840ca1887c" />
