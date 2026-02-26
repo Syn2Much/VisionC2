@@ -1,4 +1,4 @@
-
+// For the most part you wont need this. Setup.py handles encryption and updates. 
 // crypto.go — Unified AES-128-CTR encrypt/decrypt tool for VisionC2.
 // Uses the same 16-byte key derived from the XOR byte functions in opsec.go.
 //
