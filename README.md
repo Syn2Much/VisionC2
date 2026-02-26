@@ -128,6 +128,7 @@ go version  # verify installation
 | devfreqd0 | MIPSLE | Routers (little-endian) |
 | *...and 8 more* | Various | IoT, embedded |
 
+ > [`Build.sh`](tools/build.sh) | Full binary map reference 
 ---
 
 ## Usage
