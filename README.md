@@ -21,16 +21,13 @@
 | | Feature | Description |
 |---|---|---|
 | ⚡ | **Auto-Setup** | Python script automates config + build |
-| 💻 | **Cross-Platform** | 14 multi-arch targets + custom UPX packer |
+| 💻 | **Cross-Platform** | 14 multi-arch targets + custom UPX packer (strip upx headers) |
 | 🔒 | **Communication** | Modern TLS 1.3 encrypted bot-to-server communication on port 443 (Indistinguishable from HTTPS traffic)|
-| 🤖 | **CNC** | Full-featured TUI control panel built with BubbleTea |
+| 🧦 | **SOCKS5 Proxy** | Full SOCKS5 pivoting through bots, RFC 1929 username/password auth, runtime credential updates |
+| 📡 | **Remote Shell**| Execute any shell command on a bot and capture the output. Linux shortcuts and post exploit helpers are built in  |
 | 🕵️ | **Evasion** | 6-layer C2 encryption (AES-128-CTR + 5-layer obfuscation), AES-128-CTR encrypted strings (zero sensitive plaintext in binary), 16-byte split XOR key, VM/sandbox/debugger detection (40+ signatures), 24-27h delayed exit on detection |
 | 👻 | **Stealth** | Unix daemonization, single-instance enforcement, disguised process names, PID lock |
 | ♻️ | **Persistence** | Systemd service + cron + rc.local, hidden directory with download script, auto-reinfection on reboot, cleanup tool included (`tools/cleanup.sh`) |
-| 🧦 | **SOCKS5 Proxy** | Full SOCKS5 pivoting through bots, RFC 1929 username/password auth, runtime credential updates |
-| 📡 | **Remote Shell**| Execute any shell command on a bot and capture the output. Linux shortcuts and post exploit helpers included  |
-
-
 
 ---
 
