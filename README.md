@@ -204,7 +204,7 @@ nc your-server-ip 1337
 > **Usage of this tool for attacking targets without prior mutual consent is illegal. The developer assumes no liability and is not responsible for any misuse or damage caused by this program.**
 
 ---
-## 🔧 Troubleshooting
+## Troubleshooting
 
 
 ```
