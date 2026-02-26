@@ -3,7 +3,7 @@
 
 # ☾℣☽ VisionC2
 
-**VisionC2 is a multi-architecture C2 framework written in Go, designed for penetration testing and security research. It features a TUI-based control panel (Bubble Tea), layered encryption, cross-architecture bot compilation (14 architectures), L4/L7 attack methods, SOCKS5 proxying, and anti-analysis capabilities.**  
+**VisionC2 is a multi-architecture C2 framework written in Go, designed for penetration testing and security research. It features a TUI-based control panel (Bubble Tea), layered encryption, cross-architecture bot compilation (14 architectures), L4/L7 attack methods, Remote Shell, Reverse Socks, and anti-analysis capabilities.**  
 
 ![Go](https://img.shields.io/badge/Go-1.24.0+-00ADD8?style=for-the-badge&logo=go)
 ![Platform](https://img.shields.io/badge/Platform-Linux-009688?style=for-the-badge&logo=linux&logoColor=white)
