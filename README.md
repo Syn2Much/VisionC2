@@ -140,7 +140,7 @@ To change C2 address later: `python3 setup.py` → option **[2]**. Redeploy bots
 - **📡 Broadcast Shell** — Command all bots. `Ctrl+A`=filter arch, `Ctrl+G`=filter RAM, `Ctrl+B`=limit bots
 - **⚡ Launch Attack** — Select method, target, port, duration → `l` to launch
 - **📊 Ongoing Attacks** — Progress bars + time remaining. `s`=stop all
-- **🧦 Socks Manager** — `s`=start socks, `x`=stop. Default: `socks5://visionc2:synackrst666@BOT_IP:1080`. Update creds: `!socksauth <user> <pass>`
+- **🧦 Socks Manager** — `s`=start socks, `x`=stop. Default: `socks5://user:pass@BOT_IP:1080`. Update creds: `!socksauth <user> <pass>`
 - **📜 Connection Logs** — Bot connect/disconnect history
 
 ---
