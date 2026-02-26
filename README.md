@@ -10,8 +10,8 @@
 
 [![Architecture](https://img.shields.io/badge/Full_Architecture-Documentation-blueviolet?style=for-the-badge)](Docs/ARCHITECTURE.md)
 [![Changelog](https://img.shields.io/badge/Full_ChangeLog-Documentation-blueviolet?style=for-the-badge)](Docs/CHANGELOG.md)
+<img width="907" height="840" alt="image" src="https://github.com/user-attachments/assets/5013c6de-7ac0-4ef8-9aaa-3900c7558b16" />
 
-<img width="1189" height="747" alt="image" src="https://github.com/user-attachments/assets/e0ca5692-5ba9-4f15-be48-877c20026cdf" />
 
 </div>
 
