@@ -80,6 +80,7 @@ build_for_arch() {
         echo "UPX compression skipped for $arch_name"
     fi
     INDEX=$((INDEX + 1))
+}
 
 # Build for all architectures
 build_for_arch "x86 (386)" "linux" "386"         # kworkerd0
