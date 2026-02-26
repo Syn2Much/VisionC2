@@ -3,7 +3,7 @@
 
 # ☾℣☽ision C2 - Multi-arch Linux botnet framework written in GO
 
-> **With TLS 1.3 transport communications + 6-Layer C2 Address Obfuscation + AES-128-CTR string encryption — 14-arch cross-compiled agents, L4/L7 floods, interactive remote shells, SOCKS5 proxying, and full persistence — driven through a real-time Go TUI**
+> **14-arch cross-compiled agents DDOS, RCE, and SOCKS5 modules. Communcations protected by TLS 1.3 transport + 6-Layer C2 Address Obfuscation + AES-128-CTR string encryption, Anti-Anaylsis/Sandbox Killer and full persistence — driven through a real-time Go TUI**
 
 ![Go](https://img.shields.io/badge/Go-1.24.0+-00ADD8?style=for-the-badge&logo=go)
 ![Platform](https://img.shields.io/badge/Platform-Linux-009688?style=for-the-badge&logo=linux&logoColor=white)
