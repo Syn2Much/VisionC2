@@ -178,14 +178,6 @@ nc your-server-ip 1337
 | `cnc/connection.go` | Bot connection handling, TLS setup, heartbeat |
 | `cnc/miscellaneous.go` | RBAC, user authentication, utilities |
 
-### Shared Configuration (must match between bot and CNC)
-
-Three values in `bot/config.go` and `cnc/main.go` **must be identical** for communication to work:
-
-- `magicCode` / `MAGIC_CODE` — 16-char auth token
-- `protocolVersion` / `PROTOCOL_VERSION` — version string
-- `cryptSeed` — 8-char hex seed (bot-side only, used for C2 address decoding)
-
 ---
 
 ## Encryption Architecture
