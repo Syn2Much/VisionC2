@@ -1,8 +1,10 @@
 #!/bin/bash
 
 # Sins Custom legiatmate Name Builder 
-# yes we are using UPX (GO is large) if you want to remove the strings from the binaries you can use my tool here
-#  https://github.com/Syn2Much/upx-stripper
+# yes we are using UPX (GO is large) reducing file size from 8mb to 2mb here.
+# UPX headers will be stripped automatically by deUPX.py.
+
+
 
 # Get the directory where this script is located (tools/)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
