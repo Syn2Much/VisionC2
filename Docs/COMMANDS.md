@@ -7,11 +7,11 @@
 ## 🚀 Quick Start
 
 ```bash
-# Start TUI (default)
-./cnc
+# Start TUI (default) 
+./server
 
 # Start split mode (telnet server)
-./cnc --split
+./server --split
 ```
 
 ---
