@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# for the most part you don't need to use this. Setup.py and build scripts call it. 
+# Stripping the UPX headers is a vital step being taken in Linux elf binaries in the current age. 
+# Enjoying compressed files sizes while avoiding anaylsis. 8mb -> 2.4mb after compression
+
 import os
 import sys
 import argparse
