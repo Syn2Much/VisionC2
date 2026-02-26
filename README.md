@@ -35,7 +35,7 @@
 
 <img width="1183" height="869" alt="image" src="https://github.com/user-attachments/assets/9b08df61-6280-40b2-9baf-a9840ca1887c" />
 
-<details>
+<details open>
 <summary><b>Layer 4 — Network/Transport</b></summary>
 
 | Method | Description |
@@ -45,11 +45,11 @@
 | **SYN Flood** | SYN packets with randomized source ports (raw TCP) |
 | **ACK Flood** | ACK packet flooding (raw TCP) |
 | **GRE Flood** | GRE protocol (47) packets with max payload |
-| **DNS Flood** | Randomized DNS query types (A, AAAA, MX, NS, etc.) |
+| **DNS Flood** | Randomized DNS query types (DNS Reflection Attack, Max PPS+) |
 
 </details>
 
-<details>
+<details open>
 <summary><b>Layer 7 — Application</b></summary>
 
 | Method | Description |
@@ -61,6 +61,7 @@
 | **Proxy Support** | Full proxy integration for all L7 methods (HTTP + SOCKS5) |
 
 </details>
+
 
 ---
 
