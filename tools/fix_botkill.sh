@@ -1,6 +1,6 @@
 #!/bin/bash
 # VisionC2 - Server Setup (run as root)
-
+# run this if bots are dying. If your running this shit on telnets thats not a bot problem those devices are ass and hardly have storage for the binary. Go root some ssh.
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
