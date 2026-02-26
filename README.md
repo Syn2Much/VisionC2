@@ -1,7 +1,7 @@
 
 <div align="center">
 
-# ☾℣☽ision C2 - Multi-arch Linux botnet framework written in GO
+# ☾℣☽ision C2 - Multi-arch Linux botnet framework 
 
 > **14-arch cross-compiled agents DDOS, RCE, and SOCKS5 modules. Communcations protected by TLS 1.3 transport + 6-Layer C2 Address Obfuscation + AES-128-CTR string encryption, Anti-Anaylsis/Sandbox Killer and full persistence — driven through a real-time Go TUI**
 
