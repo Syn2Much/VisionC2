@@ -20,9 +20,8 @@
 
 ## Why chose Vision over other Linux bots?
 
-- **Layer 7 Attacks** Cloudflare Bypass, Http/2 Rapid Reset Exploit, TLS Bypass, support for proxy list. Good luck finding it else where.
 - **Automated Setup** Python script handles everything, don't even touch the code. Just run and deploy.
-- **TLS Communciation** Courtesy of Golang, Full encrypted bot->c2 session. Blends directly with HTTP/S over port 443.
+- **TLS Communciation** Full encrypted bot->c2 session. Blends directly with HTTP/S over port 443.
 - **Real anti-analysis.** 40+ VM/sandbox/debugger signatures. Parent process debugger detection. Sandboxes never even reach the main loop.
 - **Zero plaintext in the binary.** Every sensitive string is AES-128-CTR encrypted at build time and decrypted only at runtime. The encryption key itself is split across 16 individual XOR byte functions scattered throughout the codebase.  
 - **6-layer C2 address obfuscation.** The server address passes through AES-128-CTR, then a 5-layer decode pipeline: Base64 > XOR rotating key > RC4 stream cipher > byte substitution > MD5 checksum verification. A massive improvment over traditional XOR/ChaCha string hiding.
@@ -31,6 +30,7 @@
 - **Full SOCKS5 Proxy.** Complete pivoting with RFC 1929 authentication. Runtime credential updates pushed directly through the TUI — no redeployment needed.
 - **Remote Shell.** Command execution with full output capture. Built-in Linux shortcuts and post-exploit helpers for quick pivoting once you're in.
 - **Daemonized Stealth.** Fork+setsid with disguised process names. Single-instance PID lock prevents duplicate agents from running on the same host.
+- **Layer 7 Attacks** Cloudflare Bypass, Http/2 Rapid Reset Exploit, TLS Bypass, support for proxy list. Good luck finding it else where.
 
 
 ---
