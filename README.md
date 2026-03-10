@@ -121,7 +121,7 @@ Split mode: `nc YOUR_IP 420` → type `spamtec` → login. (legacy)
 
 ---
 
-## TUI Navigation
+## 🎨 TUI Navigation
 
 | Key | Action |
 |---|---|
@@ -130,25 +130,21 @@ Split mode: `nc YOUR_IP 420` → type `spamtec` → login. (legacy)
 | `q` / `Esc` | Back / Cancel |
 | `r` | Refresh |
 
-### Views
+### Dashboard Views
 
-**Bot List** — Live bot status. `Enter` = shell, `b` = broadcast shell, `l` = attack, `i` = info, `p` = persist, `r` = reinstall, `k` = kill.
-
-**Remote Shell** — Interactive shell to a single bot. `Ctrl+F` = clear, `Ctrl+P` = persist, `Ctrl+R` = reinstall.
-
-**Broadcast Shell** — Command all bots at once. `Ctrl+A` = filter by arch, `Ctrl+G` = filter by RAM, `Ctrl+B` = limit bot count.
-
-**Launch Attack** — Select method, target, port, duration → `l` to fire.
-
-**Ongoing Attacks** — Progress bars + time remaining. `s` = stop all.
-
-**SOCKS Manager** — `s` = start (set port + optional user:pass via tab), `x` = stop. Update creds live: `!socksauth <user> <pass>`.
-
-**Connection Logs** — Bot connect/disconnect history.
+- **🤖 Bot List** — Live bot status. `Enter`=shell, `b`=broadcast shell, `l`=attack, `i`=info, `p`=persist, `r`=reinstall, `k`=kill
+- **💻 Remote Shell** — Interactive shell to one bot. `Ctrl+F`=clear, `Ctrl+P`=persist, `Ctrl+R`=reinstall
+- **📡 Broadcast Shell** — Command all bots. `Ctrl+A`=filter arch, `Ctrl+G`=filter RAM, `Ctrl+B`=limit bots
+- **⚡ Launch Attack** — Select method, target, port, duration → `l` to launch
+- **📊 Ongoing Attacks** — Progress bars + time remaining. `s`=stop all
+- **🧦 Socks Manager** — `s`=start socks, `x`=stop. Default: `socks5://visionc2:synackrst666@BOT_IP:1080`. Update creds: `!socksauth <user> <pass>`
+- **📜 Connection Logs** — Bot connect/disconnect history
 
 ---
 
-## Bot Binaries
+## Bot Binaries 
+
+> located in ./bins/ after setup
 
 | Binary | Arch | Target |
 |---|---|---|
