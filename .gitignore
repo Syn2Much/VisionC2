@@ -9,3 +9,10 @@ cnc/cnc
 # TLS certificates
 cnc/certificates/server.crt
 cnc/certificates/server.key
+
+# Claude Code
+.claude/
+
+# Python cache
+__pycache__/
+*.pyc

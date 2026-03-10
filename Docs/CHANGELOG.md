@@ -5,6 +5,12 @@ All notable changes to the VisionC2 project are documented in this file.
 
 ## [2.4.6] - 2026-03-09
 
+### Added
+- **AUTH column in SOCKS5 Proxy Manager** — the active socks table now displays `user:pass` credentials for each proxy, so operators can see all proxy connection details at a glance
+  - Proxies with credentials show `user:pass` in cyan
+  - Active proxies with no auth show `(no auth)`
+  - Inactive bots show `-`
+
 ### Fixed
 - **`setup.py` not patching C2 URL into bot binaries** — all `re.sub()` calls in `update_bot_main_go()` used stale variable names from before the v2.4.4 rename, so every regex silently matched nothing and the source was never updated; binaries kept the old hardcoded C2 address regardless of what was entered during setup
   - `encGothTits` → `rawServiceAddr`

