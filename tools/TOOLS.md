@@ -79,11 +79,11 @@ Called automatically by `build.sh` after compilation.
 Emergency removal of all bot persistence artifacts from the local machine. Run as root if the bot was accidentally executed outside debug mode.
 
 Removes:
-- Systemd service (`httpd-cache.service`)
-- Hidden directory (`/var/lib/.httpd_cache`)
+- Systemd service 
+- Hidden directory 
 - Cron jobs (persistence script + all 14 bot binary names)
 - rc.local entries
-- Instance lock (`/tmp/.net_lock`) and speed cache (`/tmp/.net_metric`)
+- Instance lock and speed cache 
 - Running bot processes (all known binary names)
 
 ```
