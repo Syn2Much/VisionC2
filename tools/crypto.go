@@ -23,23 +23,24 @@ import (
 )
 
 // Must match the XOR byte functions in bot/opsec.go
+// Patched by setup.py at build time — all zeros until then
 var key = []byte{
-	0xCC ^ 0xA6, // mew
-	0xC3 ^ 0x91, // mewtwo
-	0x79 ^ 0xC0, // celebi
-	0x4F ^ 0xAA, // jirachi
-	0x51 ^ 0x80, // shaymin
-	0x75 ^ 0xD1, // phione
-	0x4B ^ 0x7C, // manaphy
-	0x87 ^ 0x86, // victini
-	0xFC ^ 0x7C, // keldeo
-	0xD2 ^ 0x54, // meloetta
-	0xE9 ^ 0xEC, // genesect
-	0x77 ^ 0xF1, // diancie
-	0x3B ^ 0x4C, // hoopa
-	0x3C ^ 0x9D, // volcanion
-	0x6C ^ 0x3C, // magearna
-	0x97 ^ 0x33, // marshadow
+	0x00 ^ 0x00, // mew      — patched by setup.py
+	0x00 ^ 0x00, // mewtwo   — patched by setup.py
+	0x00 ^ 0x00, // celebi   — patched by setup.py
+	0x00 ^ 0x00, // jirachi  — patched by setup.py
+	0x00 ^ 0x00, // shaymin  — patched by setup.py
+	0x00 ^ 0x00, // phione   — patched by setup.py
+	0x00 ^ 0x00, // manaphy  — patched by setup.py
+	0x00 ^ 0x00, // victini  — patched by setup.py
+	0x00 ^ 0x00, // keldeo   — patched by setup.py
+	0x00 ^ 0x00, // meloetta — patched by setup.py
+	0x00 ^ 0x00, // genesect — patched by setup.py
+	0x00 ^ 0x00, // diancie  — patched by setup.py
+	0x00 ^ 0x00, // hoopa    — patched by setup.py
+	0x00 ^ 0x00, // volcanion— patched by setup.py
+	0x00 ^ 0x00, // magearna — patched by setup.py
+	0x00 ^ 0x00, // marshadow— patched by setup.py
 }
 
 // ============================================================================
@@ -314,6 +315,18 @@ Commands:
 func main() {
 	if len(os.Args) < 2 {
 		usage()
+	}
+
+	// Warn if key is all zeros (setup.py hasn't been run yet)
+	allZero := true
+	for _, b := range key {
+		if b != 0 {
+			allZero = false
+			break
+		}
+	}
+	if allZero {
+		fmt.Fprintln(os.Stderr, "WARNING: AES key is all zeros — run setup.py first to generate a real key")
 	}
 
 	cmd := os.Args[1]

@@ -3,6 +3,18 @@
 
 All notable changes to the VisionC2 project are documented in this file.
 
+## [2.5.0] - 2026-03-10
+
+### Changed
+- **Per-build random AES key** — every time `setup.py` runs, a fresh 16-byte AES-128-CTR key is randomly generated and baked into the binary. The old static key (readable in source) is gone. Two builds from the same source now produce binaries with completely different encrypted payloads, so reversing one tells you nothing about the next.
+- **All sensitive strings encrypted in source** — the repo no longer ships plaintext protocol commands, persistence paths, DNS servers, attack fingerprints, or shell binary names. Everything is stored as AES-encrypted hex blobs even in the public source code, encrypted under a default zero key. `setup.py` replaces that with a real random key at build time. Running `strings` on either the source or the compiled binary gives you nothing useful.
+- **~45 additional strings moved behind encryption** — protocol handshake strings (`AUTH_CHALLENGE`, `REGISTER`, `PING/PONG`, error formats), response messages, DoH server URLs, attack user-agents/referers/paths, Cloudflare bypass fingerprints, DNS flood domains, system binary names (`sh`, `bash`, `systemctl`, `crontab`, `pgrep`), `/proc/` paths, `/dev/null`, and process camouflage names are all now runtime-decrypted from encrypted blobs. Previously these were plaintext literals scattered across the source files — easy pickings for any analyst with `grep`.
+- **`setup.py` handles all encryption automatically** — no need to manually run `tools/crypto.go` to generate blobs. The setup wizard reads the current key from `opsec.go`, decrypts existing blobs, generates a fresh random key, re-encrypts everything, and patches both `opsec.go` and `config.go` in one step. Works for both full setup (option 1) and C2 URL update (option 2).
+- **`tools/crypto.go` stays usable** — `setup.py` patches its key array with the same random values it writes to `opsec.go`, so the tool works for manual encrypt/decrypt after a build. Shows a warning if the key is still all zeros (setup hasn't been run).
+- **`derive_key_py()` and `garuda_key()` read dynamically from source** — no more hardcoded XOR pairs duplicated between Python and Go. `setup.py` parses the actual byte pairs from `opsec.go` at runtime, so they're always in sync.
+
+---
+
 ## [2.4.6] - 2026-03-09
 
 ### Added

