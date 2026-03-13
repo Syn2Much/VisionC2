@@ -8,11 +8,13 @@
 > Full AES encryption. Anti-analysis, anti-sandbox, anti-debugger checks. Full daemonized persistence.
 > Zero plaintext in the binary. Driven through a real-time Go TUI.
 
+[Video Showcasing Full Features + Installation](https://www.youtube.com/watch?v=KkIg24KwpB0)
+
 ![Go](https://img.shields.io/badge/Go-1.24.0+-00ADD8?style=for-the-badge&logo=go)
 ![Platform](https://img.shields.io/badge/Platform-Linux-009688?style=for-the-badge&logo=linux&logoColor=white)
 [![Changelog](https://img.shields.io/badge/Changelog-Documentation-blueviolet?style=for-the-badge)](Docs/CHANGELOG.md)
 
-[Video Showcasing Full Features + Installation](https://www.youtube.com/watch?v=ll4muq5OBFU)
+
 
 <img width="907" height="840" alt="CNC Dashboard (BubbleTea TUI)" src="https://github.com/user-attachments/assets/5013c6de-7ac0-4ef8-9aaa-3900c7558b16" />
 
