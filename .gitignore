@@ -5,6 +5,11 @@ setup_config.txt
 bins/
 server
 cnc/cnc
+relay_server
+relay/relay
+
+# Go tarballs
+go*.tar.gz
 
 # TLS certificates
 cnc/certificates/server.crt

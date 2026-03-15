@@ -3,6 +3,73 @@
 
 All notable changes to the VisionC2 project are documented in this file.
 
+## [2.6.0] - 2026-03-15
+
+### Added
+- **Backconnect SOCKS5 relay server** (`relay/main.go`) — standalone binary that sits between SOCKS5 clients and bots
+  - Bots connect OUT to the relay (backconnect TLS) — bot never opens a port
+  - SOCKS5 clients connect to the relay's public port with username/password auth
+  - Traffic flow: `User → Relay → Bot → Target` — C2 address never exposed
+  - Relay is separate throwaway infrastructure; if burned, spin up a new VPS
+  - Round-robin bot selection when multiple bots are connected
+  - Built-in stats endpoint (`-stats 127.0.0.1:9090`): connected bots, session counts, bandwidth, auth failures
+  - Auto-generated ephemeral TLS cert, or bring your own with `-cert`/`-keyfile`
+  - Auth key baked in at build time by `setup.py` (matches bot `syncToken` / CNC `MAGIC_CODE`)
+
+- **Multi-relay failover** — bots support unlimited relay endpoints with automatic rotation
+  - Pre-configure endpoints in `setup.py` (comma-separated) or specify at runtime via `!socks`
+  - Bots shuffle relay list on startup so they spread across relays
+  - On disconnect, bot rotates to next relay with quick retry (0.5–2s jitter)
+  - After full rotation fails, exponential backoff (5s → 60s cap)
+  - Runtime override: `!socks r1:9001,r2:9001,r3:9001` — comma-separated, pre-configured endpoints appended as fallbacks
+
+- **Direct SOCKS5 listener mode preserved** — `!socks <port>` opens a local listener on the bot (no relay needed)
+  - Bot detects whether arg is a port number (direct) or host:port (backconnect)
+  - `!socks 1080` → direct listener on `0.0.0.0:1080`
+  - `!socks relay.com:9001` → backconnect to relay
+  - `!socks` (no args) → use pre-configured relay endpoints
+
+- **Default SOCKS5 proxy credentials** — baked into the bot binary at build time
+  - Default: `vision:vision`, configurable in `setup.py`
+  - Users connect with: `curl --socks5 relay:1080 -U user:pass http://target`
+  - Can be changed at runtime via `!socksauth <user> <pass>`
+
+- **Setup option 3: Relay Endpoints Update** — new menu option in `setup.py`
+  - Add, change, or remove relay endpoints without touching C2/magic code/certs
+  - Shows current relay endpoints (decrypted from config)
+  - Update default proxy credentials
+  - Rebuilds relay + bot binaries
+
+- **Relay binary build** in `setup.py` — all 3 setup options now offer to build the relay server
+  - `build_relay()` function with same hardening flags as bot/CNC (`-trimpath -ldflags="-s -w -buildid="`)
+  - Output: `relay_server` in project root
+
+- **`find_go()` helper** in `setup.py` — prefers `/usr/local/go/bin/go` over system PATH
+  - Fixes build failures when system Go is outdated but `/usr/local/go` has the correct version
+  - Used by `build_cnc()`, `build_relay()`, and `build.sh`
+
+- **TUI SOCKS5 manager — three modes**
+  - `[s]` Quick start — sends `!socks` immediately, uses pre-configured relay + default credentials
+  - `[c]` Custom relay — input form for manual relay:port + credentials override
+  - `[d]` Direct mode — input form for port number, opens local SOCKS5 listener on bot
+  - `[x]` Stop — disconnect from relay or close listener
+  - Table column changed from PORT to RELAY to show backconnect target
+
+### Changed
+- **SOCKS5 architecture rewritten** — bot no longer opens a local listener by default; backconnect via relay is the primary mode
+  - `muddywater()` now accepts `[]string` (relay list) for backconnect mode
+  - New `turmoil()` for direct listener mode (port-only arg)
+  - `cozyBear()` — relay control loop with auto-reconnect and multi-relay rotation
+  - `fancyBear()` — data channel per SOCKS5 session
+  - `trickbot()` — SOCKS5 handler unchanged, works for both modes
+  - `emotet()` — handles shutdown for both backconnect and direct modes
+- **Go version requirement** — README install instructions updated from 1.23 to 1.24 (required by `miekg/dns` v1.1.72)
+- **`build.sh`** — uses `$GO_BIN` variable, prefers `/usr/local/go/bin/go` over system PATH
+- **CNC split mode help** — updated `!socks` help to show both direct and backconnect usage
+- **TUI help section 5 (SOCKS)** — rewritten for backconnect architecture with relay setup instructions
+
+---
+
 ## [2.5.0] - 2026-03-10
 
 ### Changed

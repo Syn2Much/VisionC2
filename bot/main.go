@@ -82,10 +82,10 @@ func deoxys(format string, args ...interface{}) {
 }
 
 var (
-	lazarusListener  net.Listener
-	lazarusActive    bool
-	lazarusMutex     sync.Mutex
-	lazarusCount     int32
+	lazarusActive  bool
+	lazarusMutex   sync.Mutex
+	lazarusCount   int32
+	lazarusStopCh  chan struct{}
 	aptStopChan      = make(chan struct{})
 	aptStopMutex     sync.Mutex
 	aptAttackRunning bool
