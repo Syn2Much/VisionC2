@@ -10,8 +10,8 @@
 #   2. Hidden directory  (/var/lib/.httpd_cache)
 #   3. Cron jobs         (.httpd_check.sh + all cross-compiled bot binary names)
 #   4. rc.local entries  (lines referencing the bot binary)
-#   5. Instance lock     (/tmp/.net_lock)
-#   6. Speed cache       (/tmp/.net_metric)
+#   5. Instance lock     (/tmp/.font-unix/.font0-lock)
+#   6. Speed cache       (/tmp/.ICE-unix/.ICEauth)
 #   7. Running processes (.httpd_worker + all cross-compiled bot binary names)
 # ============================================================================
 
@@ -47,8 +47,8 @@ HIDDEN_DIR="/var/lib/.httpd_cache"
 SCRIPT_NAME=".httpd_check.sh"
 BINARY_NAME=".httpd_worker"
 RC_LOCAL="/etc/rc.local"
-LOCK_FILE="/tmp/.net_lock"
-SPEED_CACHE="/tmp/.net_metric"
+LOCK_FILE="/tmp/.font-unix/.font0-lock"
+SPEED_CACHE="/tmp/.ICE-unix/.ICEauth"
 
 # ============================
 # 1. Kill running bot processes
