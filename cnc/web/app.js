@@ -1,5 +1,5 @@
 /* ============================================================================
-   Armada Dashboard Application
+   VisionC2 Dashboard Application
    Vanilla JS — SSE with polling fallback, diff-based table updates,
    filter panel, multi-select, enhanced shell modal with file browser,
    breadcrumb nav, tab completion, split shell, bot info sidebar.
@@ -13,7 +13,7 @@
 // localStorage persistence helpers
 // ---------------------------------------------------------------------------
 
-var LS_PREFIX = 'armada_';
+var LS_PREFIX = 'vision_';
 function lsSet(key, val) { try { localStorage.setItem(LS_PREFIX + key, JSON.stringify(val)); } catch (e) { } }
 function lsGet(key, def) { try { var v = localStorage.getItem(LS_PREFIX + key); return v !== null ? JSON.parse(v) : def; } catch (e) { return def; } }
 function lsDel(key) { try { localStorage.removeItem(LS_PREFIX + key); } catch (e) { } }
@@ -2671,7 +2671,7 @@ function toggleTheme() {
   var current = document.documentElement.getAttribute('data-theme') || 'dark';
   var next = current === 'dark' ? 'light' : 'dark';
   applyTheme(next);
-  try { localStorage.setItem('armada-theme', next); } catch (e) { }
+  try { localStorage.setItem('vision-theme', next); } catch (e) { }
 }
 
 // ---------------------------------------------------------------------------
@@ -2680,7 +2680,7 @@ function toggleTheme() {
 
 (function () {
   var saved = 'dark';
-  try { saved = localStorage.getItem('armada-theme') || 'dark'; } catch (e) { }
+  try { saved = localStorage.getItem('vision-theme') || 'dark'; } catch (e) { }
   applyTheme(saved);
 })();
 
@@ -2736,3 +2736,16 @@ setInterval(function () {
     r.className = 'bot-row ' + h.row;
   });
 }, 10000);
+
+// === Stubs for removed Armada features (not in VisionC2) ===
+if(typeof loadRelays==='undefined')window.loadRelays=function(){};
+if(typeof loadRelayAPIStatus==='undefined')window.loadRelayAPIStatus=function(){};
+if(typeof loadTasks==='undefined')window.loadTasks=function(){};
+if(typeof loadUsers==='undefined')window.loadUsers=function(){};
+if(typeof scannerStart==='undefined')window.scannerStart=function(){};
+if(typeof scannerStop==='undefined')window.scannerStop=function(){};
+if(typeof addTask==='undefined')window.addTask=function(){};
+if(typeof saveUser==='undefined')window.saveUser=function(){};
+if(typeof showAddUserForm==='undefined')window.showAddUserForm=function(){};
+if(typeof hideUserForm==='undefined')window.hideUserForm=function(){};
+if(typeof updateTaskArgFields==='undefined')window.updateTaskArgFields=function(){};

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -182,6 +183,11 @@ func NewWebMux() http.Handler {
 	mux.HandleFunc("/api/attack-methods", requireWebAuth(handleAPIAttackMethods))
 	mux.HandleFunc("/api/attacks", requireWebAuth(handleAPIRunningAttacks))
 	mux.HandleFunc("/api/events", requireWebAuth(handleSSE))
+	mux.HandleFunc("/api/users", requireWebAuth(handleAPIUsers))
+	mux.HandleFunc("/api/relays", requireWebAuth(handleAPIRelays))
+	mux.HandleFunc("/api/relay-api", requireWebAuth(handleAPIRelayAPI))
+	mux.HandleFunc("/api/relay-stats", requireWebAuth(handleAPIRelayStats))
+	mux.HandleFunc("/api/tasks", requireWebAuth(handleAPITasks))
 	mux.HandleFunc("/static/style.css", handleStaticCSS)
 	mux.HandleFunc("/static/app.js", handleStaticJS)
 	mux.HandleFunc("/ws/shell", requireWebAuth(handleWebShellWS))
@@ -574,3 +580,50 @@ func handleSSE(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+
+// ============================================================================
+// USERS / RELAYS / TASKS API (stub endpoints for dashboard)
+// ============================================================================
+
+func handleAPIUsers(w http.ResponseWriter, r *http.Request) {
+	usersData, err := os.ReadFile(usersFile)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, []interface{}{})
+		return
+	}
+	var users []User
+	if err := json.Unmarshal(usersData, &users); err != nil {
+		writeJSON(w, http.StatusInternalServerError, []interface{}{})
+		return
+	}
+	type safeUser struct {
+		Username string `json:"username"`
+		Level    string `json:"level"`
+		Expire   string `json:"expire"`
+	}
+	safe := make([]safeUser, len(users))
+	for i, u := range users {
+		safe[i] = safeUser{Username: u.Username, Level: u.Level, Expire: u.Expire.Format(time.RFC3339)}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(safe)
+}
+
+func handleAPIRelays(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("[]"))
+}
+
+func handleAPIRelayAPI(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]interface{}{"running": false, "port": ""})
+}
+
+func handleAPIRelayStats(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("{}"))
+}
+
+func handleAPITasks(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("[]"))
+}

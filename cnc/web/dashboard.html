@@ -4,13 +4,13 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Armada</title>
+    <title>VisionC2</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 
 <body>
     <div class="header">
-        <div class="brand">&#9790;&#8483;&#9790; Armada <span class="sse-indicator sse-disconnected" id="sse-dot"
+        <div class="brand">&#9790;&#8483;&#9790; VisionC2 <span class="sse-indicator sse-disconnected" id="sse-dot"
                 title="Connecting..."></span></div>
         <div class="nav">
             <button class="theme-toggle" onclick="toggleTheme()" id="theme-toggle" title="Toggle theme">
@@ -79,7 +79,6 @@
                 <div class="cmd-cat-btns" id="cmd-cat-btns">
                     <button class="cmd-cat active" data-cat="exec" onclick="switchCmdCat(this)">Exec</button>
                     <button class="cmd-cat" data-cat="network" onclick="switchCmdCat(this)">Network</button>
-                    <button class="cmd-cat" data-cat="scanner" onclick="switchCmdCat(this)">Scanners</button>
                     <button class="cmd-cat" data-cat="mgmt" onclick="switchCmdCat(this)">Mgmt</button>
                 </div>
                 <select id="cmd-type" onchange="updateArgFields()">
@@ -88,12 +87,6 @@
                     <option value="!socks" data-cat="network">!socks</option>
                     <option value="!stopsocks" data-cat="network">!stopsocks</option>
                     <option value="!socksauth" data-cat="network">!socksauth</option>
-                    <option value="!scan" data-cat="scanner">!scan</option>
-                    <option value="!stopscan" data-cat="scanner">!stopscan</option>
-                    <option value="!tr064" data-cat="scanner">!tr064</option>
-                    <option value="!stoptr064" data-cat="scanner">!stoptr064</option>
-                    <option value="!hnap" data-cat="scanner">!hnap</option>
-                    <option value="!stophnap" data-cat="scanner">!stophnap</option>
                     <option value="!info" data-cat="mgmt">!info</option>
                     <option value="!persist" data-cat="mgmt">!persist</option>
                     <option value="!reinstall" data-cat="mgmt">!reinstall</option>
@@ -122,7 +115,6 @@
             <button class="tab" data-tab="tab-tasks" onclick="switchTab(this);loadTasks()">Tasks <span class="tab-count"
                     id="tab-tasks-count">0</span></button>
             <button class="tab" data-tab="tab-users" onclick="switchTab(this);loadUsers()">Users</button>
-            <button class="tab" data-tab="tab-scanners" onclick="switchTab(this)">Scanners</button>
         </div>
 
         <!-- Tab: Bots -->
@@ -208,7 +200,6 @@
                     <div class="ss-val" style="color:var(--blue)" id="socks-total">0</div>
                 </div>
             </div>
-            <!-- Relay Health Panel -->
             <div id="socks-relay-health" style="margin-bottom:16px"></div>
             <div id="socks-dash-wrap">
                 <div class="no-bots">No active SOCKS proxies</div>
@@ -444,8 +435,8 @@
             </div>
         </div>
 
-        <!-- Tab: Scanners -->
-        <div class="tab-panel" id="tab-scanners">
+        <!-- Tab: Scanners (removed — not in VisionC2) -->
+        <div class="tab-panel" id="tab-scanners" style="display:none!important">
             <div class="users-toolbar" style="margin-bottom:12px">
                 <span style="color:var(--text-dim);font-size:13px">Start or stop scanners across all bots. Telnet
                     scanner requires a scan server address.</span>
