@@ -141,11 +141,11 @@ Run in background with `screen -S vision ./server` (detach: `Ctrl+A, D`).
 
 ## Architecture
 
-Vision has two components:
+Vision has three components:
 
-**`cnc/`** — The Command & Control server. Dual-listener: TLS on 443 for bot connections, interactive TUI built with Bubble Tea. RBAC with four permission tiers (Basic / Pro / Admin / Owner) configured in `users.json`.
+**`cnc/`** — The Command & Control server. Dual-listener: TLS on 443 for bot connections, plus an embedded Tor hidden service hosting the web panel (WebSocket shell, live SOCKS dashboard, attack launcher, post-exploit shortcuts). Also runs an interactive TUI built with Bubble Tea and an optional Telnet admin CLI. RBAC with four permission tiers (Basic / Pro / Admin / Owner) configured in `users.json`. Relay endpoints and proxy credentials are baked in at build time via `setup.py`.
 
-**`bot/`** — The agent deployed to targets. Connects back over TLS 1.3. Lifecycle: decode runtime config → daemonize → sandbox detection → singleton lock → install persistence → DNS-resolve C2 → connect with reconnect loop.
+**`bot/`** — The agent deployed to targets. Connects back over TLS 1.3. Lifecycle: decode runtime config → daemonize → sandbox detection → singleton lock → install persistence → DNS-resolve C2 → connect with reconnect loop. Pre-configured relay endpoints encrypted into the binary.
 
 **`relay/`** — Backconnect SOCKS5 relay server. Sits between proxy users and bots — bots connect out to the relay via TLS, users connect to the relay's SOCKS5 port. Disposable infrastructure that keeps C2 hidden. Multi-relay failover with auto-reconnect and exponential backoff.
 
