@@ -2454,6 +2454,7 @@ tr.bot-row:hover td {
 
 /* Shell action bar */
 .shell-actions {
+  position: relative;
   display: flex;
   justify-content: flex-end;
   gap: 6px;
@@ -2488,6 +2489,56 @@ tr.bot-row:hover td {
 .shell-action-danger:hover {
   background: var(--red-dim);
   border-color: var(--red);
+}
+
+.shell-shortcuts-menu {
+  position: absolute;
+  bottom: 100%;
+  right: 10px;
+  width: 340px;
+  max-height: 420px;
+  overflow-y: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  padding: 6px 0;
+  margin-bottom: 6px;
+}
+
+.ssm-cat {
+  padding: 8px 14px 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+.ssm-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.ssm-item:hover {
+  background: var(--bg-card-hover);
+}
+
+.ssm-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--mono);
+}
+
+.ssm-desc {
+  font-size: 10px;
+  color: var(--text-dim);
 }
 
 /* ============================================================================

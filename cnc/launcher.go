@@ -32,10 +32,10 @@ func newLauncherModel() launcherModel {
 	return launcherModel{
 		items: []launcherItem{
 			{"TUI", "Local terminal interface (Bubble Tea)"},
-			{"Web Panel (Tor) [WIP]", "Hidden service .onion — no clearnet exposure (coming soon)"},
+			{"Web Panel (Tor)", "Hidden service .onion — no clearnet exposure"},
 			{"Telnet (Split)", "Remote admin CLI on port " + USER_SERVER_PORT},
 		},
-		selected: [3]bool{true, false, false},
+		selected: [3]bool{false, true, false},
 	}
 }
 

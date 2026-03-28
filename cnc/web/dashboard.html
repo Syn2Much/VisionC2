@@ -110,8 +110,6 @@
                     id="tab-socks-count">0</span></button>
             <button class="tab" data-tab="tab-attack" onclick="switchTab(this)">Attack</button>
             <button class="tab" data-tab="tab-activity" onclick="switchTab(this)">Activity</button>
-            <button class="tab" data-tab="tab-relays" onclick="switchTab(this);loadRelays();loadRelayAPIStatus()">Relays
-                <span class="tab-count" id="tab-relays-count">0</span></button>
             <button class="tab" data-tab="tab-tasks" onclick="switchTab(this);loadTasks()">Tasks <span class="tab-count"
                     id="tab-tasks-count">0</span></button>
             <button class="tab" data-tab="tab-users" onclick="switchTab(this);loadUsers()">Users</button>
@@ -268,67 +266,6 @@
             </div>
             <div class="activity-list" id="activity-list">
                 <div class="no-bots">No activity yet</div>
-            </div>
-        </div>
-
-        <!-- Tab: Relays -->
-        <div class="tab-panel" id="tab-relays">
-            <div class="users-toolbar" style="margin-bottom:12px">
-                <span style="color:var(--text-dim);font-size:13px">Manage backconnect relay servers. Bots connect OUT to
-                    relays — no open ports on bots.</span>
-            </div>
-
-            <!-- Relay API Phone-Home Controls -->
-            <div class="users-form-wrap" style="display:block;margin-bottom:16px">
-                <div class="users-form">
-                    <h3>Relay Phone-Home API <span
-                            style="font-size:11px;color:var(--text-dim);font-weight:normal">(clearnet — Tor relay
-                            reports always accepted)</span></h3>
-                    <div class="uf-row">
-                        <label>Status</label>
-                        <span id="relay-api-status"
-                            style="font-family:monospace;color:var(--text-dim)">Loading...</span>
-                    </div>
-                    <div class="uf-row">
-                        <label>Port</label>
-                        <input type="text" id="relay-api-port" placeholder="8443" autocomplete="off"
-                            style="width:100px">
-                    </div>
-                    <div class="uf-actions">
-                        <button class="uf-save" id="relay-api-toggle-btn" onclick="toggleRelayAPI()">Start</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Live Relay Stats -->
-            <div id="relay-stats-wrap" style="margin-bottom:16px"></div>
-
-            <div class="users-form-wrap" style="display:block;margin-bottom:16px">
-                <div class="users-form">
-                    <h3>Add Relay</h3>
-                    <div class="uf-row">
-                        <label>Name</label>
-                        <input type="text" id="relay-name" placeholder="e.g. US-East-1" autocomplete="off">
-                    </div>
-                    <div class="uf-row">
-                        <label>Host</label>
-                        <input type="text" id="relay-host" placeholder="IP or hostname" autocomplete="off">
-                    </div>
-                    <div class="uf-row">
-                        <label>Control Port</label>
-                        <input type="text" id="relay-cp" placeholder="9001" autocomplete="off">
-                    </div>
-                    <div class="uf-row">
-                        <label>SOCKS Port</label>
-                        <input type="text" id="relay-sp" placeholder="1080" autocomplete="off">
-                    </div>
-                    <div class="uf-actions">
-                        <button class="uf-save" onclick="addRelay()">Add Relay</button>
-                    </div>
-                </div>
-            </div>
-            <div id="relay-table-wrap">
-                <div class="no-bots">No relays configured</div>
             </div>
         </div>
 
@@ -589,6 +526,8 @@
                     Output</button>
                 <button class="shell-action-btn" onclick="shellNetScan()" title="Quick network recon from bot">Net
                     Scan</button>
+                <button class="shell-action-btn shell-action-btn-shortcuts"
+                    onclick="toggleShellShortcuts()" title="Post-exploit shortcuts &amp; recon helpers">Shortcuts</button>
                 <button class="shell-action-btn" style="color:var(--accent);border-color:var(--accent)"
                     onclick="shellStartSocks()" title="Start SOCKS proxy">SOCKS</button>
                 <button class="shell-action-btn shell-action-danger" onclick="clearShellHistory()"
@@ -611,9 +550,8 @@
                     <div class="help-row"><kbd>2</kbd><span>SOCKS tab</span></div>
                     <div class="help-row"><kbd>3</kbd><span>Attack tab</span></div>
                     <div class="help-row"><kbd>4</kbd><span>Activity tab</span></div>
-                    <div class="help-row"><kbd>5</kbd><span>Relays tab</span></div>
-                    <div class="help-row"><kbd>6</kbd><span>Tasks tab</span></div>
-                    <div class="help-row"><kbd>7</kbd><span>Users tab</span></div>
+                    <div class="help-row"><kbd>5</kbd><span>Tasks tab</span></div>
+                    <div class="help-row"><kbd>6</kbd><span>Users tab</span></div>
                     <div class="help-row"><kbd>/</kbd> or <kbd>s</kbd><span>Focus search</span></div>
                     <div class="help-row"><kbd>?</kbd><span>Toggle this help</span></div>
                 </div>

