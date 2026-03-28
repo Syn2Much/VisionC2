@@ -152,7 +152,7 @@ Access the panel through Tor Browser at the `.onion` address printed on startup.
 
 | Tab | Key | What it does |
 |---|---|---|
-| **Bots** | `1` | Live bot table. Click a row for management popup (shell, SOCKS, group, persist, kill). Double-click to open a remote shell directly. |
+| **Bots** | `1` | Live bot table. Right click a row for management modal popup (shell, SOCKS, group, persist, kill). Double-click to open a remote shell directly. |
 | **SOCKS** | `2` | Launch SOCKS5 tunnels. Relay dropdown auto-populated from `setup.py`; credentials pre-filled. |
 | **Attack** | `3` | Method picker with target/duration fields and confirmation dialog. |
 | **Activity** | `4` | Real-time feed of bot join/leave events. |
