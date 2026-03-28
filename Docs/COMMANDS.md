@@ -472,6 +472,316 @@ Example: `!a1b2c3d4 !shell whoami`
 
 ---
 
+## 🌐 Tor Web Panel
+
+The web panel is a browser-based interface served over Tor (or clearnet). It provides full bot management, attack launching, SOCKS proxy control, and real-time event monitoring without requiring a terminal.
+
+### Starting the Web Panel
+
+```bash
+# Start server with web panel enabled
+./server --web
+
+# Access via Tor onion address or configured clearnet endpoint
+```
+
+After login, you are presented with a tabbed interface. Switch tabs using the keyboard or by clicking.
+
+### Authentication
+
+The web panel uses session-based authentication. On first load you are redirected to a login page. Enter your VisionC2 username and password (same credentials as Split Mode).
+
+### Tab Navigation
+
+| Key | Tab | Description |
+|-----|-----|-------------|
+| `1` | Bots | Live bot table with multi-select |
+| `2` | SOCKS | SOCKS5 proxy dashboard |
+| `3` | Attack | Attack launcher with method config |
+| `4` | Activity | Real-time event feed (SSE) |
+| `5` | Tasks | Persistent auto-execute commands |
+| `6` | Users | User management (add/edit/delete) |
+
+### Global Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `1`-`6` | Switch to tab |
+| `/` | Focus search / filter bar |
+| `?` | Toggle keyboard shortcuts help overlay |
+| `Escape` | Close any open modal or overlay |
+
+---
+
+### Tab 1: Bots
+
+Live table of all connected bots with real-time status updates.
+
+#### Display Columns
+
+| Column | Description |
+|--------|-------------|
+| Select | Checkbox for multi-select (bulk actions) |
+| ID | Bot identifier |
+| IP | Bot's IP address |
+| Arch | CPU architecture (amd64, arm64, mips, etc.) |
+| RAM | System memory |
+| CPU | Processor info |
+| Process | Running process name |
+| Country | GeoIP country |
+| Group | Assigned bot group |
+| Uplink | Connection relay/uplink |
+| Connected | Time the bot connected |
+| Uptime | Duration since connection |
+| Health | Live health indicator |
+
+#### Interactions
+
+| Action | Effect |
+|--------|--------|
+| Click a row | Open Bot Management Popup (see below) |
+| Double-click a row | Open Web Shell directly |
+| Check multiple rows | Select bots for bulk actions |
+| Search bar (`/`) | Filter bots by any column value |
+
+---
+
+### Tab 2: SOCKS
+
+Dashboard of active SOCKS5 proxies across all bots.
+
+#### Display Columns
+
+| Column | Description |
+|--------|-------------|
+| Status | Proxy running state |
+| Relay | Connected relay endpoint |
+| User | SOCKS auth username |
+| Started | Time the proxy was started |
+
+#### Interactions
+
+| Action | Effect |
+|--------|--------|
+| Start button | Launch SOCKS proxy on the selected bot (opens SOCKS Launcher Modal) |
+| Stop button | Terminate proxy on the selected bot |
+
+---
+
+### Tab 3: Attack
+
+Interactive attack launcher with method-specific configuration.
+
+#### Form Fields
+
+| Field | Description |
+|-------|-------------|
+| Method | Dropdown selector grouped by UDP, TCP, and L3 categories |
+| Target | IP address or hostname |
+| Port | Target port |
+| Duration | Attack duration in seconds |
+| Bot Scope | Target all bots, selected bots, or by filter |
+| Advanced Options | Method-specific parameters (populated per method) |
+
+#### Buttons
+
+| Button | Effect |
+|--------|--------|
+| Fire | Launch the configured attack (confirmation dialog shown) |
+| Stop | Stop the currently running attack (confirmation dialog shown) |
+
+---
+
+### Tab 4: Activity
+
+Live event feed updated in real time via Server-Sent Events (SSE).
+
+#### Event Types
+
+| Event | Description |
+|-------|-------------|
+| Bot Join | A new bot connected to the C2 |
+| Bot Leave | A bot disconnected |
+| Command Sent | A command was dispatched to one or more bots |
+
+The feed auto-scrolls and requires no manual refresh.
+
+---
+
+### Tab 5: Tasks
+
+Persistent commands that auto-execute on every bot join. Useful for maintaining consistent state across the fleet.
+
+#### Fields
+
+| Field | Description |
+|-------|-------------|
+| Command | The command to execute on join |
+| Run Once | When enabled, prevents re-execution if the bot reconnects |
+
+Tasks run automatically whenever a bot connects. Use the "Run Once" option for one-time setup commands that should not repeat on reconnect.
+
+---
+
+### Tab 6: Users
+
+User account management panel.
+
+#### Actions
+
+| Action | Description |
+|--------|-------------|
+| Add User | Create a new user with username, password, permission level, and expiry date |
+| Edit User | Modify an existing user's permissions or expiry |
+| Delete User | Remove a user account |
+
+---
+
+### Bot Management Popup
+
+Opened by clicking a bot row in the Bots tab. Shows detailed bot information and action buttons.
+
+#### Bot Details Displayed
+
+| Field | Description |
+|-------|-------------|
+| ID | Bot identifier |
+| IP | IP address |
+| Arch | CPU architecture |
+| RAM | System memory |
+| CPU | Processor info |
+| Process | Running process name |
+| Country | GeoIP country |
+| Uplink | Connection relay |
+| Connected | Connection timestamp |
+
+#### Action Buttons
+
+| Button | Effect |
+|--------|--------|
+| Shell | Open Web Shell to this bot |
+| Start SOCKS | Launch SOCKS Launcher Modal for this bot |
+| Stop SOCKS | Terminate running proxy on this bot |
+| Group | Assign or change the bot's group |
+| Info | Request `!info` from the bot |
+| Persist | Send `!persist` to the bot |
+| Reinstall | Send `!reinstall` to the bot |
+| Kill | Send `!lolnogtfo` to the bot |
+
+---
+
+### Web Shell
+
+Full remote shell session in a browser modal. WebSocket-powered for real-time interaction.
+
+#### Interface Layout
+
+| Element | Description |
+|---------|-------------|
+| Shell output area | Scrollable terminal output |
+| Command input | Text input at the bottom for typing commands |
+| File browser sidebar | Click-to-navigate directory tree |
+| Breadcrumb path bar | Current working directory with clickable segments |
+| Quick nav buttons | `/` (root), `~` (home), `..` (parent), `/tmp` |
+| Bot info sidebar | Live details for the connected bot |
+
+#### Multi-Tab Support
+
+Multiple shell sessions can be open simultaneously. Each bot gets its own tab. Click tabs to switch between active shells.
+
+#### Command Input Features
+
+| Feature | Description |
+|---------|-------------|
+| `Enter` | Send command |
+| `Up` / `Down` arrows | Cycle through command history |
+| `Tab` (on `!` commands) | Tab completion |
+
+#### Action Bar Buttons
+
+| Button | Effect |
+|--------|--------|
+| Save History | Download the shell session output |
+| Copy Output | Copy shell output to clipboard |
+| Net Scan | Run a network scan from the bot |
+| Shortcuts | Open Post-Exploit Shortcuts menu |
+| SOCKS | Open SOCKS Launcher Modal for this bot |
+| Clear | Clear the shell output |
+
+#### Post-Exploit Shortcuts Menu
+
+Accessed via the **Shortcuts** button in the action bar. Two categories:
+
+**Quick Actions:**
+
+| Shortcut | Description |
+|----------|-------------|
+| Persist All | Run persistence across all bots |
+| Reinstall All | Force reinstall across all bots |
+| Flush Firewall | Drop all firewall rules |
+| Kill Logging | Stop logging daemons |
+| Clear History | Wipe shell history files |
+| Kill Monitors | Terminate monitoring processes |
+| Disable Cron | Remove or disable cron jobs |
+| Timestomp | Modify file timestamps |
+| DNS Flush | Clear the DNS cache |
+| Kill Sysmon | Terminate Sysmon process |
+
+**Recon:**
+
+| Shortcut | Description |
+|----------|-------------|
+| System Info | OS, hostname, kernel details |
+| Network Info | Interfaces, routes, DNS |
+| Open Ports | Listening ports and services |
+| Users w/ Shell | Accounts with login shells |
+| SUID Binaries | Find SUID/SGID executables |
+| Writable Dirs | World-writable directories |
+| Cron Jobs | Enumerate scheduled tasks |
+| Docker/LXC | Detect containerization |
+| SSH Keys | Find SSH keys and authorized_keys |
+| Credentials | Search for credential files |
+| Sudo Check | Enumerate sudo privileges |
+| Proc Tree | Running process tree |
+| Kernel Version | Kernel version and build info |
+| Mount Points | Mounted filesystems |
+
+---
+
+### SOCKS Launcher Modal
+
+Opened from the Bot Management Popup, the SOCKS tab, or the Web Shell action bar.
+
+#### Mode Selector
+
+| Mode | Description |
+|------|-------------|
+| Direct | Bot opens a local SOCKS5 listener on a specified port |
+| Relay (Backconnect) | Bot connects back to a relay server (recommended) |
+
+#### Form Fields
+
+| Field | Description | Notes |
+|-------|-------------|-------|
+| Mode | Direct or Relay | Toggle at top of modal |
+| Relay | Relay endpoint | Dropdown auto-populated from `setup.py` config; Relay mode only |
+| Username | SOCKS auth username | Pre-filled from `setup.py` defaults |
+| Password | SOCKS auth password | Pre-filled from `setup.py` defaults |
+| Port | Listener port | Direct mode only |
+
+---
+
+### Global Web Panel Features
+
+| Feature | Description |
+|---------|-------------|
+| Search/Filter | Filter the bot table by any field using the search bar (`/`) |
+| Toast Notifications | Brief popup messages confirming actions or reporting errors |
+| Real-Time Updates | All views update live via Server-Sent Events (SSE) — no manual refresh needed |
+| Session Auth | Login session persists until logout or expiry |
+
+---
+
 ## 📋 Quick Reference Card
 
 ```
@@ -509,6 +819,13 @@ Example: `!a1b2c3d4 !shell whoami`
 ├─────────────────────────────────────────────────────────────────┤
 │ ONGOING ATTACKS                                                 │
 │   s         Stop all attacks  r        Refresh                  │
+├─────────────────────────────────────────────────────────────────┤
+│ WEB PANEL                                                       │
+│   1-6       Switch tabs       /        Focus search             │
+│   ?         Help overlay      Esc      Close modal              │
+│   Tabs: 1=Bots  2=SOCKS  3=Attack  4=Activity  5=Tasks  6=Users│
+│   Web Shell: Up/Down history  Tab      Complete ! commands      │
+│   Shortcuts button → Post-exploit quick actions & recon         │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -520,6 +837,8 @@ Example: `!a1b2c3d4 !shell whoami`
 - All bot commands are logged server-side
 - Dangerous commands (persist, reinstall, kill) require confirmation
 - Dead bots are automatically cleaned up after 5 minutes
+- Web panel updates in real time via SSE — no manual polling required
+- Web shell sessions use WebSockets and persist until the modal is closed
 
 ---
 

