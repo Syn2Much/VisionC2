@@ -41,8 +41,7 @@ Tor hidden service web panel, Go TUI, or Telnet CLI — use any or all. Tor pane
 TLS 1.3 over port 443 — indistinguishable from HTTPS.
 
 ### Layer 4/7 Arsenal
-10 DDoS vectors across L4 and L7. UDP/TCP/SYN/ACK/GRE/DNS volume floods, HTTP/HTTPS request floods, Cloudflare bypass with session    
-fingerprinting, and HTTP/2 Rapid Reset (CVE-2023-44487). Full proxy support on all L7 methods
+10 DDoS vectors across L4 and L7. UDP/TCP/SYN/ACK/GRE/DNS volume floods, HTTP/HTTPS request floods, Cloudflare bypass with session fingerprinting, and HTTP/2 Rapid Reset (CVE-2023-44487). Full proxy support on all L7 methods
 
 ### Remote Shell
 Full output capture with Linux shortcuts and post-exploit helpers.
@@ -114,7 +113,8 @@ To change the C2 address later: `python3 setup.py` → option `[2]`. Redeploy bo
 
 ## Usage
 
-<img width="1050" height="723" alt="image" src="https://github.com/user-attachments/assets/43e6343f-4bf6-41a6-b52e-9f9318d44b00" />
+<img width="1178" height="821" alt="image" src="https://github.com/user-attachments/assets/b979ffcc-082f-47be-ac8d-206c751fa8f9" />
+
 
 ### Starting the CNC
 
