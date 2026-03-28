@@ -137,37 +137,6 @@ Run in background with `screen -S vision ./server` (detach: `Ctrl+A, D`).
 
 > Full binary map: [`build.sh`](tools/build.sh)
 
-### TUI Navigation
-
-| Key | Action |
-|---|---|
-| `↑/↓` or `k/j` | Navigate |
-| `Enter` | Select |
-| `q` / `Esc` | Back / Cancel |
-| `r` | Refresh |
-
-### Tor Web Panel
-
-Access the panel through Tor Browser at the `.onion` address printed on startup. Tabs switch with number keys.
-
-| Tab | Key | What it does |
-|---|---|---|
-| **Bots** | `1` | Live bot table. Right click a row for management modal popup (shell, SOCKS, group, persist, kill). Double-click to open a remote shell directly. |
-| **SOCKS** | `2` | Launch SOCKS5 tunnels. Relay dropdown auto-populated from `setup.py`; credentials pre-filled. |
-| **Attack** | `3` | Method picker with target/duration fields and confirmation dialog. |
-| **Activity** | `4` | Real-time feed of bot join/leave events. |
-| **Tasks** | `5` | Running and queued task list. |
-| **Users** | `6` | User management (RBAC tiers). |
-
-The remote shell includes a file browser, tab completion, and a post-exploit shortcuts menu.
-
-| Key | Action |
-|---|---|
-| `1`-`6` | Switch tab |
-| `/` | Search |
-| `?` | Help |
-| `Esc` | Close dialog |
-
 ---
 
 ## Attack Methods
