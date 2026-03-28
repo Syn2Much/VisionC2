@@ -26,6 +26,7 @@
 
 | | |
 |---|---|
+| **3-Way C2 Interface** | Tor hidden service web panel, real-time Go TUI, or Telnet CLI. Run one or all simultaneously. Tor panel gives full control from any browser — no clearnet exposure. |
 | **Automated Setup** | Python wizard handles config, compilation, and deployment. Run once, done. |
 | **Encrypted Transport** | TLS 1.3 bot↔C2 over port 443. Indistinguishable from normal HTTPS. |
 | **Anti-Analysis** | 40+ VM/sandbox/debugger signatures. Parent process detection. Sandboxes never reach `main()`. |
