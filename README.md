@@ -158,6 +158,48 @@ The loader detects target architecture and downloads the matching binary.
 
 ---
 
+## FAQ / Troubleshooting
+
+### Common Setup Issues
+
+**Q: "go: command not found" or Go version is wrong**
+```bash
+# Make sure Go is properly installed and in PATH
+export PATH=$PATH:/usr/local/go/bin
+go version  # Should show 1.24+
+```
+
+**Q: "Permission denied" when starting server on port 443**
+```bash
+# Give the binary permission to bind privileged ports
+sudo setcap 'cap_net_bind_service=+ep' ./server
+```
+
+**Q: Bots won't connect to C2**
+- Check firewall: `sudo ufw allow 443/tcp`
+- Verify C2 address in `setup_config.txt` matches your server
+- Test TLS connection: `openssl s_client -connect YOUR_IP:443`
+- Check server logs for connection attempts
+
+**Q: "No such file or directory" errors during build**
+```bash
+# Install missing dependencies
+sudo apt install -y build-essential gcc python3-dev
+```
+
+**Q: Setup script crashes or produces weird errors**
+```bash
+# Clean install on fresh Ubuntu/Debian system
+sudo apt update && apt upgrade -y
+# Then retry setup
+```
+
+**Q: Relay server won't start**
+- Check if ports 9001/1080 are available: `netstat -tulpn | grep :9001`
+- Verify relay_server has execute permissions: `chmod +x relay_server`
+
+---
+
 ## Legal Disclaimer
 
 For authorized security research and educational purposes only. Usage against targets without prior consent is illegal. Developer assumes no liability for misuse.
