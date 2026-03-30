@@ -8,9 +8,8 @@ Dual-encrypted (TLS/AES), Tor-routed botnet with remote shells and multi-vector 
 
 #### VisionC2 now supports Tor Browser
 
-<img width="1381" height="780" alt="image" src="https://github.com/user-attachments/assets/ed3bf121-6912-43af-abb3-a008cd9af91a" />
+<img width="1399" height="919" alt="image" src="https://github.com/user-attachments/assets/e6bbfd83-725f-4881-8b9d-c6be45b88f27" />
 
-<img width="1218" height="716" alt="image" src="https://github.com/user-attachments/assets/c6a71f38-cf92-4470-8706-718388d26646" />
 
 ![Go](https://img.shields.io/badge/Go-1.24.0+-00ADD8?style=for-the-badge&logo=go)
 ![Platform](https://img.shields.io/badge/Platform-Linux-009688?style=for-the-badge&logo=linux&logoColor=white)
