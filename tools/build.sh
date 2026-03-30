@@ -83,9 +83,16 @@ build_for_arch() {
     # Compress with m30w packer (zero UPX fingerprint)
     local UPX_BIN="$SCRIPT_DIR/upx"
     if [ -x "$UPX_BIN" ]; then
-        "$UPX_BIN" --best --lzma "$OUTPUT" 2>/dev/null || \
-        "$UPX_BIN" -9 "$OUTPUT" 2>/dev/null || \
-        echo "packing skipped for $arch_name"
+        local before=$(stat -c%s "$OUTPUT")
+        cp "$OUTPUT" "$OUTPUT.tmp"
+        if "$UPX_BIN" --lzma "$OUTPUT.tmp" >/dev/null 2>&1 && [ -f "$OUTPUT.tmp" ] && [ "$(stat -c%s "$OUTPUT.tmp")" -lt "$before" ]; then
+            mv "$OUTPUT.tmp" "$OUTPUT"
+        elif cp "$OUTPUT" "$OUTPUT.tmp" && "$UPX_BIN" --best "$OUTPUT.tmp" >/dev/null 2>&1 && [ -f "$OUTPUT.tmp" ] && [ "$(stat -c%s "$OUTPUT.tmp")" -lt "$before" ]; then
+            mv "$OUTPUT.tmp" "$OUTPUT"
+        else
+            rm -f "$OUTPUT.tmp"
+            echo "packing skipped for $arch_name"
+        fi
     else
         echo "ERROR: m30w packer not found at $UPX_BIN"
     fi
