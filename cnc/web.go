@@ -426,9 +426,10 @@ type apiBotEntry struct {
 	ConnectedAt string `json:"connectedAt"`
 	LastPing    string `json:"lastPing"`
 	Uptime      string `json:"uptime"`
-	SocksActive bool   `json:"socksActive"`
-	SocksRelay  string `json:"socksRelay"`
-	SocksUser   string `json:"socksUser"`
+	UplinkMbps  float64 `json:"uplinkMbps"`
+	SocksActive bool    `json:"socksActive"`
+	SocksRelay  string  `json:"socksRelay"`
+	SocksUser   string  `json:"socksUser"`
 }
 
 func handleAPIBots(w http.ResponseWriter, r *http.Request) {
@@ -451,6 +452,7 @@ func handleAPIBots(w http.ResponseWriter, r *http.Request) {
 				ConnectedAt: bc.connectedAt.Format(time.RFC3339),
 				LastPing:    bc.lastPing.Format(time.RFC3339),
 				Uptime:      formatDuration(time.Since(bc.connectedAt)),
+				UplinkMbps:  bc.uplinkMbps,
 				SocksActive: bc.socksActive,
 				SocksRelay:  bc.socksRelay,
 				SocksUser:   bc.socksUser,
