@@ -3,6 +3,14 @@
 
 All notable changes to the VisionC2 project are documented in this file.
 
+## [2.7.1] - 2026-04-05
+
+### Changed
+- **Attack wizard simplified** — removed dead "Options" step (always showed "No advanced options"); wizard is now 3 steps: Method → Target → Review
+
+### Removed
+- **`renderWizOpts()`** — unused function and all option-gathering code from attack wizard; no methods ever defined options
+
 ## [2.7.0] - 2026-03-30
 
 ### Changed
