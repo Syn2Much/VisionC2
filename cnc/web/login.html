@@ -22,17 +22,48 @@ button:hover{background:#8957e5}
 <body>
 <div class="card">
 <h1>&#9790;&#8483;&#9790;</h1>
+<div id="mode-user">
 <input type="text" id="user" placeholder="username" autocomplete="off" spellcheck="false">
 <input type="password" id="pass" placeholder="password" autocomplete="off" spellcheck="false">
 <button id="btn" type="button">LOGIN</button>
+</div>
+<div id="mode-api" style="display:none">
+<input type="password" id="apikey" placeholder="API key" autocomplete="off" spellcheck="false">
+<button id="btn-api" type="button">LOGIN</button>
+</div>
 <div class="msg" id="msg"></div>
+<div style="margin-top:16px"><a href="#" id="toggle" style="color:#484f58;font-size:12px;text-decoration:none">use API key</a></div>
 </div>
 <script>
 (function(){
   var user=document.getElementById('user');
   var pass=document.getElementById('pass');
+  var apikey=document.getElementById('apikey');
   var msg=document.getElementById('msg');
   var btn=document.getElementById('btn');
+  var btnApi=document.getElementById('btn-api');
+  var toggle=document.getElementById('toggle');
+  var modeUser=document.getElementById('mode-user');
+  var modeApi=document.getElementById('mode-api');
+  var isApiMode=false;
+
+  toggle.addEventListener('click',function(e){
+    e.preventDefault();
+    isApiMode=!isApiMode;
+    modeUser.style.display=isApiMode?'none':'';
+    modeApi.style.display=isApiMode?'':'none';
+    toggle.textContent=isApiMode?'use username/password':'use API key';
+    msg.textContent='';msg.className='msg';
+    if(isApiMode){apikey.focus()}else{user.focus()}
+  });
+
+  function onSuccess(){
+    msg.textContent='Access granted';msg.className='msg ok';
+    setTimeout(function(){window.location='/'},500);
+  }
+  function onError(text){
+    msg.textContent=text||'Denied';msg.className='msg err';
+  }
 
   function doLogin(){
     var u=user.value.trim(),p=pass.value.trim();
@@ -41,20 +72,28 @@ button:hover{background:#8957e5}
     fetch('/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})})
     .then(function(r){return r.json().then(function(d){return{ok:r.ok,data:d}})})
     .then(function(res){
-      if(res.data.success){
-        msg.textContent='Access granted';msg.className='msg ok';
-        setTimeout(function(){window.location='/'},500);
-      }else{
-        msg.textContent=res.data.error||'Denied';msg.className='msg err';
-        pass.value='';
-      }
+      if(res.data.success){onSuccess()}else{onError(res.data.error);pass.value=''}
     })
-    .catch(function(){msg.textContent='Error';msg.className='msg err'});
+    .catch(function(){onError('Error')});
+  }
+
+  function doApiLogin(){
+    var k=apikey.value.trim();
+    if(!k)return;
+    msg.textContent='';msg.className='msg';
+    fetch('/api/auth/apikey',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:k})})
+    .then(function(r){return r.json().then(function(d){return{ok:r.ok,data:d}})})
+    .then(function(res){
+      if(res.data.success){onSuccess()}else{onError(res.data.error);apikey.value=''}
+    })
+    .catch(function(){onError('Error')});
   }
 
   btn.addEventListener('click',doLogin);
+  btnApi.addEventListener('click',doApiLogin);
   pass.addEventListener('keydown',function(e){if(e.key==='Enter')doLogin()});
   user.addEventListener('keydown',function(e){if(e.key==='Enter')pass.focus()});
+  apikey.addEventListener('keydown',function(e){if(e.key==='Enter')doApiLogin()});
   setTimeout(function(){user.focus()},100);
 })();
 </script>

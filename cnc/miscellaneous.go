@@ -42,6 +42,7 @@ func (user *User) GetLevel() level {
 type User struct {
 	Username    string    `json:"username,omitempty"`
 	Password    string    `json:"password,omitempty"`
+	APIKey      string    `json:"api_key,omitempty"`
 	Expire      time.Time `json:"expire"`
 	Level       string    `json:"level"`
 	Maxtime     int       `json:"maxtime,omitempty"`
@@ -68,6 +69,62 @@ func AuthUser(username string, password string) (bool, *User) {
 		}
 	}
 	return false, nil
+}
+
+// AuthByAPIKey authenticates a user by API key.
+func AuthByAPIKey(key string) *User {
+	if key == "" {
+		return nil
+	}
+	usersData, err := os.ReadFile(usersFile)
+	if err != nil {
+		return nil
+	}
+	var users []User
+	if err := json.Unmarshal(usersData, &users); err != nil {
+		return nil
+	}
+	for _, u := range users {
+		if u.APIKey != "" && u.APIKey == key {
+			if u.Expire.After(time.Now()) {
+				return &u
+			}
+		}
+	}
+	return nil
+}
+
+// generateAPIKey returns a 32-byte random hex string.
+func generateAPIKey() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return fmt.Sprintf("%x", b)
+}
+
+// BackfillAPIKeys ensures every user in users.json has an API key.
+func BackfillAPIKeys() {
+	usersData, err := os.ReadFile(usersFile)
+	if err != nil {
+		return
+	}
+	var users []User
+	if err := json.Unmarshal(usersData, &users); err != nil {
+		return
+	}
+	changed := false
+	for i := range users {
+		if users[i].APIKey == "" {
+			users[i].APIKey = generateAPIKey()
+			changed = true
+		}
+	}
+	if changed {
+		data, err := json.MarshalIndent(users, "", "    ")
+		if err != nil {
+			return
+		}
+		os.WriteFile(usersFile, data, 0644)
+	}
 }
 
 func getConsoleTitleAnsi(title string) string {

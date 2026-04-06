@@ -3,6 +3,30 @@
 
 All notable changes to the VisionC2 project are documented in this file.
 
+## [2.8.0] - 2026-04-06
+
+### Added
+- **Server-side permission enforcement** — all web API endpoints now check user level before allowing actions; `requireOwner` and `requireAdmin` middleware wrappers gate sensitive routes
+- **Per-command authorization in `/api/command`** — shell commands (`!shell`, `!exec`, `!stream`, `!detach`) require Admin+; bot management (`!reinstall`, `!kill`, `!persist`, scanners, SOCKS) require Admin+; attacks validate method, maxtime, and concurrent limits against user record
+- **Per-user API key system** — every user gets a unique 64-char hex API key auto-generated on creation; existing users backfilled on startup; `X-API-Key` header supported as alternative to cookie auth
+- **`/api/auth/apikey` endpoint** — POST with `{"api_key": "..."}` to authenticate and receive a session cookie
+- **`/api/me` endpoint** — returns current user's level, methods, limits, bot count, and running attacks
+- **Stripped-down API panel** — API key sessions get a minimal customer-facing page with attack builder, bot count, limits display, and running attacks only; no shell, no user management, no scanners
+- **Frontend RBAC** — dashboard fetches `/api/me` on load and hides unauthorized tabs/buttons (Users tab Owner-only, Relays/Tasks Admin+, shell/scanner/kill buttons Admin+)
+- **Telnet attack validation** — telnet CLI now enforces user's allowed methods, maxtime, and concurrent attack limits (previously only checked `canUseDDoS` boolean)
+- **Per-user attack tracking** — `attack` struct now includes `username` field for accurate concurrent limit enforcement across web and telnet
+
+### Changed
+- **`/api/users` route** — now gated by `requireOwner` (was `requireWebAuth`); only Owners can see, create, edit, or delete users
+- **`/api/relays` and `/api/tasks` routes** — now gated by `requireAdmin`
+- **`/ws/shell` route** — now gated by `requireAdmin` (was `requireWebAuth`)
+- **Bot details in telnet** — Basic/Pro users now only see bot count, not full bot list with IDs/IPs
+- **User GET response** — now includes `api_key` field (visible to Owner only since route is Owner-gated)
+- **Bot targeting** — Basic users can only broadcast; Pro+ can target specific bots by ID
+
+### Fixed
+- **All users had Owner permissions** — `requireWebAuth` only checked session existence, never role; every authenticated user could access all commands, manage users, open shells regardless of configured level
+
 ## [2.7.1] - 2026-04-05
 
 ### Added

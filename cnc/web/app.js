@@ -2817,3 +2817,42 @@ function applyGlobalTheme(name) {
   var saved = localStorage.getItem('vision_global_theme');
   if (saved && GLOBAL_THEMES[saved]) { picker.value = saved; applyGlobalTheme(saved); }
 })();
+
+// ============================================================================
+// RBAC: Hide UI elements based on user level
+// ============================================================================
+(function() {
+  fetch('/api/me').then(function(r) { return r.json(); }).then(function(me) {
+    var lvl = (me.level || 'Basic').toLowerCase();
+
+    // Tabs that require Owner
+    var ownerTabs = ['tab-users'];
+    // Tabs that require Admin+
+    var adminTabs = ['tab-relays', 'tab-tasks'];
+
+    ownerTabs.forEach(function(t) {
+      if (lvl !== 'owner') {
+        var el = document.querySelector('[data-tab="' + t + '"]');
+        if (el) el.style.display = 'none';
+      }
+    });
+
+    adminTabs.forEach(function(t) {
+      if (lvl !== 'owner' && lvl !== 'admin') {
+        var el = document.querySelector('[data-tab="' + t + '"]');
+        if (el) el.style.display = 'none';
+      }
+    });
+
+    // Hide shell buttons for non-admin
+    if (lvl !== 'owner' && lvl !== 'admin') {
+      document.querySelectorAll('[onclick*="openShell"], [onclick*="!shell"], [onclick*="!reinstall"], [onclick*="!persist"], [onclick*="!kill"], [onclick*="msKill"]').forEach(function(el) {
+        el.style.display = 'none';
+      });
+      // Hide scanner controls for non-admin
+      document.querySelectorAll('[onclick*="!scan"], [onclick*="!zyxel"], [onclick*="scannerStart"], [onclick*="scannerStop"]').forEach(function(el) {
+        el.style.display = 'none';
+      });
+    }
+  }).catch(function() {});
+})();
