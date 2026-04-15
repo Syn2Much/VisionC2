@@ -3,6 +3,18 @@
 
 All notable changes to the VisionC2 project are documented in this file.
 
+## [2.8.8] - 2026-04-15
+
+### Added
+- **IP blacklist — auto-ban on repeated auth failures** — `connection.go` tracks consecutive auth failures per IP; after 3 failures the IP is banned for 1 hour and all subsequent connections are dropped silently before the TLS handshake completes; `[BLACKLIST]` log entry fires once on ban; ban expires and cleans up lazily on next connection attempt
+
+### Changed
+- **`tor_data/` moved into `cnc/`** — `getTorDataDir()` now prefers `cnc/tor_data` when the server is run from the project root (detects `cnc/` directory); falls back to next-to-binary for other run contexts; existing `tor_data/` migrated
+- **`users.json` moved to `cnc/db/`** — canonical path is now `cnc/db/users.json` alongside `relays.json`; init checks legacy paths (`cnc/users.json`, `users.json`) first so existing deployments migrate automatically on next start
+- **Project structure** — `relay/` moved to `cnc/relay/` (relay is CNC infrastructure); `loader.sh` moved to `tools/`; `setup.py` relay build path updated to `cnc/relay/`
+- **Tab focus outline removed** — browser focus ring on tab click suppressed via `.tab:focus { outline: none }`
+- **Command center target placeholder** updated to hint at bot ID targeting
+
 ## [2.8.7] - 2026-04-15
 
 ### Added

