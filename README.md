@@ -92,7 +92,7 @@ TLS 1.3 over port 443 with AES-256-CTR config encryption. 6-layer C2 address obf
 ### Dependencies
 
 ```bash
-sudo apt update && apt install -y openssl git wget gcc python3 screen tor
+sudo apt update && apt install -y openssl git wget gcc python3 screen tor upx-ucl
 
 # Install Go 1.24+
 wget https://go.dev/dl/go1.24.1.linux-amd64.tar.gz

