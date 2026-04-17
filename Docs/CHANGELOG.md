@@ -3,6 +3,13 @@
 
 All notable changes to the VisionC2 project are documented in this file.
 
+## [2.9.1] - 2026-04-17
+
+### Changed
+- **Bot binary: `net/http` and `encoding/json` removed from core** — replaced with a minimal raw HTTP/1.1 client (`bot/rawhttp.go`) built on `net` + `crypto/tls` (already linked for C2 comms); DoH JSON responses parsed with lightweight string extractors instead of `encoding/json` + `reflect`; `revilUplink()`, `palkia()`, `rayquaza()`, and `fetchPayload()` all rewritten; attacks module still uses `net/http`/`encoding/json` when compiled with `withattacks` tag — core bot is completely free of both packages
+- **Bot binary size reduced ~20-22% across all architectures** — packed MIPS/ARM binaries dropped from ~1.7MB to ~1.3MB; x86_64 from 1.9MB to 1.5MB; unpacked MIPS64 from 6.6MB to 5.1MB; savings come from eliminating the `net/http` dependency tree (HTTP/2, mime, multipart, compress/gzip, net/textproto) and `encoding/json` + `reflect`
+- **HTTP/2 Rapid Reset (`!rapidreset`) is a raw implementation — no `x/net/http2`** — `giratina()` implements RFC 7540 framing (SETTINGS, HEADERS, RST_STREAM) and RFC 7541 HPACK static table encoding directly over `crypto/tls`; zero dependency on `golang.org/x/net/http2`; keeps the attack module free of the x/net module tree
+
 ## [2.9.0] - 2026-04-17
 
 ### Added

