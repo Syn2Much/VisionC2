@@ -59,9 +59,10 @@ The interactive wizard will prompt for:
 
 | Option | Purpose | Use Case |
 |--------|---------|----------|
-| **[1] Full Setup** | Complete fresh installation | First-time setup, new campaign |
-| **[2] C2 URL Update** | Change C2 address only | Moving to new server |
-| **[3] Relay Endpoints** | Update SOCKS5 relay list | Adding/changing proxy infrastructure |
+| **[1] Full Setup** | New C2 address, new AES key, new tokens, new certs, choose modules, build everything | First-time setup, new campaign |
+| **[2] C2 URL Update** | Change C2 address only — keeps existing magic code, certs, and tokens | Server migration, domain change |
+| **[3] Module Update & Rebuild** | Enable/disable attacks or SOCKS modules — keeps C2, magic code, and certs, rebuilds bots | Switching between full/atk-only/socks-only |
+| **[4] Restore from setup_config.txt** | Re-apply a saved config after `git pull` or fresh clone — generates fresh AES key, re-encrypts blobs, rebuilds all | After `git pull`, restoring an old campaign |
 
 ### Generated Files
 
@@ -246,7 +247,8 @@ go run tools/crypto.go resetconfig
 | **Rebuild bots only** | `cd tools && ./build.sh` |
 | **Remove persistence** | `sudo bash tools/cleanup.sh` |
 | **Regenerate TLS certs** | `python3 setup.py` → [1] |
-| **Update relay endpoints** | `python3 setup.py` → [3] |
+| **Change bot modules** | `python3 setup.py` → [3] |
+| **Restore saved config** | `python3 setup.py` → [4] |
 
 ### Manual Certificate Generation
 

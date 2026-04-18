@@ -796,6 +796,7 @@ def build_relay(base_path: str) -> bool:
         go = find_go()
         info(f"Building relay server... ({go})")
         relay_path = os.path.join(base_path, "cnc", "relay")
+        dst = os.path.join(base_path, "relay_server")
         env = dict(os.environ)
         env["CGO_ENABLED"] = "0"
         result = subprocess.run(
@@ -805,7 +806,7 @@ def build_relay(base_path: str) -> bool:
                 "-trimpath",
                 "-ldflags=-s -w -buildid=",
                 "-o",
-                "relay",
+                dst,
                 ".",
             ],
             cwd=relay_path,
@@ -818,12 +819,7 @@ def build_relay(base_path: str) -> bool:
             error(f"Build failed: {result.stderr}")
             return False
 
-        # Copy binary to main directory
-        src = os.path.join(relay_path, "relay")
-        dst = os.path.join(base_path, "relay_server")
-        shutil.copy2(src, dst)
-        info(f"Copied relay binary to {dst}")
-
+        info(f"Built relay binary to {dst}")
         return True
     except FileNotFoundError:
         error("Go not found. Please install Go 1.24+")
